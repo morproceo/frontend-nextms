@@ -21,7 +21,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
-  MoreHorizontal
+  MoreHorizontal,
+  Wrench,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
@@ -47,6 +49,13 @@ const navigation = [
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: DollarSign },
+  {
+    name: 'Tools',
+    icon: Wrench,
+    children: [
+      { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap }
+    ]
+  },
   {
     name: 'Settings',
     icon: Settings,

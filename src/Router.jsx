@@ -65,6 +65,9 @@ import ExpenseDetailPage from './pages/expenses/ExpenseDetailPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 
+// Tools
+import { AvaPage, AvaTruckDetailPage, AvaSettingsPage } from './pages/tools';
+
 /**
  * Protected Route wrapper
  * Redirects to login if not authenticated
@@ -268,6 +271,9 @@ export function Router() {
             <Route path="invoices" element={<PlaceholderPage title="Invoices" />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/billing" element={<BillingPage />} />
+            <Route path="tools/ava" element={<AvaPage />} />
+            <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
+            <Route path="tools/ava/:truckId" element={<AvaTruckDetailPage />} />
           </Route>
         </Route>
 
