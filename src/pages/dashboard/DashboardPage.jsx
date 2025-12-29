@@ -47,41 +47,41 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-title text-text-primary">Dashboard</h1>
+        <h1 className="text-xl sm:text-title text-text-primary">Dashboard</h1>
         <p className="text-body-sm text-text-secondary mt-1">
           Welcome back to {currentOrg?.name}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => (
-          <Card key={stat.name} padding="default">
+          <Card key={stat.name} padding="compact" className="p-3 sm:p-4">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-body-sm text-text-secondary">{stat.name}</p>
-                <p className="text-headline text-text-primary mt-1">{stat.value}</p>
-                <div className="flex items-center gap-1 mt-2">
+              <div className="min-w-0">
+                <p className="text-[11px] sm:text-body-sm text-text-secondary truncate">{stat.name}</p>
+                <p className="text-title-sm sm:text-headline text-text-primary mt-0.5 sm:mt-1">{stat.value}</p>
+                <div className="flex items-center gap-1 mt-1 sm:mt-2">
                   {stat.changeType === 'positive' ? (
-                    <ArrowUpRight className="w-4 h-4 text-success" />
+                    <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4 text-success" />
                   ) : (
-                    <ArrowDownRight className="w-4 h-4 text-error" />
+                    <ArrowDownRight className="w-3 h-3 sm:w-4 sm:h-4 text-error" />
                   )}
                   <span
-                    className={`text-small font-medium ${
+                    className={`text-[10px] sm:text-small font-medium ${
                       stat.changeType === 'positive' ? 'text-success' : 'text-error'
                     }`}
                   >
                     {stat.change}
                   </span>
-                  <span className="text-small text-text-tertiary">vs last month</span>
+                  <span className="text-[10px] sm:text-small text-text-tertiary hidden sm:inline">vs last month</span>
                 </div>
               </div>
-              <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                <stat.icon className="w-5 h-5 text-accent" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-accent/10 rounded-lg flex items-center justify-center shrink-0">
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
               </div>
             </div>
           </Card>

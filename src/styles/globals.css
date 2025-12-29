@@ -233,4 +233,80 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* ============================================
+     Mobile-First Utilities
+     ============================================ */
+
+  /* Hide on mobile, show on desktop */
+  .desktop-only {
+    @apply hidden lg:block;
+  }
+
+  /* Show on mobile, hide on desktop */
+  .mobile-only {
+    @apply block lg:hidden;
+  }
+
+  /* Mobile-friendly touch targets (44px minimum) */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Mobile card list item */
+  .mobile-list-item {
+    @apply bg-white rounded-card p-4 shadow-card mb-3
+           active:scale-[0.98] transition-transform touch-manipulation;
+  }
+
+  /* Responsive text that scales down on mobile */
+  .text-responsive-lg {
+    @apply text-title-sm sm:text-title lg:text-headline;
+  }
+
+  .text-responsive-md {
+    @apply text-body sm:text-title-sm;
+  }
+
+  /* Full-width button on mobile */
+  .btn-mobile-full {
+    @apply w-full sm:w-auto;
+  }
+
+  /* Stack on mobile, row on desktop */
+  .stack-mobile {
+    @apply flex flex-col sm:flex-row;
+  }
+
+  /* Mobile-optimized spacing */
+  .space-mobile {
+    @apply space-y-3 sm:space-y-0 sm:space-x-4;
+  }
+
+  /* Bottom sheet style for mobile modals */
+  .mobile-sheet {
+    @apply fixed inset-x-0 bottom-0 rounded-t-2xl bg-white shadow-elevated
+           max-h-[90vh] overflow-y-auto safe-bottom;
+  }
+
+  /* Sticky mobile header */
+  .mobile-sticky-header {
+    @apply sticky top-0 z-20 bg-white/95 backdrop-blur-sm
+           border-b border-surface-tertiary px-4 py-3;
+  }
+
+  /* Mobile action bar (fixed bottom) */
+  .mobile-action-bar {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t
+           border-surface-tertiary p-4 safe-bottom z-40;
+  }
 }

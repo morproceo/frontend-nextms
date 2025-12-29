@@ -68,18 +68,18 @@ export function TrucksListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-title text-text-primary">Trucks</h1>
-          <p className="text-body-sm text-text-secondary mt-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-title text-text-primary">Trucks</h1>
+          <p className="text-body-sm text-text-secondary mt-1 hidden sm:block">
             Manage your fleet's trucks and power units
           </p>
         </div>
-        <Button onClick={handleAddTruck}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Truck
+        <Button onClick={handleAddTruck} className="shrink-0">
+          <Plus className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Add Truck</span>
         </Button>
       </div>
 

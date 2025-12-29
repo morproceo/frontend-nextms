@@ -26,6 +26,15 @@ const navigation = [
   { name: 'Settings', href: '/driver/settings', icon: Settings }
 ];
 
+// Mobile bottom navigation - most used for drivers
+const mobileNavigation = [
+  { name: 'Home', href: '/driver', icon: LayoutDashboard, exact: true },
+  { name: 'Loads', href: '/driver/loads', icon: Package },
+  { name: 'Expenses', href: '/driver/expenses', icon: Receipt },
+  { name: 'Earnings', href: '/driver/earnings', icon: DollarSign },
+  { name: 'Settings', href: '/driver/settings', icon: Settings }
+];
+
 export function DriverShell() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -190,10 +199,35 @@ export function DriverShell() {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-surface-tertiary lg:hidden z-40 safe-bottom">
+        <div className="flex items-center justify-around h-16">
+          {mobileNavigation.map((item) => {
+            const isActive = item.exact
+              ? location.pathname === item.href
+              : location.pathname.startsWith(item.href) && item.href !== '/driver';
+
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  'flex flex-col items-center justify-center flex-1 h-full transition-colors',
+                  isActive ? 'text-accent' : 'text-text-tertiary'
+                )}
+              >
+                <item.icon className={cn('w-5 h-5 mb-1', isActive && 'stroke-[2.5px]')} />
+                <span className="text-[10px] font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

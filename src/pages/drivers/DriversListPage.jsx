@@ -67,18 +67,18 @@ export function DriversListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-title text-text-primary">Drivers</h1>
-          <p className="text-body-sm text-text-secondary mt-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-title text-text-primary">Drivers</h1>
+          <p className="text-body-sm text-text-secondary mt-1 hidden sm:block">
             Manage your organization's driver profiles
           </p>
         </div>
-        <Button onClick={handleAddDriver}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Driver
+        <Button onClick={handleAddDriver} className="shrink-0">
+          <Plus className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Add Driver</span>
         </Button>
       </div>
 
@@ -244,30 +244,30 @@ export function DriversListPage() {
 
       {/* Summary Stats */}
       {allDrivers.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Total Drivers</p>
-            <p className="text-headline text-text-primary">{stats.total}</p>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Total</p>
+            <p className="text-title-sm sm:text-headline text-text-primary">{stats.total}</p>
           </Card>
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Active</p>
-            <p className="text-headline text-success">{stats.active}</p>
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Active</p>
+            <p className="text-title-sm sm:text-headline text-success">{stats.active}</p>
           </Card>
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Invited</p>
-            <p className="text-headline text-warning">{stats.pending}</p>
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Invited</p>
+            <p className="text-title-sm sm:text-headline text-warning">{stats.pending}</p>
           </Card>
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Unclaimed</p>
-            <p className="text-headline text-text-tertiary">{stats.unclaimed}</p>
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Unclaimed</p>
+            <p className="text-title-sm sm:text-headline text-text-tertiary">{stats.unclaimed}</p>
           </Card>
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Left</p>
-            <p className="text-headline text-error">{stats.left}</p>
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Left</p>
+            <p className="text-title-sm sm:text-headline text-error">{stats.left}</p>
           </Card>
-          <Card padding="compact">
-            <p className="text-small text-text-secondary">Driving Now</p>
-            <p className="text-headline text-accent">{stats.driving}</p>
+          <Card padding="compact" className="text-center sm:text-left">
+            <p className="text-[10px] sm:text-small text-text-secondary">Driving</p>
+            <p className="text-title-sm sm:text-headline text-accent">{stats.driving}</p>
           </Card>
         </div>
       )}

@@ -173,55 +173,55 @@ export function DriverDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Header */}
       <div>
-        <h1 className="text-headline text-text-primary">
+        <h1 className="text-xl sm:text-headline text-text-primary">
           Welcome back, {driverName}
         </h1>
-        <p className="text-body text-text-secondary mt-1">
+        <p className="text-body-sm sm:text-body text-text-secondary mt-1">
           Here's your overview for today
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-success" />
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
             </div>
-            <div>
-              <p className="text-small text-text-tertiary">This Week</p>
-              <p className="text-title text-text-primary">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-small text-text-tertiary">This Week</p>
+              <p className="text-body sm:text-title text-text-primary font-semibold truncate">
                 {formatCurrency(stats?.earningsThisWeek || 0)}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-warning" />
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
             </div>
             <div>
-              <p className="text-small text-text-tertiary">Pending Loads</p>
-              <p className="text-title text-text-primary">
+              <p className="text-[10px] sm:text-small text-text-tertiary">Pending</p>
+              <p className="text-body sm:text-title text-text-primary font-semibold">
                 {stats?.pendingLoads || 0}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-accent" />
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
             </div>
             <div>
-              <p className="text-small text-text-tertiary">Completed</p>
-              <p className="text-title text-text-primary">
+              <p className="text-[10px] sm:text-small text-text-tertiary">Done</p>
+              <p className="text-body sm:text-title text-text-primary font-semibold">
                 {stats?.completedThisWeek || 0}
               </p>
             </div>
@@ -231,18 +231,18 @@ export function DriverDashboard() {
 
       {/* Current Load */}
       {currentLoad ? (
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Truck className="w-5 h-5 text-accent" />
-              <h2 className="text-title text-text-primary">Current Load</h2>
+              <h2 className="text-body sm:text-title font-semibold text-text-primary">Current Load</h2>
             </div>
-            <span className="text-small font-medium text-accent bg-accent/10 px-2 py-1 rounded-chip">
+            <span className="text-[10px] sm:text-small font-medium text-accent bg-accent/10 px-2 py-1 rounded-chip">
               {currentLoad.status?.replace('_', ' ').toUpperCase()}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Route */}
             <div className="space-y-4">
               <div className="flex items-start gap-3">

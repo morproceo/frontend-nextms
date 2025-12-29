@@ -20,7 +20,8 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  Receipt
+  Receipt,
+  MoreHorizontal
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
@@ -54,6 +55,15 @@ const navigation = [
       { name: 'Billing', href: '/settings/billing', icon: CreditCard }
     ]
   }
+];
+
+// Mobile bottom navigation - most used items
+const mobileNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Loads', href: '/loads', icon: Package },
+  { name: 'Drivers', href: '/drivers', icon: Users },
+  { name: 'Expenses', href: '/expenses', icon: Receipt },
+  { name: 'More', icon: MoreHorizontal, isMore: true }
 ];
 
 export function AppShell() {
@@ -417,10 +427,47 @@ export function AppShell() {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-surface-tertiary lg:hidden z-40 safe-bottom">
+        <div className="flex items-center justify-around h-16">
+          {mobileNavigation.map((item) => {
+            if (item.isMore) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setSidebarOpen(true)}
+                  className="flex flex-col items-center justify-center flex-1 h-full text-text-tertiary"
+                >
+                  <item.icon className="w-5 h-5 mb-1" />
+                  <span className="text-[10px] font-medium">{item.name}</span>
+                </button>
+              );
+            }
+
+            const href = `${basePath}${item.href}`;
+            const isActive = location.pathname.startsWith(href);
+
+            return (
+              <Link
+                key={item.name}
+                to={href}
+                className={cn(
+                  'flex flex-col items-center justify-center flex-1 h-full transition-colors',
+                  isActive ? 'text-accent' : 'text-text-tertiary'
+                )}
+              >
+                <item.icon className={cn('w-5 h-5 mb-1', isActive && 'stroke-[2.5px]')} />
+                <span className="text-[10px] font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* Subscription Blocker (show when expired, except on billing page) */}
       {isExpired && !isBillingPage && <SubscriptionBlocker />}

@@ -30,7 +30,11 @@ import {
   FileText,
   AlertTriangle,
   MoreHorizontal,
-  Package
+  Package,
+  MapPin,
+  ArrowRight,
+  Calendar,
+  ChevronRight
 } from 'lucide-react';
 
 export function LoadsListPage() {
@@ -128,23 +132,35 @@ export function LoadsListPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-text-primary">Loads</h1>
-          <Badge variant="gray" size="sm">{stats.total}</Badge>
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">Loads</h1>
+          <Badge variant="gray" size="sm" className="hidden sm:inline-flex">{stats.total}</Badge>
         </div>
 
-        <Button onClick={() => setShowLoadModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Load
+        <Button onClick={() => setShowLoadModal(true)} className="shrink-0">
+          <Plus className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">New Load</span>
         </Button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Search - Mobile First */}
+      <div className="relative lg:hidden">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+        <input
+          type="text"
+          placeholder="Search loads..."
+          value={filters.search}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-3 py-3 bg-white border border-surface-tertiary rounded-xl text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+        />
+      </div>
+
+      {/* Quick Stats - Horizontal Scroll on Mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
         <button
           onClick={() => setStatusFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
             filters.status === 'all'
               ? 'bg-accent text-white'
               : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
@@ -159,7 +175,7 @@ export function LoadsListPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
                 filters.status === status
                   ? 'bg-accent text-white'
                   : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
@@ -170,9 +186,8 @@ export function LoadsListPage() {
           );
         })}
 
-        {/* Search & Total */}
-        <div className="flex-1" />
-        <div className="flex items-center gap-4">
+        {/* Search & Total - Desktop */}
+        <div className="hidden lg:flex flex-1 items-center justify-end gap-4">
           <div className="text-sm">
             <span className="text-text-tertiary">Revenue: </span>
             <span className="font-semibold text-text-primary">
@@ -192,6 +207,12 @@ export function LoadsListPage() {
         </div>
       </div>
 
+      {/* Mobile Revenue Summary */}
+      <div className="flex items-center justify-between text-sm lg:hidden bg-white rounded-lg px-4 py-3 border border-surface-tertiary">
+        <span className="text-text-tertiary">Total Revenue</span>
+        <span className="font-semibold text-text-primary">{formatCurrency(filteredStats.totalRevenue)}</span>
+      </div>
+
       {/* Error State */}
       {error && (
         <Card padding="default" className="bg-error/5 border border-error/20">
@@ -205,8 +226,109 @@ export function LoadsListPage() {
         </Card>
       )}
 
-      {/* Table */}
-      <Card padding="none" className="overflow-hidden border border-surface-tertiary">
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3">
+        {loads.length === 0 ? (
+          <Card padding="default" className="text-center py-12">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center">
+                <Package className="w-6 h-6 text-text-tertiary" />
+              </div>
+              <div>
+                <p className="text-text-primary font-medium">
+                  {allLoads.length === 0 ? 'No loads yet' : 'No loads match your filters'}
+                </p>
+                <p className="text-sm text-text-tertiary mt-1">
+                  {allLoads.length === 0 ? 'Create your first load to get started' : 'Try adjusting your search or filters'}
+                </p>
+              </div>
+              {allLoads.length === 0 && (
+                <Button onClick={() => setShowLoadModal(true)} className="mt-2">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Load
+                </Button>
+              )}
+            </div>
+          </Card>
+        ) : (
+          loads.map((load) => {
+            const status = getStatusConfig(LoadStatusConfig, load.status, {
+              label: load.status,
+              variant: 'gray',
+              icon: Package
+            });
+            const StatusIcon = status.icon;
+
+            return (
+              <div
+                key={load.id}
+                onClick={() => handleLoadClick(load.id)}
+                className="bg-white rounded-xl p-4 border border-surface-tertiary active:scale-[0.98] transition-transform cursor-pointer"
+              >
+                {/* Top Row: Load # and Status */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-accent text-lg">
+                      #{load.reference_number?.replace('LD-', '') || '-'}
+                    </span>
+                    {load.attachments?.length > 0 && (
+                      <FileText className="w-4 h-4 text-text-tertiary" />
+                    )}
+                  </div>
+                  <Badge variant={status.variant} size="sm" className="gap-1">
+                    <StatusIcon className="w-3 h-3" />
+                    {status.label}
+                  </Badge>
+                </div>
+
+                {/* Route: Origin → Destination */}
+                <div className="flex items-center gap-2 mb-3 text-sm">
+                  <MapPin className="w-4 h-4 text-success shrink-0" />
+                  <span className="text-text-primary truncate">{getLocationShort(load.shipper)}</span>
+                  <ArrowRight className="w-4 h-4 text-text-tertiary shrink-0" />
+                  <MapPin className="w-4 h-4 text-error shrink-0" />
+                  <span className="text-text-primary truncate">{getLocationShort(load.consignee)}</span>
+                </div>
+
+                {/* Info Row */}
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-text-secondary">
+                      <Calendar className="w-4 h-4" />
+                      <span>{formatDate(load.schedule?.pickup_date)}</span>
+                    </div>
+                    {load.driver && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
+                          <span className="text-[10px] font-semibold text-accent">
+                            {load.driver.first_name?.[0]}{load.driver.last_name?.[0]}
+                          </span>
+                        </div>
+                        <span className="text-text-secondary">{load.driver.first_name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-semibold text-text-primary">
+                    {formatCurrency(load.financials?.revenue)}
+                  </span>
+                </div>
+
+                {/* Broker Info */}
+                {(load.broker?.name || load.broker_name) && (
+                  <div className="mt-2 pt-2 border-t border-surface-tertiary">
+                    <p className="text-xs text-text-tertiary truncate">
+                      Broker: {load.broker?.name || load.broker_name}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <Card padding="none" className="overflow-hidden border border-surface-tertiary hidden lg:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-surface-secondary/50">
