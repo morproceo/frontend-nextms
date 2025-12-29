@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   Apple + Tesla Design System - Global Styles
+   ============================================ */
+
+@layer base {
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Base body styles */
+  body {
+    @apply bg-surface text-text-primary font-sans;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  /* Focus states - Apple style */
+  *:focus-visible {
+    @apply outline-none ring-4 ring-accent/20 ring-offset-0;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-accent/20 text-text-primary;
+  }
+
+  /* Scrollbar styling (webkit) */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-text-tertiary/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-tertiary/50;
+  }
+}
+
+@layer components {
+  /* ============================================
+     Button Variants
+     ============================================ */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           font-medium transition-all duration-200
+           rounded-button px-6 py-3
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white
+           hover:bg-accent-hover active:bg-accent-active
+           shadow-button hover:shadow-card;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface-secondary text-text-primary
+           hover:bg-surface-tertiary;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-accent
+           hover:bg-accent/5;
+  }
+
+  .btn-danger {
+    @apply btn bg-error text-white
+           hover:bg-error/90;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-body-sm;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-body;
+  }
+
+  /* ============================================
+     Card Styles
+     ============================================ */
+
+  .card {
+    @apply bg-white rounded-card shadow-card p-6
+           transition-shadow duration-200
+           hover:shadow-card-hover;
+  }
+
+  .card-flat {
+    @apply bg-surface-secondary rounded-card p-6;
+  }
+
+  /* ============================================
+     Input Styles
+     ============================================ */
+
+  .input {
+    @apply w-full px-4 py-3
+           bg-surface-secondary text-text-primary
+           border border-transparent rounded-input
+           placeholder:text-text-tertiary
+           transition-all duration-200
+           focus:bg-white focus:border-accent focus:shadow-input-focus
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-error {
+    @apply border-error focus:border-error focus:ring-error/20;
+  }
+
+  /* ============================================
+     Badge/Chip Styles
+     ============================================ */
+
+  .badge {
+    @apply inline-flex items-center gap-1
+           px-2.5 py-1 rounded-chip
+           text-small font-medium;
+  }
+
+  .badge-gray {
+    @apply badge bg-surface-tertiary text-text-secondary;
+  }
+
+  .badge-blue {
+    @apply badge bg-accent/10 text-accent;
+  }
+
+  .badge-green {
+    @apply badge bg-success/10 text-success;
+  }
+
+  .badge-yellow {
+    @apply badge bg-warning/10 text-warning;
+  }
+
+  .badge-red {
+    @apply badge bg-error/10 text-error;
+  }
+
+  /* ============================================
+     Loading States
+     ============================================ */
+
+  .skeleton {
+    @apply bg-surface-tertiary animate-pulse rounded;
+  }
+
+  .spinner {
+    @apply w-5 h-5 border-2 border-current border-t-transparent
+           rounded-full animate-spin;
+  }
+
+  /* ============================================
+     Typography Utilities
+     ============================================ */
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent to-purple-500
+           bg-clip-text text-transparent;
+  }
+
+  /* ============================================
+     Layout Utilities
+     ============================================ */
+
+  .container-narrow {
+    @apply max-w-md mx-auto px-4;
+  }
+
+  .container-default {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ============================================
+     Glass Effect (Tesla-inspired)
+     ============================================ */
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-glass
+           border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-surface-inverse/80 backdrop-blur-glass
+           border border-white/10;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text truncation */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
