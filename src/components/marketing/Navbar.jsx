@@ -36,13 +36,8 @@ export function Navbar() {
         <div className="container">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-[#0066FF] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">N</span>
-              </div>
-              <span className="text-lg font-semibold text-white tracking-tight">
-                NEXT
-              </span>
+            <Link to="/" className="flex items-center">
+              <img src="/next_tms_logo_white.svg" alt="Next TMS" className="h-8 w-auto" />
             </Link>
 
             {/* Desktop Navigation */}
