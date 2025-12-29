@@ -312,7 +312,7 @@ export function AvaTruckDetailPage() {
                                 {analysis.possibleCauses.map((cause, i) => (
                                   <li key={i} className="text-body-sm text-text-secondary flex items-start gap-2">
                                     <span className="text-text-tertiary">•</span>
-                                    {cause}
+                                    {typeof cause === 'object' ? (cause.description || cause.cause || JSON.stringify(cause)) : cause}
                                   </li>
                                 ))}
                               </ul>
@@ -322,12 +322,28 @@ export function AvaTruckDetailPage() {
                           {analysis.recommendedFixes?.length > 0 && (
                             <div>
                               <h4 className="text-small font-medium text-text-primary mb-2">Recommended Fixes</h4>
-                              <ol className="space-y-1 list-decimal list-inside">
-                                {analysis.recommendedFixes.map((fix, i) => (
-                                  <li key={i} className="text-body-sm text-text-secondary">
-                                    {fix}
-                                  </li>
-                                ))}
+                              <ol className="space-y-2">
+                                {analysis.recommendedFixes.map((fix, i) => {
+                                  // Handle both string and object formats
+                                  const isObject = typeof fix === 'object' && fix !== null;
+                                  return (
+                                    <li key={i} className="text-body-sm text-text-secondary flex items-start gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 bg-accent/10 rounded-full flex items-center justify-center text-small text-accent font-medium">
+                                        {i + 1}
+                                      </span>
+                                      <div className="flex-1">
+                                        <span>{isObject ? fix.action : fix}</span>
+                                        {isObject && (fix.difficulty || fix.estimatedTime) && (
+                                          <div className="flex items-center gap-2 mt-1 text-small text-text-tertiary">
+                                            {fix.difficulty && <span className="capitalize">{fix.difficulty}</span>}
+                                            {fix.difficulty && fix.estimatedTime && <span>•</span>}
+                                            {fix.estimatedTime && <span>{fix.estimatedTime}</span>}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
                               </ol>
                             </div>
                           )}
