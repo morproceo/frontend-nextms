@@ -277,14 +277,29 @@ export function LoadDetailPage() {
     return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
+  // Collapsible section state for mobile
+  const [expandedSections, setExpandedSections] = useState({
+    route: true,
+    broker: false,
+    assignment: false,
+    cargo: false,
+    billing: false,
+    documents: false,
+    notes: false
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen"><Spinner size="lg" /></div>;
   }
 
   if (error || !load) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-3">
-        <p className="text-gray-500">{error || 'Load not found'}</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-3 p-4">
+        <p className="text-gray-500 text-center">{error || 'Load not found'}</p>
         <Button variant="secondary" size="sm" onClick={() => navigate(orgUrl('/loads'))}>Back to Loads</Button>
       </div>
     );
@@ -311,28 +326,56 @@ export function LoadDetailPage() {
   const origin = load.shipper || {};
   const destination = load.consignee || {};
 
+  // Collapsible Section Component for mobile
+  const Section = ({ id, icon: Icon, title, badge, children, defaultOpen = false }) => {
+    const isOpen = expandedSections[id];
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <button
+          onClick={() => toggleSection(id)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Icon className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+            {badge}
+          </div>
+          <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        </button>
+        {isOpen && (
+          <div className="px-4 pb-4 border-t border-gray-100">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Top Header Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(orgUrl('/loads'))} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500">
+    <div className="min-h-screen flex flex-col bg-gray-50 lg:h-screen lg:overflow-hidden">
+      {/* Top Header Bar - Sticky on mobile */}
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 flex items-center justify-between flex-shrink-0 sticky top-0 z-30">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <button onClick={() => navigate(orgUrl('/loads'))} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-gray-900">{load.reference_number}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{load.reference_number}</h1>
               {load.customer_load_number && (
-                <span className="text-sm text-gray-500">PO: {load.customer_load_number}</span>
+                <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">PO: {load.customer_load_number}</span>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => {}}>
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <Button size="sm" onClick={() => {}} className="hidden sm:flex">
             <Send className="w-4 h-4 mr-1.5" />
             Dispatch
+          </Button>
+          <Button size="sm" onClick={() => {}} className="sm:hidden p-2">
+            <Send className="w-4 h-4" />
           </Button>
           <div className="relative">
             <button
@@ -359,9 +402,9 @@ export function LoadDetailPage() {
         </div>
       </div>
 
-      {/* Status Flow Bar */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
+      {/* Status Flow Bar - Horizontal Scroll on Mobile */}
+      <div className="bg-white border-b border-gray-200 px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 sm:justify-between sm:max-w-4xl sm:mx-auto min-w-max sm:min-w-0">
           {statusFlow.map((status, idx) => {
             const isActive = status.value === load.status;
             const isPast = idx < currentStatusIndex;
@@ -371,25 +414,26 @@ export function LoadDetailPage() {
               <div key={status.value} className="flex items-center">
                 <button
                   onClick={() => updateStatus(status.value)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                     isActive
-                      ? `bg-${status.color}-100 text-${status.color}-700 ring-2 ring-${status.color}-400 ring-offset-2`
+                      ? `bg-${status.color}-100 text-${status.color}-700 ring-2 ring-${status.color}-400 ring-offset-1 sm:ring-offset-2`
                       : isPast
                       ? 'bg-gray-100 text-gray-600'
                       : 'text-gray-400 hover:bg-gray-50'
                   }`}
                 >
                   {isPast ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
                   ) : isActive ? (
-                    <Circle className="w-4 h-4 fill-current" />
+                    <Circle className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
                   ) : (
-                    <Circle className="w-4 h-4" />
+                    <Circle className="w-3 h-3 sm:w-4 sm:h-4" />
                   )}
-                  {status.label}
+                  <span className="hidden sm:inline">{status.label}</span>
+                  <span className="sm:hidden">{status.label.split(' ')[0]}</span>
                 </button>
                 {idx < statusFlow.length - 1 && (
-                  <ChevronRight className={`w-4 h-4 mx-1 ${isPast ? 'text-green-400' : 'text-gray-300'}`} />
+                  <ChevronRight className={`w-3 h-3 sm:w-4 sm:h-4 mx-0.5 sm:mx-1 ${isPast ? 'text-green-400' : 'text-gray-300'}`} />
                 )}
               </div>
             );
@@ -397,14 +441,14 @@ export function LoadDetailPage() {
         </div>
       </div>
 
-      {/* Main Content - No Scroll */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Left - Map */}
-        <div className="w-1/2 h-full relative">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+        {/* Map Section - Full width on mobile, half on desktop */}
+        <div className="h-[280px] sm:h-[320px] lg:h-full lg:w-1/2 relative shrink-0">
           {/* Mapbox Route Map */}
           <LoadRouteMap
             loadId={loadId}
-            className="absolute inset-0 min-h-[400px]"
+            className="absolute inset-0"
             showOverlay={false}
             refreshKey={routeRefreshCounter}
             onRouteLoaded={handleRouteLoaded}
@@ -412,14 +456,40 @@ export function LoadDetailPage() {
 
           {/* Refresh Indicator */}
           {routeRefreshing && (
-            <div className="absolute top-4 right-4 z-20 bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 text-sm">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Updating route...
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 bg-blue-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+              <span className="hidden sm:inline">Updating route...</span>
             </div>
           )}
 
-          {/* Route Info Overlay - Compact Header */}
-          <div className="absolute top-4 left-4 right-4 z-10">
+          {/* Mobile Route Summary - Compact */}
+          <div className="absolute top-2 left-2 right-2 z-10 lg:hidden">
+            <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg p-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="font-medium text-gray-900 truncate max-w-[80px]">
+                    {origin.city || 'Origin'}{origin.state ? `, ${origin.state}` : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-gray-400">
+                  <div className="w-3 h-0.5 bg-gray-300" />
+                  {stops.length > 0 && <span className="text-[10px]">+{stops.length}</span>}
+                  <ChevronRight className="w-3 h-3" />
+                  <div className="w-3 h-0.5 bg-gray-300" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium text-gray-900 truncate max-w-[80px]">
+                    {destination.city || 'Dest'}{destination.state ? `, ${destination.state}` : ''}
+                  </span>
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Route Info Overlay */}
+          <div className="absolute top-4 left-4 right-4 z-10 hidden lg:block">
             <div className="bg-white/95 backdrop-blur rounded-xl shadow-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -440,9 +510,7 @@ export function LoadDetailPage() {
                 </button>
               </div>
 
-              {/* Quick Route Summary */}
               <div className="flex items-center gap-3">
-                {/* Origin */}
                 <div className="flex-1 group">
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
@@ -453,7 +521,6 @@ export function LoadDetailPage() {
                   </p>
                 </div>
 
-                {/* Route Line with Stops */}
                 <div className="flex items-center gap-1 px-2">
                   <div className="w-4 h-0.5 bg-gray-300" />
                   {stops.length > 0 && (
@@ -466,7 +533,6 @@ export function LoadDetailPage() {
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
 
-                {/* Destination */}
                 <div className="flex-1 text-right group">
                   <div className="flex items-center justify-end gap-2 mb-0.5">
                     <span className="text-[10px] font-medium text-gray-500 uppercase">Destination</span>
@@ -478,7 +544,6 @@ export function LoadDetailPage() {
                 </div>
               </div>
 
-              {/* Expanded Route Panel with StopsManager */}
               {showRoutePanel && (
                 <div className="mt-4 pt-4 border-t border-gray-100 max-h-[400px] overflow-y-auto">
                   <StopsManager
@@ -496,36 +561,227 @@ export function LoadDetailPage() {
             </div>
           </div>
 
-          {/* Financial Summary Overlay */}
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-white/95 backdrop-blur rounded-xl shadow-lg p-4">
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Revenue</p>
-                  <p className="text-xl font-bold text-gray-900">{fmt(revenue)}</p>
+          {/* Financial Summary - Bottom of map on mobile, desktop */}
+          <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 z-10">
+            <div className="bg-white/95 backdrop-blur rounded-lg sm:rounded-xl shadow-lg p-2.5 sm:p-4">
+              <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                <div className="text-center sm:text-left">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Revenue</p>
+                  <p className="text-sm sm:text-xl font-bold text-gray-900">{fmt(revenue)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Driver Pay</p>
-                  <p className="text-xl font-bold text-gray-900">{fmt(driverPay)}</p>
+                <div className="text-center sm:text-left">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Driver</p>
+                  <p className="text-sm sm:text-xl font-bold text-gray-900">{fmt(driverPay)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Margin</p>
-                  <p className={`text-xl font-bold ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="text-center sm:text-left">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Margin</p>
+                  <p className={`text-sm sm:text-xl font-bold ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {fmt(margin)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Rate/Mile</p>
-                  <p className="text-xl font-bold text-gray-900">${rpm.toFixed(2)}</p>
+                <div className="text-center sm:text-left">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">$/Mi</p>
+                  <p className="text-sm sm:text-xl font-bold text-gray-900">${rpm.toFixed(2)}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right - Info Panels */}
-        <div className="w-1/2 bg-gray-50 p-4 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4 h-full">
+        {/* Info Panels - Scrollable on mobile, grid on desktop */}
+        <div className="flex-1 lg:w-1/2 bg-gray-50 p-3 sm:p-4 overflow-y-auto pb-24 lg:pb-4">
+          {/* Mobile: Accordion Sections */}
+          <div className="space-y-3 lg:hidden">
+            {/* Route Section - Mobile */}
+            <Section id="route" icon={Route} title="Route & Stops" badge={stops.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-2">{stops.length + 2} stops</span>}>
+              <div className="pt-3">
+                <StopsManager
+                  load={load}
+                  stops={stops}
+                  onAddStop={handleAddStop}
+                  onUpdateStop={handleUpdateStop}
+                  onDeleteStop={handleDeleteStop}
+                  onReorderStops={handleReorderStops}
+                  onUpdateLoad={updateLoadFields}
+                  compact
+                />
+              </div>
+            </Section>
+
+            {/* Broker Section - Mobile */}
+            <Section id="broker" icon={Building2} title="Broker">
+              <div className="space-y-3 pt-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Company</p>
+                  <EditableField
+                    value={load.broker?.name || load.broker_name}
+                    onSave={(v) => updateField('broker_name', v)}
+                    placeholder="Add broker"
+                    className="font-medium text-gray-900"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">MC #</p>
+                    <EditableField
+                      value={load.broker?.mc || load.broker_mc}
+                      onSave={(v) => updateField('broker_mc', v)}
+                      className="text-sm text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">PO #</p>
+                    <EditableField
+                      value={load.customer_load_number}
+                      onSave={(v) => updateField('customer_load_number', v)}
+                      className="text-sm text-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* Assignment Section - Mobile */}
+            <Section id="assignment" icon={Truck} title="Assignment">
+              <div className="space-y-3 pt-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Driver</p>
+                  <select
+                    value={load.driver_id || ''}
+                    onChange={(e) => updateField('driver_id', e.target.value || null)}
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50"
+                  >
+                    <option value="">Select driver...</option>
+                    {drivers.map(d => (
+                      <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Truck</p>
+                    <p className="text-sm text-gray-700">{load.truck?.unit_number || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Trailer</p>
+                    <p className="text-sm text-gray-700">{load.trailer?.unit_number || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* Cargo Section - Mobile */}
+            <Section id="cargo" icon={Package} title="Cargo">
+              <div className="space-y-3 pt-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Commodity</p>
+                  <EditableField
+                    value={load.cargo?.commodity}
+                    onSave={(v) => updateField('commodity', v)}
+                    placeholder="General freight"
+                    className="text-sm text-gray-700"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Weight</p>
+                    <EditableField
+                      value={load.cargo?.weight_lbs?.toLocaleString()}
+                      onSave={(v) => updateField('weight_lbs', parseInt(v.replace(/,/g, '')))}
+                      suffix=" lbs"
+                      className="text-sm text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Pieces</p>
+                    <EditableField
+                      value={load.cargo?.pieces?.toString()}
+                      onSave={(v) => updateField('pieces', parseInt(v))}
+                      className="text-sm text-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* Billing Section - Mobile */}
+            <Section id="billing" icon={DollarSign} title="Billing">
+              <div className="space-y-3 pt-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <select
+                    value={load.billing_status || 'pending'}
+                    onChange={(e) => updateField('billing_status', e.target.value)}
+                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50"
+                  >
+                    {billingOptions.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                    <EditableField
+                      value={fmt(revenue)}
+                      onSave={(v) => updateField('revenue', parseFloat(v.replace(/[^0-9.-]/g, '')))}
+                      className="text-sm font-semibold text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Miles</p>
+                    <EditableField
+                      value={miles.toLocaleString()}
+                      onSave={(v) => updateField('miles', parseInt(v.replace(/,/g, '')))}
+                      className="text-sm text-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* Documents Section - Mobile */}
+            <Section id="documents" icon={FileText} title="Documents" badge={documents.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-2">{documents.length}</span>}>
+              <div className="pt-3">
+                {documents.length > 0 ? (
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        onClick={() => doc.viewUrl && window.open(doc.viewUrl, '_blank')}
+                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer text-sm"
+                      >
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <span className="flex-1 truncate text-gray-700">{doc.file_name}</span>
+                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="w-full mt-2 py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Upload documents
+                </button>
+              </div>
+            </Section>
+
+            {/* Notes Section - Mobile */}
+            <Section id="notes" icon={Clock} title="Notes">
+              <div className="pt-3">
+                <textarea
+                  value={load.notes || ''}
+                  onChange={(e) => updateField('notes', e.target.value)}
+                  placeholder="Add notes..."
+                  rows={4}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/50 resize-none"
+                />
+              </div>
+            </Section>
+          </div>
+
+          {/* Desktop: Grid Layout */}
+          <div className="hidden lg:grid grid-cols-2 gap-4 h-full">
             {/* Broker & Customer Info */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center gap-2 mb-3">
