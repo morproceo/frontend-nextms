@@ -101,8 +101,8 @@ export function DriverFormPage() {
         await updateFields(data);
         navigate(orgUrl(`/drivers/${driverId}`));
       } else {
-        const result = await createDriver(data);
-        navigate(orgUrl(`/drivers/${result.data.id}`));
+        const newDriver = await createDriver(data);
+        navigate(orgUrl(`/drivers/${newDriver.id}`));
       }
     } catch (err) {
       console.error('Failed to save driver:', err);
