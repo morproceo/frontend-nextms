@@ -49,11 +49,65 @@ import { LoadRouteMap } from '../../components/map';
 
 // Build status flow from centralized config (ordered for UI flow)
 const statusFlowOrder = ['new', 'booked', 'dispatched', 'in_transit', 'delivered', 'invoiced', 'paid'];
-const statusFlow = statusFlowOrder.map(status => ({
-  value: status,
-  label: LoadStatusConfig[status]?.label || status,
-  color: LoadStatusConfig[status]?.color || 'gray'
-}));
+
+// Color class mapping - Tailwind needs complete class names at build time
+const statusColorClasses = {
+  gray: {
+    bg: 'bg-gray-100',
+    text: 'text-gray-700',
+    ring: 'ring-gray-400'
+  },
+  blue: {
+    bg: 'bg-blue-100',
+    text: 'text-blue-700',
+    ring: 'ring-blue-400'
+  },
+  indigo: {
+    bg: 'bg-indigo-100',
+    text: 'text-indigo-700',
+    ring: 'ring-indigo-400'
+  },
+  purple: {
+    bg: 'bg-purple-100',
+    text: 'text-purple-700',
+    ring: 'ring-purple-400'
+  },
+  orange: {
+    bg: 'bg-orange-100',
+    text: 'text-orange-700',
+    ring: 'ring-orange-400'
+  },
+  green: {
+    bg: 'bg-green-100',
+    text: 'text-green-700',
+    ring: 'ring-green-400'
+  },
+  teal: {
+    bg: 'bg-teal-100',
+    text: 'text-teal-700',
+    ring: 'ring-teal-400'
+  },
+  emerald: {
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-700',
+    ring: 'ring-emerald-400'
+  },
+  red: {
+    bg: 'bg-red-100',
+    text: 'text-red-700',
+    ring: 'ring-red-400'
+  }
+};
+
+const statusFlow = statusFlowOrder.map(status => {
+  const color = LoadStatusConfig[status]?.color || 'gray';
+  return {
+    value: status,
+    label: LoadStatusConfig[status]?.label || status,
+    color,
+    classes: statusColorClasses[color] || statusColorClasses.gray
+  };
+});
 
 // Build billing options from centralized config
 const billingOptions = Object.entries(BillingStatusConfig).map(([value, config]) => ({
@@ -416,7 +470,7 @@ export function LoadDetailPage() {
                   onClick={() => updateStatus(status.value)}
                   className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                     isActive
-                      ? `bg-${status.color}-100 text-${status.color}-700 ring-2 ring-${status.color}-400 ring-offset-1 sm:ring-offset-2`
+                      ? `${status.classes.bg} ${status.classes.text} ring-2 ${status.classes.ring} ring-offset-1 sm:ring-offset-2`
                       : isPast
                       ? 'bg-gray-100 text-gray-600'
                       : 'text-gray-400 hover:bg-gray-50'
