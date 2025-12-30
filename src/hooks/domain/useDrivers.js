@@ -226,10 +226,11 @@ export function useDriver(driverId, options = {}) {
   const mutations = useDriverMutations();
   const invite = useDriverInvite(driverId);
 
-  // Fetch on mount if autoFetch
+  // Fetch driver and invite status on mount if autoFetch
   useEffect(() => {
     if (autoFetch && driverId) {
       detail.fetchDriver();
+      invite.getInviteStatus();
     }
   }, [autoFetch, driverId]);
 
@@ -267,6 +268,7 @@ export function useDriver(driverId, options = {}) {
   const sendInvite = useCallback(async () => {
     const result = await invite.inviteDriver();
     await detail.fetchDriver(); // Refetch to get updated membership status
+    await invite.getInviteStatus(); // Refetch invite status
     return result;
   }, [invite, detail]);
 
@@ -275,6 +277,7 @@ export function useDriver(driverId, options = {}) {
    */
   const resendInvite = useCallback(async () => {
     const result = await invite.resendInvite();
+    await invite.getInviteStatus(); // Refetch invite status
     return result;
   }, [invite]);
 
