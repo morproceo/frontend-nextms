@@ -5,6 +5,7 @@ import { Menu, X, ArrowRight } from 'lucide-react';
 
 const navLinks = [
   { name: 'Features', href: '#features' },
+  { name: 'AI', href: '/ai', isRoute: true },
   { name: 'Pricing', href: '#pricing' },
   { name: 'About', href: '#about' },
 ];
@@ -43,13 +44,23 @@ export function Navbar() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-10">
               {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-[15px] text-white/60 hover:text-white transition-colors duration-300"
-                >
-                  {link.name}
-                </a>
+                link.isRoute ? (
+                  <Link
+                    key={link.name}
+                    to={link.href}
+                    className="text-[15px] text-white/60 hover:text-white transition-colors duration-300"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="text-[15px] text-white/60 hover:text-white transition-colors duration-300"
+                  >
+                    {link.name}
+                  </a>
+                )
               ))}
             </div>
 
@@ -92,17 +103,34 @@ export function Navbar() {
           >
             <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-8">
               {navLinks.map((link, index) => (
-                <motion.a
-                  key={link.name}
-                  href={link.href}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-2xl font-medium text-white/80 hover:text-white"
-                >
-                  {link.name}
-                </motion.a>
+                link.isRoute ? (
+                  <motion.div
+                    key={link.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link
+                      to={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-2xl font-medium text-white/80 hover:text-white"
+                    >
+                      {link.name}
+                    </Link>
+                  </motion.div>
+                ) : (
+                  <motion.a
+                    key={link.name}
+                    href={link.href}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-2xl font-medium text-white/80 hover:text-white"
+                  >
+                    {link.name}
+                  </motion.a>
+                )
               ))}
 
               <motion.div

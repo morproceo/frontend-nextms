@@ -130,6 +130,20 @@ export function SearchableSelect({
       {/* Dropdown */}
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-elevated border border-surface-tertiary overflow-hidden">
+          {/* Add New Button - NOW AT TOP for easy access */}
+          {onAddNew && (
+            <div className="p-2 border-b border-surface-tertiary bg-accent/5">
+              <button
+                type="button"
+                onClick={handleAddNew}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-sm font-medium text-accent hover:bg-accent/10 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                {addNewLabel}
+              </button>
+            </div>
+          )}
+
           {/* Search Input */}
           <div className="p-2 border-b border-surface-tertiary">
             <div className="relative">
@@ -146,7 +160,7 @@ export function SearchableSelect({
           </div>
 
           {/* Options List */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto">
             {loading ? (
               <div className="px-3 py-4 text-center text-body-sm text-text-tertiary">
                 Loading...
@@ -180,20 +194,6 @@ export function SearchableSelect({
               ))
             )}
           </div>
-
-          {/* Add New Button */}
-          {onAddNew && (
-            <div className="border-t border-surface-tertiary p-2">
-              <button
-                type="button"
-                onClick={handleAddNew}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded text-body-sm text-accent hover:bg-accent/5 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                {addNewLabel}
-              </button>
-            </div>
-          )}
         </div>
       )}
 

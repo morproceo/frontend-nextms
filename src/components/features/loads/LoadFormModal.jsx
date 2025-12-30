@@ -39,9 +39,9 @@ export function LoadFormModal({ isOpen, onClose, onSuccess }) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {mode === null ? 'New Load' : mode === 'ai' ? 'AI Import' : 'Create Load'}
           </h2>
@@ -54,7 +54,7 @@ export function LoadFormModal({ isOpen, onClose, onSuccess }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto px-8 py-6 bg-white dark:bg-gray-900">
           {mode === null ? (
             // Mode Selection
             <div className="space-y-4">

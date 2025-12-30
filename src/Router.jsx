@@ -6,6 +6,7 @@ import { AppShell } from './components/layout/AppShell';
 
 // Marketing Pages
 import HomePage from './pages/marketing/HomePage';
+import AIPage from './pages/marketing/AIPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -279,6 +280,9 @@ export function Router() {
 
         {/* Marketing Homepage - redirect authenticated users */}
         <Route path="/" element={<HomeRoute />} />
+
+        {/* Marketing Pages - Public */}
+        <Route path="/ai" element={<AIPage />} />
 
         {/* 404 */}
         <Route path="*" element={

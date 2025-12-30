@@ -66,12 +66,14 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
     status: 'new',
     // Route
     shipper_facility_id: '',
+    shipper_facility_type: 'shipper',
     shipper_name: '',
     shipper_address: '',
     shipper_city: '',
     shipper_state: '',
     shipper_zip: '',
     consignee_facility_id: '',
+    consignee_facility_type: 'receiver',
     consignee_name: '',
     consignee_address: '',
     consignee_city: '',
@@ -481,9 +483,19 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
             reference_number: generateLoadNumber(),
             customer_load_number: '',
             shipper_facility_id: '',
+            shipper_facility_type: 'shipper',
             shipper_name: '',
+            shipper_address: '',
+            shipper_city: '',
+            shipper_state: '',
+            shipper_zip: '',
             consignee_facility_id: '',
+            consignee_facility_type: 'receiver',
             consignee_name: '',
+            consignee_address: '',
+            consignee_city: '',
+            consignee_state: '',
+            consignee_zip: '',
             pickup_date: '',
             delivery_date: '',
             revenue: '',
@@ -498,7 +510,7 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
   }
 
   return (
-    <div className={isModal ? "max-w-xl mx-auto" : "max-w-xl mx-auto py-6 px-4"}>
+    <div className={isModal ? "max-w-2xl mx-auto" : "max-w-2xl mx-auto py-8 px-4"}>
       {/* Progress Bar */}
       <WizardProgress
         steps={STEPS}

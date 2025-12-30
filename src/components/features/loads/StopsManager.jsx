@@ -3,10 +3,16 @@
  */
 
 import { useState, useEffect } from 'react';
-import { MapPin, GripVertical, Plus, X, Pencil, Check, Calendar, Building2 } from 'lucide-react';
+import { MapPin, GripVertical, Plus, X, Pencil, Check, Calendar, Building2, ArrowUpFromLine, ArrowDownToLine, CircleDot } from 'lucide-react';
 import { useFacilitiesList } from '../../../hooks';
 import { SearchableSelect } from '../../ui/SearchableSelect';
 import { QuickAddFacilityModal } from '../customers/QuickAddFacilityModal';
+
+const stopTypeOptions = [
+  { value: 'pickup', label: 'Pickup', icon: ArrowUpFromLine, color: 'green' },
+  { value: 'delivery', label: 'Delivery', icon: ArrowDownToLine, color: 'red' },
+  { value: 'stop', label: 'Stop', icon: CircleDot, color: 'blue' }
+];
 
 /**
  * StopsManager - Drag and drop route management
@@ -32,7 +38,7 @@ export function StopsManager({
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newStop, setNewStop] = useState({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '' });
+  const [newStop, setNewStop] = useState({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '', type: 'stop' });
 
   // Use hook for facilities
   const { facilities, fetchFacilities, setFacilities } = useFacilitiesList();
@@ -175,9 +181,9 @@ export function StopsManager({
       state: newStop.state,
       zip: newStop.zip,
       scheduled_date: newStop.scheduled_date,
-      type: 'stop'
+      type: newStop.type || 'stop'
     });
-    setNewStop({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '' });
+    setNewStop({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '', type: 'stop' });
     setShowAddForm(false);
   };
 
@@ -231,8 +237,18 @@ export function StopsManager({
               const isDragOver = dragOverIndex === index && draggedIndex !== index;
               const isEditing = editingId === stop.id;
 
-              const dotColor = isFirst ? 'bg-green-500' : isLast ? 'bg-red-500' : 'bg-blue-500';
-              const labelColor = isFirst ? 'text-green-600' : isLast ? 'text-red-600' : 'text-blue-600';
+              // Determine colors based on stop type (not just position)
+              const getStopColors = () => {
+                if (isFirst) return { dot: 'bg-green-500', label: 'text-green-600', name: 'Pickup' };
+                if (isLast) return { dot: 'bg-red-500', label: 'text-red-600', name: 'Delivery' };
+                // For intermediate stops, use the type
+                if (stop.type === 'pickup') return { dot: 'bg-green-500', label: 'text-green-600', name: 'Pickup' };
+                if (stop.type === 'delivery') return { dot: 'bg-red-500', label: 'text-red-600', name: 'Delivery' };
+                return { dot: 'bg-blue-500', label: 'text-blue-600', name: 'Stop' };
+              };
+              const stopStyle = getStopColors();
+              const dotColor = stopStyle.dot;
+              const labelColor = stopStyle.label;
 
               return (
                 <div
@@ -313,7 +329,7 @@ export function StopsManager({
                       <div className="group">
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-medium uppercase ${labelColor}`}>
-                            {isFirst ? 'Pickup' : isLast ? 'Delivery' : `Stop ${index}`}
+                            {stopStyle.name}
                           </span>
                           {stop.scheduled_date && (
                             <span className="text-xs text-gray-400">{fmtDate(stop.scheduled_date)}</span>
@@ -351,9 +367,33 @@ export function StopsManager({
 
         {/* Add Stop Form */}
         {showAddForm && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs font-medium text-gray-600 mb-2">Add Intermediate Stop</p>
-            <div className="space-y-2">
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+            <p className="text-sm font-medium text-gray-700 mb-3">Add Stop</p>
+            <div className="space-y-3">
+              {/* Stop Type Selection */}
+              <div className="flex gap-2">
+                {stopTypeOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isSelected = newStop.type === option.value;
+                  const colorClasses = {
+                    green: isSelected ? 'border-green-500 bg-green-50 text-green-600' : 'border-gray-200 text-gray-500 hover:border-green-300',
+                    red: isSelected ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 text-gray-500 hover:border-red-300',
+                    blue: isSelected ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-300'
+                  };
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setNewStop({ ...newStop, type: option.value })}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${colorClasses[option.color]}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Facility Selection */}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Select Facility</label>
@@ -379,14 +419,14 @@ export function StopsManager({
                 value={newStop.facility_name}
                 onChange={(e) => setNewStop({ ...newStop, facility_name: e.target.value })}
                 placeholder="Facility name"
-                className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
               />
               <input
                 type="text"
                 value={newStop.address}
                 onChange={(e) => setNewStop({ ...newStop, address: e.target.value })}
                 placeholder="Address"
-                className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
               />
               <div className="flex gap-2">
                 <input
@@ -394,7 +434,7 @@ export function StopsManager({
                   value={newStop.city}
                   onChange={(e) => setNewStop({ ...newStop, city: e.target.value })}
                   placeholder="City"
-                  className="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
                 <input
                   type="text"
@@ -402,14 +442,14 @@ export function StopsManager({
                   onChange={(e) => setNewStop({ ...newStop, state: e.target.value.toUpperCase() })}
                   placeholder="ST"
                   maxLength={2}
-                  className="w-14 px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                  className="w-16 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
                 <input
                   type="text"
                   value={newStop.zip}
                   onChange={(e) => setNewStop({ ...newStop, zip: e.target.value })}
                   placeholder="ZIP"
-                  className="w-20 px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                  className="w-20 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
               </div>
               <div className="flex gap-2">
@@ -417,18 +457,18 @@ export function StopsManager({
                   type="date"
                   value={newStop.scheduled_date}
                   onChange={(e) => setNewStop({ ...newStop, scheduled_date: e.target.value })}
-                  className="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400/50"
+                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
                 <button
                   onClick={handleAddStop}
                   disabled={!newStop.city && !newStop.facility_name}
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add
                 </button>
                 <button
-                  onClick={() => { setShowAddForm(false); setNewStop({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '' }); }}
-                  className="px-3 py-1.5 bg-gray-200 text-gray-600 rounded text-sm hover:bg-gray-300"
+                  onClick={() => { setShowAddForm(false); setNewStop({ facility_id: '', city: '', state: '', facility_name: '', address: '', zip: '', scheduled_date: '', type: 'stop' }); }}
+                  className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-300"
                 >
                   Cancel
                 </button>
