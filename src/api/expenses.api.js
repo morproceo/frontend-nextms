@@ -169,7 +169,7 @@ export const exportExpenses = async (filters = {}) => {
  */
 export const getCategories = async () => {
   const response = await api.get('/v1/expenses/categories');
-  return response.data;
+  return response.data.data;
 };
 
 /**
