@@ -110,6 +110,18 @@ export function AuthProvider({ children }) {
     return response;
   }, []);
 
+  const driverSignup = useCallback(async (data) => {
+    setError(null);
+    try {
+      const response = await authApi.driverSignup(data);
+      return response;
+    } catch (err) {
+      const message = err.response?.data?.error?.message || 'Failed to create account';
+      setError(message);
+      throw new Error(message);
+    }
+  }, []);
+
   const refreshOrganizations = useCallback(async () => {
     try {
       const response = await authApi.getMe();
@@ -121,9 +133,11 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Check if user is driver-only (all org memberships are driver role)
+  // Check if user is driver-only (is_driver with no orgs, or all org memberships are driver role)
   const isDriverOnly = useMemo(() => {
-    if (!user || organizations.length === 0) return false;
+    if (!user) return false;
+    if (user.is_driver && organizations.length === 0) return true;
+    if (organizations.length === 0) return false;
     return organizations.every(org => org.role === Roles.DRIVER);
   }, [user, organizations]);
 
@@ -151,6 +165,7 @@ export function AuthProvider({ children }) {
     requestOTP,
     verifyOTP,
     loginWithPassword,
+    driverSignup,
     logout,
     updateProfile,
     refreshOrganizations,

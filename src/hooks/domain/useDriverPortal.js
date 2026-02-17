@@ -73,6 +73,12 @@ export function useDriverPortalDashboard(options = {}) {
     dashboard.fetchDashboard();
   }, [dashboard]);
 
+  // Independent mode data
+  const isIndependent = dashboard.dashboard?.mode === 'independent';
+  const profile = dashboard.dashboard?.profile;
+  const personalStats = dashboard.dashboard?.personalStats;
+  const recentHistory = dashboard.dashboard?.recentHistory;
+
   return {
     // Data
     dashboard: dashboard.dashboard,
@@ -80,7 +86,15 @@ export function useDriverPortalDashboard(options = {}) {
     upcomingLoads: dashboard.dashboard?.upcomingLoads,
     stats: dashboard.dashboard?.stats,
     profiles: dashboard.dashboard?.profiles,
-    driverName: dashboard.dashboard?.profiles?.[0]?.first_name || 'Driver',
+    driverName: isIndependent
+      ? (profile?.first_name || 'Driver')
+      : (dashboard.dashboard?.profiles?.[0]?.first_name || 'Driver'),
+
+    // Independent mode
+    isIndependent,
+    profile,
+    personalStats,
+    recentHistory,
 
     // State
     loading: dashboard.loading,

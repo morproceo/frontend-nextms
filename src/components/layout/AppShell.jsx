@@ -21,9 +21,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  TrendingUp,
   MoreHorizontal,
   Wrench,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
@@ -49,11 +51,13 @@ const navigation = [
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Invoices', href: '/invoices', icon: DollarSign },
+  { name: 'P&L', href: '/pnl', icon: TrendingUp },
   {
     name: 'Tools',
     icon: Wrench,
     children: [
-      { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap }
+      { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap },
+      { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail }
     ]
   },
   {

@@ -26,6 +26,12 @@ import {
   DriverStatusColors,
   AssignableDriverStatuses,
   ActiveDriverStatuses,
+  DriverType,
+  DriverTypeLabels,
+  PayType,
+  PayTypeLabels,
+  TaxClassification,
+  TaxClassificationLabels,
   // Expenses
   ExpenseStatus,
   ExpenseStatusLabels,
@@ -676,6 +682,93 @@ export const EntityTypeConfig = {
     icon: Package
   }
 };
+
+// ============================================
+// DRIVER TYPE CONFIG
+// ============================================
+
+export const DriverTypeConfig = {
+  [DriverType.COMPANY]: {
+    value: DriverType.COMPANY,
+    label: DriverTypeLabels[DriverType.COMPANY],
+    color: 'blue',
+    variant: 'blue'
+  },
+  [DriverType.OWNER_OPERATOR]: {
+    value: DriverType.OWNER_OPERATOR,
+    label: DriverTypeLabels[DriverType.OWNER_OPERATOR],
+    color: 'purple',
+    variant: 'purple'
+  },
+  [DriverType.LEASE]: {
+    value: DriverType.LEASE,
+    label: DriverTypeLabels[DriverType.LEASE],
+    color: 'yellow',
+    variant: 'yellow'
+  },
+  [DriverType.TEAM]: {
+    value: DriverType.TEAM,
+    label: DriverTypeLabels[DriverType.TEAM],
+    color: 'green',
+    variant: 'green'
+  }
+};
+
+export { DriverType };
+
+// ============================================
+// PAY TYPE CONFIG
+// ============================================
+
+export const PayTypeConfig = {
+  [PayType.PER_MILE]: {
+    value: PayType.PER_MILE,
+    label: PayTypeLabels[PayType.PER_MILE],
+    color: 'blue',
+    variant: 'blue'
+  },
+  [PayType.PERCENTAGE]: {
+    value: PayType.PERCENTAGE,
+    label: PayTypeLabels[PayType.PERCENTAGE],
+    color: 'green',
+    variant: 'green'
+  },
+  [PayType.FLAT_RATE]: {
+    value: PayType.FLAT_RATE,
+    label: PayTypeLabels[PayType.FLAT_RATE],
+    color: 'purple',
+    variant: 'purple'
+  },
+  [PayType.HOURLY]: {
+    value: PayType.HOURLY,
+    label: PayTypeLabels[PayType.HOURLY],
+    color: 'yellow',
+    variant: 'yellow'
+  }
+};
+
+export { PayType };
+
+// ============================================
+// TAX CLASSIFICATION CONFIG
+// ============================================
+
+export const TaxClassificationConfig = {
+  [TaxClassification.W2]: {
+    value: TaxClassification.W2,
+    label: TaxClassificationLabels[TaxClassification.W2],
+    color: 'blue',
+    variant: 'blue'
+  },
+  [TaxClassification._1099]: {
+    value: TaxClassification._1099,
+    label: TaxClassificationLabels[TaxClassification._1099],
+    color: 'purple',
+    variant: 'purple'
+  }
+};
+
+export { TaxClassification };
 
 // ============================================
 // HELPER FUNCTIONS

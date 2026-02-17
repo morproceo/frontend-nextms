@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useDriver } from '../../hooks';
-import { DriverStatusConfig } from '../../config/status';
+import { DriverStatusConfig, DriverTypeConfig, PayTypeConfig, TaxClassificationConfig } from '../../config/status';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -32,7 +32,12 @@ import {
   AlertCircle,
   Edit,
   Copy,
-  LogOut
+  LogOut,
+  DollarSign,
+  Fuel,
+  Shield,
+  Building,
+  Heart
 } from 'lucide-react';
 
 // Invite status display config (specific to this page's UI)
@@ -270,6 +275,62 @@ export function DriverDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Pay & Classification */}
+          {(driver.driver_type || driver.pay_type || driver.pay_rate || driver.employee_number || driver.tax_classification) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Pay & Classification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {driver.driver_type && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Driver Type</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {DriverTypeConfig[driver.driver_type]?.label || driver.driver_type}
+                      </p>
+                    </div>
+                  )}
+                  {driver.tax_classification && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Tax Classification</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {TaxClassificationConfig[driver.tax_classification]?.label || driver.tax_classification}
+                      </p>
+                    </div>
+                  )}
+                  {driver.pay_type && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Pay Type</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {PayTypeConfig[driver.pay_type]?.label || driver.pay_type}
+                      </p>
+                    </div>
+                  )}
+                  {driver.pay_rate && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Pay Rate</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <DollarSign className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {driver.pay_rate}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.employee_number && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Employee Number</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {driver.employee_number}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Employment Info */}
           <Card>
             <CardHeader>
@@ -286,6 +347,28 @@ export function DriverDetailPage() {
                     </p>
                   </div>
                 </div>
+                {driver.termination_date && (
+                  <div>
+                    <p className="text-small text-text-tertiary">Termination Date</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="w-4 h-4 text-text-tertiary" />
+                      <p className="text-body text-text-primary font-medium">
+                        {formatDate(driver.termination_date)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {driver.home_terminal && (
+                  <div>
+                    <p className="text-small text-text-tertiary">Home Terminal</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Building className="w-4 h-4 text-text-tertiary" />
+                      <p className="text-body text-text-primary font-medium">
+                        {driver.home_terminal}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <p className="text-small text-text-tertiary">Organization</p>
                   <p className="text-body text-text-primary font-medium mt-1">
@@ -295,6 +378,154 @@ export function DriverDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Emergency Contact */}
+          {(driver.emergency_contact_name || driver.emergency_contact_phone) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Emergency Contact</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {driver.emergency_contact_name && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Name</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Heart className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {driver.emergency_contact_name}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.emergency_contact_phone && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Phone</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Phone className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {driver.emergency_contact_phone}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.emergency_contact_relationship && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Relationship</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {driver.emergency_contact_relationship}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Equipment & Operations */}
+          {(driver.fuel_card_number || driver.eld_provider || driver.eld_serial) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Equipment & Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {driver.fuel_card_number && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Fuel Card Number</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Fuel className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {driver.fuel_card_number}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.eld_provider && (
+                    <div>
+                      <p className="text-small text-text-tertiary">ELD Provider</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {driver.eld_provider}
+                      </p>
+                    </div>
+                  )}
+                  {driver.eld_serial && (
+                    <div>
+                      <p className="text-small text-text-tertiary">ELD Serial Number</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {driver.eld_serial}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Compliance */}
+          {(driver.drug_test_date || driver.drug_test_expiry || driver.mvr_date || driver.mvr_expiry || driver.endorsements) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Compliance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {driver.drug_test_date && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Last Drug Test</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Shield className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {formatDate(driver.drug_test_date)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.drug_test_expiry && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Drug Test Expiry</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {formatDate(driver.drug_test_expiry)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.mvr_date && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Last MVR Pull</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Shield className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {formatDate(driver.mvr_date)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.mvr_expiry && (
+                    <div>
+                      <p className="text-small text-text-tertiary">MVR Expiry</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="w-4 h-4 text-text-tertiary" />
+                        <p className="text-body text-text-primary font-medium">
+                          {formatDate(driver.mvr_expiry)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {driver.endorsements && (
+                    <div>
+                      <p className="text-small text-text-tertiary">Endorsements</p>
+                      <p className="text-body text-text-primary font-medium mt-1">
+                        {driver.endorsements}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Notes */}
           {driver.notes && (

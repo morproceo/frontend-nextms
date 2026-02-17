@@ -86,6 +86,10 @@ export {
   useExpenseExport,
   useExpensesApi,
 
+  // P&L
+  usePnlReport,
+  usePnlTrend,
+
   // Driver Portal
   useDriverProfiles,
   useDriverDashboard,
@@ -129,6 +133,7 @@ export {
   useAssets,
   useExpenses,
   useExpense,
+  usePnl,
   useDriverPortalDashboard,
   useDriverPortalLoads,
   useDriverPortalLoad,

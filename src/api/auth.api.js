@@ -86,6 +86,14 @@ export const authApi = {
   },
 
   /**
+   * Driver self-registration
+   */
+  driverSignup: async (data) => {
+    const response = await client.post('/v1/auth/driver-signup', data);
+    return response.data;
+  },
+
+  /**
    * Update profile
    */
   updateProfile: async (data) => {

@@ -59,8 +59,9 @@ export function useDriverDashboard() {
       const response = await driverPortalApi.getDashboard(organizationId);
       setDashboard(response.data);
 
-      // Check if user has no organizations
-      if (!response.data?.profiles || response.data.profiles.length === 0) {
+      // Check if user has no organizations (but not in independent mode)
+      if (response.data?.mode !== 'independent' &&
+          (!response.data?.profiles || response.data.profiles.length === 0)) {
         setHasNoOrgs(true);
       }
 

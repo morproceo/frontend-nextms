@@ -97,6 +97,8 @@ export function VerifyPage() {
             const firstOrg = result.data.organizations[0];
             navigate(`/o/${firstOrg.slug}/dashboard`);
           }
+        } else if (result.data.user.is_driver) {
+          navigate('/driver');
         } else {
           navigate('/create-org');
         }

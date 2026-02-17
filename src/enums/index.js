@@ -66,6 +66,15 @@ export {
   ActiveDriverStatuses
 } from './driverStatus.js';
 
+export {
+  DriverType,
+  DriverTypeLabels,
+  PayType,
+  PayTypeLabels,
+  TaxClassification,
+  TaxClassificationLabels
+} from './driver.js';
+
 // Dispatch
 export {
   DispatchStatus,

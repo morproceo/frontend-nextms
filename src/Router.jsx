@@ -11,6 +11,7 @@ import AIPage from './pages/marketing/AIPage';
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 import VerifyPage from './pages/auth/VerifyPage';
+import DriverSignupPage from './pages/auth/DriverSignupPage';
 
 // Onboarding
 import CreateOrgPage from './pages/onboarding/CreateOrgPage';
@@ -62,12 +63,22 @@ import ExpensesListPage from './pages/expenses/ExpensesListPage';
 import ExpenseFormPage from './pages/expenses/ExpenseFormPage';
 import ExpenseDetailPage from './pages/expenses/ExpenseDetailPage';
 
+// P&L
+import PnlPage from './pages/pnl/PnlPage';
+
 // Settings
 import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 
 // Tools
 import { AvaPage, AvaTruckDetailPage, AvaSettingsPage } from './pages/tools';
+import {
+  AtlasDashboardPage,
+  AtlasConnectionsPage,
+  AtlasOpportunitiesPage,
+  AtlasOpportunityDetailPage,
+  AtlasSettingsPage
+} from './pages/tools/atlas';
 
 /**
  * Protected Route wrapper
@@ -211,6 +222,7 @@ export function Router() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<LoginPage />} />
           <Route path="/verify" element={<VerifyPage />} />
+          <Route path="/driver-signup" element={<DriverSignupPage />} />
         </Route>
 
         {/* Driver invite acceptance (public - creates account) */}
@@ -270,11 +282,17 @@ export function Router() {
             <Route path="expenses/:expenseId/edit" element={<ExpenseFormPage />} />
             <Route path="documents" element={<PlaceholderPage title="Documents" />} />
             <Route path="invoices" element={<PlaceholderPage title="Invoices" />} />
+            <Route path="pnl" element={<PnlPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/billing" element={<BillingPage />} />
             <Route path="tools/ava" element={<AvaPage />} />
             <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
             <Route path="tools/ava/:truckId" element={<AvaTruckDetailPage />} />
+            <Route path="tools/atlas" element={<AtlasDashboardPage />} />
+            <Route path="tools/atlas/connections" element={<AtlasConnectionsPage />} />
+            <Route path="tools/atlas/opportunities" element={<AtlasOpportunitiesPage />} />
+            <Route path="tools/atlas/opportunities/:opportunityId" element={<AtlasOpportunityDetailPage />} />
+            <Route path="tools/atlas/settings" element={<AtlasSettingsPage />} />
           </Route>
         </Route>
 

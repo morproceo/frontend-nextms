@@ -45,6 +45,8 @@ export function LoginPage() {
           } else {
             navigate(`/o/${response.data.organizations[0].slug}/dashboard`);
           }
+        } else if (response.data.user.is_driver) {
+          navigate('/driver');
         } else {
           navigate('/create-org');
         }
@@ -246,11 +248,17 @@ export function LoginPage() {
           )}
 
           {/* Sign Up Link */}
-          <div className="mt-8 pt-6 border-t border-white/[0.06]">
+          <div className="mt-8 pt-6 border-t border-white/[0.06] space-y-2">
             <p className="text-center text-sm text-white/50">
               Don't have an account?{' '}
               <Link to="/signup" className="text-[#0066FF] hover:text-[#3385FF] font-medium transition-colors">
                 Start free trial
+              </Link>
+            </p>
+            <p className="text-center text-sm text-white/50">
+              Are you a driver?{' '}
+              <Link to="/driver-signup" className="text-[#0066FF] hover:text-[#3385FF] font-medium transition-colors">
+                Register as a driver
               </Link>
             </p>
           </div>

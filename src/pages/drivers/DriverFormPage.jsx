@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useDriver, useDrivers } from '../../hooks';
-import { DriverStatusConfig } from '../../config/status';
+import { DriverStatusConfig, DriverTypeConfig, PayTypeConfig, TaxClassificationConfig } from '../../config/status';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -41,7 +41,26 @@ export function DriverFormPage() {
     medical_card_expiry: '',
     hire_date: '',
     status: 'available',
-    notes: ''
+    notes: '',
+    // Org-owned fields
+    driver_type: '',
+    pay_type: '',
+    pay_rate: '',
+    employee_number: '',
+    tax_classification: '',
+    termination_date: '',
+    home_terminal: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    emergency_contact_relationship: '',
+    fuel_card_number: '',
+    eld_provider: '',
+    eld_serial: '',
+    drug_test_date: '',
+    drug_test_expiry: '',
+    mvr_date: '',
+    mvr_expiry: '',
+    endorsements: ''
   });
 
   // Populate form when driver data loads (for editing)
@@ -58,7 +77,26 @@ export function DriverFormPage() {
         medical_card_expiry: driver.medical_card_expiry ? driver.medical_card_expiry.split('T')[0] : '',
         hire_date: driver.hire_date ? driver.hire_date.split('T')[0] : '',
         status: driver.status || 'available',
-        notes: driver.notes || ''
+        notes: driver.notes || '',
+        // Org-owned fields
+        driver_type: driver.driver_type || '',
+        pay_type: driver.pay_type || '',
+        pay_rate: driver.pay_rate || '',
+        employee_number: driver.employee_number || '',
+        tax_classification: driver.tax_classification || '',
+        termination_date: driver.termination_date ? driver.termination_date.split('T')[0] : '',
+        home_terminal: driver.home_terminal || '',
+        emergency_contact_name: driver.emergency_contact_name || '',
+        emergency_contact_phone: driver.emergency_contact_phone || '',
+        emergency_contact_relationship: driver.emergency_contact_relationship || '',
+        fuel_card_number: driver.fuel_card_number || '',
+        eld_provider: driver.eld_provider || '',
+        eld_serial: driver.eld_serial || '',
+        drug_test_date: driver.drug_test_date ? driver.drug_test_date.split('T')[0] : '',
+        drug_test_expiry: driver.drug_test_expiry ? driver.drug_test_expiry.split('T')[0] : '',
+        mvr_date: driver.mvr_date ? driver.mvr_date.split('T')[0] : '',
+        mvr_expiry: driver.mvr_expiry ? driver.mvr_expiry.split('T')[0] : '',
+        endorsements: driver.endorsements || ''
       });
     }
   }, [isEdit, driver]);
@@ -91,11 +129,21 @@ export function DriverFormPage() {
     if (!validate()) return;
 
     try {
-      // Clean up empty date fields
+      // Clean up empty date fields and optional fields
       const data = { ...formData };
       if (!data.license_expiry) delete data.license_expiry;
       if (!data.medical_card_expiry) delete data.medical_card_expiry;
       if (!data.hire_date) delete data.hire_date;
+      if (!data.termination_date) delete data.termination_date;
+      if (!data.drug_test_date) delete data.drug_test_date;
+      if (!data.drug_test_expiry) delete data.drug_test_expiry;
+      if (!data.mvr_date) delete data.mvr_date;
+      if (!data.mvr_expiry) delete data.mvr_expiry;
+      // Clean up empty enum/string fields
+      if (!data.driver_type) delete data.driver_type;
+      if (!data.pay_type) delete data.pay_type;
+      if (!data.pay_rate) delete data.pay_rate;
+      if (!data.tax_classification) delete data.tax_classification;
 
       if (isEdit) {
         await updateFields(data);
@@ -264,19 +312,117 @@ export function DriverFormPage() {
           </CardContent>
         </Card>
 
+        {/* Pay & Classification */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pay & Classification</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">Driver Type</label>
+                <select
+                  id="driver_type"
+                  name="driver_type"
+                  value={formData.driver_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-surface-secondary border-0 rounded-input text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="">Select type...</option>
+                  {Object.entries(DriverTypeConfig).map(([value, config]) => (
+                    <option key={value} value={value}>{config.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">Tax Classification</label>
+                <select
+                  id="tax_classification"
+                  name="tax_classification"
+                  value={formData.tax_classification}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-surface-secondary border-0 rounded-input text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="">Select classification...</option>
+                  {Object.entries(TaxClassificationConfig).map(([value, config]) => (
+                    <option key={value} value={value}>{config.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">Pay Type</label>
+                <select
+                  id="pay_type"
+                  name="pay_type"
+                  value={formData.pay_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-surface-secondary border-0 rounded-input text-body text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="">Select pay type...</option>
+                  {Object.entries(PayTypeConfig).map(([value, config]) => (
+                    <option key={value} value={value}>{config.label}</option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                id="pay_rate"
+                name="pay_rate"
+                type="number"
+                label="Pay Rate"
+                value={formData.pay_rate}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+              />
+            </div>
+
+            <Input
+              id="employee_number"
+              name="employee_number"
+              label="Employee Number"
+              value={formData.employee_number}
+              onChange={handleChange}
+              placeholder="EMP-001"
+            />
+          </CardContent>
+        </Card>
+
         {/* Employment */}
         <Card>
           <CardHeader>
             <CardTitle>Employment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="hire_date"
+                name="hire_date"
+                type="date"
+                label="Hire Date"
+                value={formData.hire_date}
+                onChange={handleChange}
+              />
+              <Input
+                id="termination_date"
+                name="termination_date"
+                type="date"
+                label="Termination Date"
+                value={formData.termination_date}
+                onChange={handleChange}
+              />
+            </div>
+
             <Input
-              id="hire_date"
-              name="hire_date"
-              type="date"
-              label="Hire Date"
-              value={formData.hire_date}
+              id="home_terminal"
+              name="home_terminal"
+              label="Home Terminal"
+              value={formData.home_terminal}
               onChange={handleChange}
+              placeholder="Dallas, TX"
             />
 
             <div>
@@ -291,6 +437,130 @@ export function DriverFormPage() {
                 className="w-full px-4 py-3 bg-surface-secondary border-0 rounded-input text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Emergency Contact */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Emergency Contact</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="emergency_contact_name"
+                name="emergency_contact_name"
+                label="Contact Name"
+                value={formData.emergency_contact_name}
+                onChange={handleChange}
+                placeholder="Jane Doe"
+              />
+              <Input
+                id="emergency_contact_phone"
+                name="emergency_contact_phone"
+                type="tel"
+                label="Contact Phone"
+                value={formData.emergency_contact_phone}
+                onChange={handleChange}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <Input
+              id="emergency_contact_relationship"
+              name="emergency_contact_relationship"
+              label="Relationship"
+              value={formData.emergency_contact_relationship}
+              onChange={handleChange}
+              placeholder="Spouse, Parent, etc."
+            />
+          </CardContent>
+        </Card>
+
+        {/* Equipment & Operations */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Equipment & Operations</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              id="fuel_card_number"
+              name="fuel_card_number"
+              label="Fuel Card Number"
+              value={formData.fuel_card_number}
+              onChange={handleChange}
+              placeholder="FC-123456"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="eld_provider"
+                name="eld_provider"
+                label="ELD Provider"
+                value={formData.eld_provider}
+                onChange={handleChange}
+                placeholder="KeepTruckin, Samsara, etc."
+              />
+              <Input
+                id="eld_serial"
+                name="eld_serial"
+                label="ELD Serial Number"
+                value={formData.eld_serial}
+                onChange={handleChange}
+                placeholder="SN-12345"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Compliance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="drug_test_date"
+                name="drug_test_date"
+                type="date"
+                label="Last Drug Test"
+                value={formData.drug_test_date}
+                onChange={handleChange}
+              />
+              <Input
+                id="drug_test_expiry"
+                name="drug_test_expiry"
+                type="date"
+                label="Drug Test Expiry"
+                value={formData.drug_test_expiry}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                id="mvr_date"
+                name="mvr_date"
+                type="date"
+                label="Last MVR Pull"
+                value={formData.mvr_date}
+                onChange={handleChange}
+              />
+              <Input
+                id="mvr_expiry"
+                name="mvr_expiry"
+                type="date"
+                label="MVR Expiry"
+                value={formData.mvr_expiry}
+                onChange={handleChange}
+              />
+            </div>
+            <Input
+              id="endorsements"
+              name="endorsements"
+              label="Endorsements"
+              value={formData.endorsements}
+              onChange={handleChange}
+              placeholder="H, N, T, X, etc."
+            />
           </CardContent>
         </Card>
 

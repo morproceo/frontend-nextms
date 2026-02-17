@@ -60,12 +60,19 @@ export function SettingsPage() {
     timezone: 'America/New_York',
     dot_number: '',
     mc_number: '',
+    org_code: '',
     address_line1: '',
     address_line2: '',
     city: '',
     state: '',
     zip: '',
     country: 'USA',
+    description: '',
+    website: '',
+    public_phone: '',
+    public_email: '',
+    fleet_size: '',
+    is_profile_public: false,
   });
 
   // Invite form state
@@ -82,12 +89,19 @@ export function SettingsPage() {
         timezone: organization.timezone || 'America/New_York',
         dot_number: organization.dot_number || '',
         mc_number: organization.mc_number || '',
+        org_code: organization.org_code || '',
         address_line1: organization.address_line1 || '',
         address_line2: organization.address_line2 || '',
         city: organization.city || '',
         state: organization.state || '',
         zip: organization.zip || '',
         country: organization.country || 'USA',
+        description: organization.description || '',
+        website: organization.website || '',
+        public_phone: organization.public_phone || '',
+        public_email: organization.public_email || '',
+        fleet_size: organization.fleet_size || '',
+        is_profile_public: organization.is_profile_public || false,
       });
     }
   }, [organization]);
@@ -283,6 +297,28 @@ export function SettingsPage() {
 
               <div>
                 <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Driver Connection Code
+                </label>
+                <input
+                  type="text"
+                  name="org_code"
+                  value={form.org_code}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    setForm(prev => ({ ...prev, org_code: val }));
+                    setSaved(false);
+                  }}
+                  placeholder="e.g., ACME24"
+                  maxLength={10}
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary font-mono tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+                <p className="text-small text-text-tertiary mt-1">
+                  Drivers use this code to request a connection to your organization.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
                   <Globe className="w-4 h-4 inline mr-1" />
                   Timezone
                 </label>
@@ -385,6 +421,112 @@ export function SettingsPage() {
                   name="country"
                   value={form.country}
                   onChange={handleChange}
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Public Profile */}
+          <div className="bg-surface-primary rounded-card border border-surface-tertiary p-6">
+            <h2 className="text-title-sm text-text-primary mb-2 flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Public Profile
+            </h2>
+            <p className="text-body-sm text-text-secondary mb-6">
+              When enabled, your organization appears in the driver directory so drivers can find and connect with you.
+            </p>
+
+            {/* Public Profile Toggle */}
+            <div className="flex items-center justify-between mb-6 p-4 bg-surface-secondary rounded-lg">
+              <div>
+                <p className="text-body-sm font-medium text-text-primary">Show in Driver Directory</p>
+                <p className="text-small text-text-tertiary">Drivers can find your organization when searching the directory</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(prev => ({ ...prev, is_profile_public: !prev.is_profile_public }));
+                  setSaved(false);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  form.is_profile_public ? 'bg-accent' : 'bg-surface-tertiary'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  form.is_profile_public ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Company Description
+                </label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Tell drivers about your company..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  name="website"
+                  value={form.website}
+                  onChange={handleChange}
+                  placeholder="https://www.example.com"
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Fleet Size
+                </label>
+                <input
+                  type="number"
+                  name="fleet_size"
+                  value={form.fleet_size}
+                  onChange={handleChange}
+                  placeholder="Number of trucks"
+                  min="0"
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Public Phone
+                </label>
+                <input
+                  type="tel"
+                  name="public_phone"
+                  value={form.public_phone}
+                  onChange={handleChange}
+                  placeholder="(555) 123-4567"
+                  className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-body-sm font-medium text-text-primary mb-2">
+                  Public Email
+                </label>
+                <input
+                  type="email"
+                  name="public_email"
+                  value={form.public_email}
+                  onChange={handleChange}
+                  placeholder="contact@example.com"
                   className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>

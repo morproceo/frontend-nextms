@@ -15,6 +15,7 @@ export { useDrivers, useDriver } from './useDrivers';
 export { useBrokers, useBroker, useFacilities, useFacility, useCustomers } from './useCustomers';
 export { useTrucks, useTruck, useTrailers, useTrailer, useAssets } from './useAssets';
 export { useExpenses, useExpense } from './useExpenses';
+export { usePnl } from './usePnl';
 export {
   useDriverPortalDashboard,
   useDriverPortalLoads,
@@ -25,3 +26,4 @@ export {
   useDriverPortalSettings,
   useDriverPortalDocuments
 } from './useDriverPortal';
+export { useAtlas } from './useAtlas';

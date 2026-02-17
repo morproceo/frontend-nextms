@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDriverPortalDashboard, useDriverLoadActions, useDriverInvites } from '../../hooks';
+import { IndependentDriverDashboard } from './IndependentDriverDashboard';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -41,6 +42,10 @@ export function DriverDashboard() {
     loading,
     error,
     hasNoOrgs,
+    isIndependent,
+    profile,
+    personalStats,
+    recentHistory,
     refetch
   } = useDriverPortalDashboard();
 
@@ -95,7 +100,18 @@ export function DriverDashboard() {
     );
   }
 
-  // Empty state - no organizations
+  // Independent driver mode - has profile but no org
+  if (isIndependent) {
+    return (
+      <IndependentDriverDashboard
+        profile={profile}
+        personalStats={personalStats}
+        recentHistory={recentHistory}
+      />
+    );
+  }
+
+  // Empty state - no organizations (shouldn't happen with independent mode, but fallback)
   if (hasNoOrgs) {
     return (
       <div className="max-w-lg mx-auto py-8">

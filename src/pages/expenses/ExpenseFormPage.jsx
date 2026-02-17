@@ -341,7 +341,7 @@ export function ExpenseFormPage() {
                       {Object.entries(ExpenseCategoryConfig).map(([value, { label }]) => (
                         <option key={value} value={value}>{label}</option>
                       ))}
-                      {categories.filter(c => c.is_custom).map(cat => (
+                      {categories.filter(c => c.type === 'custom').map(cat => (
                         <option key={cat.id} value={cat.code}>{cat.name}</option>
                       ))}
                     </select>

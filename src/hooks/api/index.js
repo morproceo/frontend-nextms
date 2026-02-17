@@ -87,6 +87,12 @@ export {
   useExpensesApi
 } from './useExpensesApi';
 
+// P&L API
+export {
+  usePnlReport,
+  usePnlTrend
+} from './usePnlApi';
+
 // Driver Portal API
 export {
   useDriverProfiles,
@@ -110,3 +116,22 @@ export {
   useDriverSettingsProfiles,
   useDriverSettingsApi
 } from './useDriverSettingsApi';
+
+// Agents API
+export {
+  useAgentCatalog,
+  useActiveAgents,
+  useAgentMutations,
+  useAgentsApi
+} from './useAgentsApi';
+
+// ATLAS API
+export {
+  useAtlasDashboard,
+  useAtlasConnections,
+  useAtlasEmails,
+  useAtlasOpportunities,
+  useAtlasOpportunityDetail,
+  useAtlasMutations,
+  useAtlasSettings
+} from './useAtlasApi';

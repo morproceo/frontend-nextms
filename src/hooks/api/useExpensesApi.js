@@ -191,7 +191,8 @@ export function useExpenseCategories() {
   }, [mutate, setData]);
 
   return {
-    categories: data || [],
+    categories: Array.isArray(data) ? data : (data?.all || []),
+    customCategories: Array.isArray(data) ? data.filter(c => c.type === 'custom') : (data?.custom || []),
     loading,
     mutating,
     error,
