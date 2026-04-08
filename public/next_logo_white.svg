@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 663.18 127.77">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: #26a9e0;
+      }
+
+      .cls-1, .cls-3 {
+        fill-rule: evenodd;
+      }
+
+      .cls-4, .cls-5 {
+        isolation: isolate;
+      }
+
+      .cls-5 {
+        fill: #fff;
+        font-family: Brother-1816-Bold, 'Brother 1816';
+        font-size: 88.65px;
+        font-weight: 700;
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-6 {
+        letter-spacing: .11em;
+      }
+
+      .cls-7 {
+        letter-spacing: .07em;
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="724.06" y1="-941.94" x2="830.23" y2="-955.75" gradientTransform="translate(-533.59 -887.81) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1b75bb"/>
+      <stop offset=".02" stop-color="#1c7bbf"/>
+      <stop offset=".13" stop-color="#2190ce"/>
+      <stop offset=".24" stop-color="#249ed8"/>
+      <stop offset=".38" stop-color="#25a6de"/>
+      <stop offset=".6" stop-color="#26a9e0"/>
+      <stop offset="1" stop-color="#26a9e0"/>
+    </linearGradient>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <path class="cls-1" d="M266.1,28.8c-10.1-12.2-23.9-13.1-38.1-9.5-14.5,3.7-24.5,25.8-43.9,37L144.3,1.9c-.06,0-.1-.04-.1-.1h0c-.28-.35-.62-.65-1-.9-.1-.1-.2-.2-.3-.2-.42-.27-.9-.44-1.4-.5-.11.01-.22-.02-.3-.1q-.1,0-.2-.1H4.2C1.9,0,0,2.3,0,5s1.9,5,4.2,5h133.4l66.1,94.3c.69.99,1.79,1.62,3,1.7h0c.06,0,.1-.04.1-.1h0c1.25.08,2.5-.19,3.6-.8,27.7-16.3,15.6-46.9,56.7-61.6,5.5-2,11.1-3.3,24-2.5-8.2-7.1-25-12.2-25-12.2Z"/>
+    <path class="cls-3" d="M266.1,28.7c-10.1-12.2-23.9-13.1-38.1-9.5-14.5,3.7-24.5,25.8-43.9,37,0,0,30.9,45.8,32.1,45,25.1-16.1,9.8-42.9,50.9-57.5,5.5-2,11.1-3.3,24-2.5-8.2-7.4-25-12.5-25-12.5Z"/>
+    <path class="cls-2" d="M34.4,23.8c-2,0-3.6,2.3-3.6,5s1.6,5.1,3.6,5.1h104.6q.1,0,.2-.1l-7-10H34.4Z"/>
+    <path class="cls-2" d="M68.3,48.2c-2,0-3.6,2.2-3.6,5s1.6,5,3.6,5h88l-7.1-10.1h-80.9v.1Z"/>
+    <path class="cls-2" d="M100.7,72.6c-2,0-3.7,2.3-3.7,5s1.6,5,3.7,5h72.7l-7-10h-65.7Z"/>
+    <path class="cls-2" d="M141.2,96.2c-2,0-3.7,2.3-3.7,5.1s1.6,5,3.7,5h48.8l-7.1-10.1h-41.7Z"/>
+    <g class="cls-4">
+      <text class="cls-5" transform="translate(336 91.18)"><tspan class="cls-6" x="0" y="0">NEX</tspan><tspan class="cls-7" x="211.69" y="0">T</tspan></text>
+    </g>
+  </g>
+</svg>

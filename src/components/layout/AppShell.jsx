@@ -214,7 +214,7 @@ export function AppShell() {
             {sidebarCollapsed ? (
               <img src="/app-icon.svg" alt="Next TMS" className="w-10 h-10 flex-shrink-0" />
             ) : (
-              <img src="/next_tms_logo.svg" alt="Next TMS" className="w-40 h-auto" />
+              <img src="/next_logo_white.svg" alt="Next TMS" className="w-40 h-auto" />
             )}
           </Link>
           <button
