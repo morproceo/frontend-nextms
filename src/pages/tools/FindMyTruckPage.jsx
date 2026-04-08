@@ -19,7 +19,8 @@ import {
   Search,
   Truck,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  List
 } from 'lucide-react';
 
 // ---------- Helpers ----------
@@ -79,6 +80,7 @@ export function FindMyTruckPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch fleet locations
   const fetchLocations = useCallback(async () => {
@@ -160,8 +162,15 @@ export function FindMyTruckPage() {
       {/* Title bar */}
       <div className="sticky top-0 z-10 bg-white border-b flex items-center justify-between px-4 h-14 flex-shrink-0">
         <div className="flex items-center gap-2">
+          <button
+            className="lg:hidden p-1 rounded hover:bg-surface-secondary"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <List className="w-5 h-5 text-text-secondary" />
+          </button>
           <MapPin className="w-5 h-5 text-accent" />
-          <h1 className="text-body font-semibold text-text-primary">Find My Truck</h1>
+          <h1 className="text-body font-semibold text-text-primary hidden sm:block">Find My Truck</h1>
+          <h1 className="text-body font-semibold text-text-primary sm:hidden">Fleet</h1>
           {trucks.length > 0 && (
             <Badge variant="gray">{trucks.length}</Badge>
           )}
@@ -215,9 +224,22 @@ export function FindMyTruckPage() {
           </Card>
         </div>
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Mobile sidebar backdrop */}
+          {sidebarOpen && (
+            <div
+              className="absolute inset-0 bg-black/30 z-20 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
           {/* Left sidebar */}
-          <div className="w-80 bg-white border-r flex flex-col flex-shrink-0 overflow-hidden">
+          <div className={`
+            bg-white border-r flex flex-col flex-shrink-0 overflow-hidden
+            w-80 absolute inset-y-0 left-0 z-30 transform transition-transform duration-200
+            lg:relative lg:translate-x-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
             {/* Search */}
             <div className="p-3 border-b">
               <div className="relative">
@@ -255,7 +277,7 @@ export function FindMyTruckPage() {
                 return (
                   <div
                     key={truckKey}
-                    onClick={() => setSelectedTruckId(truckKey)}
+                    onClick={() => { setSelectedTruckId(truckKey); setSidebarOpen(false); }}
                     className={`py-3 px-4 border-b border-surface-tertiary cursor-pointer transition-colors hover:bg-surface-secondary/50 ${
                       isSelected ? 'bg-accent/5 border-l-2 border-l-accent' : ''
                     }`}
