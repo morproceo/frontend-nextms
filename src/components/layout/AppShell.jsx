@@ -39,42 +39,40 @@ import { SubscriptionBlocker } from '../features/billing/SubscriptionBlocker';
 import { cn, getInitials } from '../../lib/utils';
 
 const navigation = [
+  // ── Daily Operations (flat, no clicks needed) ──
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Loads', href: '/loads', icon: Package },
   { name: 'Dispatch', href: '/dispatch', icon: Truck },
   { name: 'Drivers', href: '/drivers', icon: Users },
   { name: 'Customers', href: '/customers', icon: Building2 },
+
+  // ── Fleet & Assets ──
   {
-    name: 'Assets',
+    name: 'Fleet',
     icon: Container,
     children: [
       { name: 'Trucks', href: '/assets/trucks', icon: Truck },
-      { name: 'Trailers', href: '/assets/trailers', icon: Container }
+      { name: 'Trailers', href: '/assets/trailers', icon: Container },
+      { name: 'Fuel', href: '/fuel', icon: Fuel },
+      { name: 'Fuel Cards', href: '/fuel/cards', icon: CreditCard }
     ]
   },
+
+  // ── Financials ──
+  {
+    name: 'Financials',
+    icon: DollarSign,
+    children: [
+      { name: 'Expenses', href: '/expenses', icon: Receipt },
+      { name: 'Fuel Transactions', href: '/fuel/transactions', icon: Fuel },
+      { name: 'Invoices', href: '/invoices', icon: DollarSign },
+      { name: 'P&L', href: '/pnl', icon: TrendingUp },
+      { name: 'Reports', href: '/reporting', icon: FileBarChart }
+    ]
+  },
+
+  // ── Other ──
   { name: 'Documents', href: '/documents', icon: FileText },
-  { name: 'Expenses', href: '/expenses', icon: Receipt },
-  {
-    name: 'Fuel',
-    icon: Fuel,
-    children: [
-      { name: 'Dashboard', href: '/fuel', icon: Fuel },
-      { name: 'Cards', href: '/fuel/cards', icon: CreditCard },
-      { name: 'Transactions', href: '/fuel/transactions', icon: Receipt },
-      { name: 'Import', href: '/fuel/transactions/import', icon: FileText }
-    ]
-  },
-  { name: 'Invoices', href: '/invoices', icon: DollarSign },
-  { name: 'P&L', href: '/pnl', icon: TrendingUp },
-  {
-    name: 'Reporting',
-    icon: FileBarChart,
-    children: [
-      { name: 'Summary', href: '/reporting', icon: BarChart3 },
-      { name: 'Performance', href: '/reporting/performance', icon: TrendingUp },
-      { name: 'Financials', href: '/reporting/financials', icon: DollarSign }
-    ]
-  },
   {
     name: 'Tools',
     icon: Wrench,
@@ -112,7 +110,7 @@ export function AppShell() {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
-  const [expandedMenus, setExpandedMenus] = useState(['Assets', 'Reporting']);
+  const [expandedMenus, setExpandedMenus] = useState([]);
 
   // Save sidebar state to localStorage
   useEffect(() => {
