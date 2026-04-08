@@ -66,7 +66,10 @@ const SYSTEM_FIELDS = [
   { id: 'notes', label: 'Notes' }
 ];
 
-// Alias map for auto-detecting CSV headers → system fields
+// Alias map for auto-detecting CSV headers → system fields.
+// ORDER MATTERS: when two fields share an alias (e.g. 'amt' could be total_amount or fuel_amount),
+// the first match wins. total_amount is listed before fuel_amount intentionally so ambiguous
+// amount columns default to total rather than fuel-only subtotal.
 const HEADER_ALIASES = {
   transaction_date: ['trandate', 'transactiondate', 'date', 'transdate', 'trans_date', 'tran_date'],
   transaction_time: ['trantime', 'transactiontime', 'time', 'transtime'],
@@ -79,8 +82,8 @@ const HEADER_ALIASES = {
   fuel_type: ['item', 'fueltype', 'product', 'productname', 'productcode', 'fuelgrade', 'grade', 'type'],
   gallons: ['qty', 'quantity', 'gallons', 'gal', 'units', 'volume', 'litres', 'liters'],
   price_per_gallon: ['unitprice', 'priceperunit', 'pricepergal', 'ppg', 'pricepergallon', 'rate', 'ppu'],
-  fuel_amount: ['fuelamount', 'fuelcost', 'fuelamount'],
   total_amount: ['amt', 'amount', 'totalamount', 'total', 'totalcost', 'cost', 'net', 'netamount'],
+  fuel_amount: ['fuelamount', 'fuelcost'],
   tax_amount: ['tax', 'taxamount', 'salestax'],
   discount_amount: ['discount', 'discountamount', 'disc'],
   fees_amount: ['fees', 'fee', 'feesamount', 'servicefee', 'transfee', 'transactionfee'],
@@ -193,7 +196,7 @@ function UploadStep({ csvData, uploadFile, defaults, setDefaults }) {
       e.preventDefault();
       const file = e.dataTransfer.files?.[0];
       if (file && file.name.endsWith('.csv')) {
-        uploadFile(file);
+        uploadFile(file, autoMapHeaders);
       }
     },
     [uploadFile]

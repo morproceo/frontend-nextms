@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useApiRequest, useApiState, useMutation } from './useApiRequest';
+import { useApiState, useMutation } from './useApiRequest';
 import * as fuelApi from '../../api/fuel.api';
 
 // ============================================
