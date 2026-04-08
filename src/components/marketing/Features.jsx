@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import { LayoutDashboard, Truck, Receipt, Smartphone, Shield, Zap, Mail, MessageSquare, UserPlus, Sparkles, ArrowRight, Bot } from 'lucide-react';
+import { LayoutDashboard, Truck, Receipt, Smartphone, Shield, Zap, Mail, MessageSquare, UserPlus, Sparkles, ArrowRight, Bot, MapPin, Fuel, Wrench } from 'lucide-react';
 
 // AI Teammates Data
 const aiTeammates = [
@@ -36,29 +36,29 @@ const features = [
     icon: LayoutDashboard,
     label: 'Dashboard',
     title: 'Your command center',
-    description: 'See everything at a glance. Real-time load tracking, revenue metrics, driver status, and performance analytics — all in one beautiful view.',
+    description: 'Revenue metrics, load pipeline, P&L trends, driver status, and fleet health — all updated in real-time. One glance tells you everything.',
     image: 'dashboard'
   },
   {
-    icon: Truck,
-    label: 'Dispatch',
-    title: 'Dispatch in seconds',
-    description: 'Create, assign, and track loads effortlessly. Drag-and-drop dispatch, smart route optimization, and automated status updates.',
-    image: 'dispatch'
+    icon: MapPin,
+    label: 'Find My Truck',
+    title: 'Live fleet tracking',
+    description: 'See every truck on a live map powered by Motive ELD. GPS positions, driver HOS status, hours remaining, and speed — updated every 30 seconds.',
+    image: 'findmytruck'
   },
   {
-    icon: Receipt,
-    label: 'Invoicing',
-    title: 'Get paid faster',
-    description: 'One-click professional invoices. QuickBooks integration, IFTA reports, and payment tracking — all automated.',
-    image: 'invoicing'
+    icon: Fuel,
+    label: 'Fuel Management',
+    title: 'Take control of fuel spend',
+    description: 'Manage fuel cards, import transactions from EFS/Comdata/WEX via CSV with smart column mapping, verify purchases, and feed costs directly into your P&L.',
+    image: 'fuel'
   },
   {
-    icon: Smartphone,
-    label: 'Driver App',
-    title: 'Drivers love it',
-    description: 'A mobile app your drivers will actually use. Beautiful, intuitive, and built for the road. iOS and Android.',
-    image: 'app'
+    icon: Wrench,
+    label: 'AVA AI Mechanic',
+    title: 'AI-powered diagnostics',
+    description: 'Motive syncs diagnostic trouble codes automatically. Claude AI analyzes each fault with repair recommendations, cost estimates, and urgency levels.',
+    image: 'ava'
   },
 ];
 
@@ -126,72 +126,96 @@ function FeatureItem({ feature, index }) {
               </div>
             )}
 
-            {feature.image === 'dispatch' && (
+            {feature.image === 'findmytruck' && (
               <div className="space-y-3">
-                {[
-                  { route: 'Chicago → Dallas', driver: 'Mike J.', status: 'In Transit' },
-                  { route: 'Atlanta → Miami', driver: 'Sarah K.', status: 'Loading' },
-                  { route: 'Denver → Phoenix', driver: 'John D.', status: 'Scheduled' },
-                ].map((load, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                    <div>
-                      <div className="text-white font-medium">{load.route}</div>
-                      <div className="text-sm text-white/40">{load.driver}</div>
+                <div className="bg-[#1a1f36] rounded-xl p-3 mb-2">
+                  <div className="h-40 bg-[#0d1117] rounded-lg relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_40%,rgba(0,102,255,0.2)_0%,transparent_60%)]" />
+                    {/* Map dots representing trucks */}
+                    <div className="absolute top-[30%] left-[25%] w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    <div className="absolute top-[55%] left-[60%] w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                    <div className="absolute top-[40%] left-[75%] w-3 h-3 rounded-full bg-orange-500 animate-pulse" />
+                    <div className="absolute top-[70%] left-[35%] w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+                    {/* Grid lines */}
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { unit: '278', driver: 'Jaime D.', status: 'Driving', color: 'red' },
+                    { unit: '277', driver: 'Javier M.', status: 'On Duty', color: 'orange' },
+                    { unit: '280', driver: 'Unassigned', status: 'Off Duty', color: 'green' },
+                  ].map((t, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full bg-${t.color}-500`} />
+                        <span className="text-sm text-white">Unit #{t.unit}</span>
+                        <span className="text-xs text-white/40">{t.driver}</span>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full bg-${t.color}-500/20 text-${t.color}-400`}>{t.status}</span>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full ${
-                      load.status === 'In Transit' ? 'bg-[#0066FF]/20 text-[#0066FF]' :
-                      load.status === 'Loading' ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-white/10 text-white/60'
-                    }`}>
-                      {load.status}
-                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {feature.image === 'fuel' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Total Spend', value: '$12.4K' },
+                    { label: 'Gallons', value: '2,850' },
+                    { label: 'Avg PPG', value: '$5.34' },
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-white/5 rounded-xl p-3 text-center">
+                      <div className="text-lg font-bold text-white">{stat.value}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="text-xs text-white/40 mb-3">Recent Transactions</div>
+                  {[
+                    { merchant: 'Pilot #044', amount: '$396.09', gal: '76.2 gal' },
+                    { merchant: "Love's #621", amount: '$521.59', gal: '94.8 gal' },
+                    { merchant: 'Pilot #912', amount: '$432.00', gal: '80.0 gal' },
+                  ].map((t, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <div>
+                        <div className="text-sm text-white">{t.merchant}</div>
+                        <div className="text-xs text-white/40">{t.gal}</div>
+                      </div>
+                      <span className="text-sm text-white font-medium">{t.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {feature.image === 'ava' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-3 border-b border-white/10">
+                  <Wrench className="w-4 h-4 text-[#0066FF]" />
+                  <span className="text-sm text-white/60">Fleet Diagnostics</span>
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">2 Critical</span>
+                </div>
+                {[
+                  { code: 'P0420', desc: 'Catalyst Efficiency Below Threshold', severity: 'critical', truck: 'Unit #278' },
+                  { code: 'P0171', desc: 'System Too Lean (Bank 1)', severity: 'warning', truck: 'Unit #277' },
+                ].map((dtc, i) => (
+                  <div key={i} className="bg-white/5 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-mono font-bold">{dtc.code}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${dtc.severity === 'critical' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>{dtc.severity}</span>
+                    </div>
+                    <div className="text-sm text-white/60 mb-2">{dtc.desc}</div>
+                    <div className="text-xs text-white/40">{dtc.truck}</div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {feature.image === 'invoicing' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <div className="text-white font-medium">Invoice #2847</div>
-                    <div className="text-sm text-white/40">Martinez Transport</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold">$4,500</div>
-                    <div className="text-xs text-green-400">Paid</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <div className="text-white font-medium">Invoice #2848</div>
-                    <div className="text-sm text-white/40">Pacific Freight</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold">$3,200</div>
-                    <div className="text-xs text-amber-400">Pending</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {feature.image === 'app' && (
-              <div className="flex justify-center py-4">
-                <div className="w-48 bg-[#141414] rounded-3xl p-3 border border-white/10">
-                  <div className="aspect-[9/16] bg-black rounded-2xl p-4 flex flex-col">
-                    <div className="text-center mb-4">
-                      <div className="text-xs text-white/40">Current Load</div>
-                      <div className="text-sm text-white font-medium mt-1">LD-2847</div>
-                    </div>
-                    <div className="flex-1 bg-white/5 rounded-xl mb-4" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-[#0066FF] rounded-lg py-2 text-center text-xs text-white">
-                        Update
-                      </div>
-                      <div className="bg-white/10 rounded-lg py-2 text-center text-xs text-white">
-                        Upload
-                      </div>
-                    </div>
+                <div className="bg-[#0066FF]/10 border border-[#0066FF]/20 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#0066FF]" />
+                    <span className="text-xs text-[#0066FF]">AI Analysis: Replace catalytic converter — est. $1,200-$2,400</span>
                   </div>
                 </div>
               </div>
@@ -506,12 +530,16 @@ export function Features() {
 
       {/* Additional Features Grid */}
       <div className="container py-32">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-6">
           {[
             { icon: Shield, label: 'Compliance', desc: 'ELD integration & DOT ready' },
-            { icon: Zap, label: 'Fast', desc: 'Built with modern tech' },
-            { icon: Receipt, label: 'IFTA', desc: 'Automated reporting' },
-            { icon: Truck, label: 'Fleet', desc: 'Manage all assets' },
+            { icon: MapPin, label: 'GPS Tracking', desc: 'Live Motive fleet map' },
+            { icon: Receipt, label: 'P&L', desc: 'Real-time profit & loss' },
+            { icon: Fuel, label: 'Fuel Cards', desc: 'EFS, Comdata, WEX' },
+            { icon: Truck, label: 'Fleet', desc: 'Trucks, trailers & assets' },
+            { icon: Zap, label: 'AI Mechanic', desc: 'Claude-powered diagnostics' },
+            { icon: Mail, label: 'ATLAS', desc: 'Email intelligence' },
+            { icon: LayoutDashboard, label: 'Dispatch', desc: 'Route & load management' },
           ].map((item, i) => (
             <motion.div
               key={item.label}

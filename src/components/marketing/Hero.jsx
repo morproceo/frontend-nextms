@@ -63,8 +63,8 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-body-lg text-white/60 max-w-[540px] mb-12"
           >
-            Built for the next generation of trucking companies.
-            Dispatch, track, invoice — all from one beautifully simple platform.
+            AI-powered fleet management with live GPS tracking, smart fuel management,
+            and real-time diagnostics — all in one platform.
           </motion.p>
 
           {/* CTAs */}
@@ -116,7 +116,7 @@ export function Hero() {
                 <div className="w-3 h-3 rounded-full bg-white/10" />
               </div>
               <div className="flex-1 text-center">
-                <span className="text-xs text-white/30">app.nexttms.com</span>
+                <span className="text-xs text-white/30">nextms.io</span>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ export function Hero() {
                   { label: 'Active Loads', value: '24' },
                   { label: 'Revenue MTD', value: '$148K' },
                   { label: 'On-Time', value: '98.5%' },
-                  { label: 'Drivers', value: '18' },
+                  { label: 'Fleet', value: '18' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white/5 rounded-xl p-4">
                     <div className="text-xs text-white/40 mb-1">{stat.label}</div>
