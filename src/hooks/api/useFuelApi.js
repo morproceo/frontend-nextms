@@ -21,7 +21,7 @@ export function useFuelCardsList() {
     return fetch(filters);
   }, [fetch]);
 
-  return { cards: data || [], loading, error, fetchCards, clearError };
+  return { cards: Array.isArray(data) ? data : (data?.data || []), loading, error, fetchCards, clearError };
 }
 
 export function useFuelCardDetail(cardId) {
