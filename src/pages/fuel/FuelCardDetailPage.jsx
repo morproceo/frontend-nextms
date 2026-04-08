@@ -92,8 +92,8 @@ export function FuelCardDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fuelApi.getFuelCard(cardId);
-      setCard(data);
+      const response = await fuelApi.getFuelCard(cardId);
+      setCard(response?.data || response);
     } catch (err) {
       setError(err?.response?.data?.error || err?.message || 'Failed to load fuel card');
     } finally {
@@ -105,8 +105,9 @@ export function FuelCardDetailPage() {
   const fetchAssignments = useCallback(async () => {
     try {
       setAssignmentsLoading(true);
-      const data = await fuelApi.getFuelCardAssignments(cardId);
-      setAssignments(data?.assignments || data || []);
+      const response = await fuelApi.getFuelCardAssignments(cardId);
+      const list = response?.data?.assignments || response?.assignments || (Array.isArray(response) ? response : []);
+      setAssignments(list);
     } catch (err) {
       console.error('Failed to load assignments:', err);
     } finally {
