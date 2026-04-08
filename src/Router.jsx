@@ -24,6 +24,7 @@ import DriversListPage from './pages/drivers/DriversListPage';
 import DriverDetailPage from './pages/drivers/DriverDetailPage';
 import DriverFormPage from './pages/drivers/DriverFormPage';
 import DriverInviteAcceptPage from './pages/drivers/DriverInviteAcceptPage';
+import InviteAcceptPage from './pages/auth/InviteAcceptPage';
 
 // Driver Portal
 import { DriverShell } from './components/layout/DriverShell';
@@ -242,6 +243,9 @@ export function Router() {
           <Route path="/verify" element={<VerifyPage />} />
           <Route path="/driver-signup" element={<DriverSignupPage />} />
         </Route>
+
+        {/* Organization invite acceptance */}
+        <Route path="/invitations/:token/accept" element={<InviteAcceptPage />} />
 
         {/* Driver invite acceptance (public - creates account) */}
         <Route path="/driver-invite/:token" element={<DriverInviteAcceptPage />} />
