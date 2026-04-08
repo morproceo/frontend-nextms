@@ -145,8 +145,8 @@ export function FindMyTruckPage() {
   const filteredTrucks = query
     ? trucks.filter((t) => {
         const unit = (t.unit_number || '').toLowerCase();
-        const driver = (t.driver?.name || t.driver_name || '').toLowerCase();
-        const location = (t.location?.description || t.location_description || '').toLowerCase();
+        const driver = t.driver ? `${t.driver.first_name || ''} ${t.driver.last_name || ''}`.toLowerCase() : '';
+        const location = (t.location?.description || '').toLowerCase();
         return unit.includes(query) || driver.includes(query) || location.includes(query);
       })
     : trucks;
@@ -242,16 +242,20 @@ export function FindMyTruckPage() {
             {/* Truck list */}
             <div className="flex-1 overflow-y-auto">
               {filteredTrucks.map((truck) => {
-                const isSelected = selectedTruckId === truck.id;
-                const driverName = truck.driver?.name || truck.driver_name || 'No driver assigned';
-                const locationDesc = truck.location?.description || truck.location_description || '';
-                const speed = truck.speed != null ? `${truck.speed} mph` : '';
-                const updatedAt = truck.location?.updated_at || truck.updated_at;
+                const truckKey = truck.truck_id || truck.motive_vehicle_id;
+                const isSelected = selectedTruckId === truckKey;
+                const driverName = truck.driver
+                  ? `${truck.driver.first_name || ''} ${truck.driver.last_name || ''}`.trim() || 'No driver assigned'
+                  : 'No driver assigned';
+                const locationDesc = truck.location?.description || '';
+                const speed = truck.location?.speed_mph ? `${truck.location.speed_mph} mph` : '';
+                const updatedAt = truck.location?.located_at;
+                const eldStatus = truck.driver?.eld_status;
 
                 return (
                   <div
-                    key={truck.id}
-                    onClick={() => setSelectedTruckId(truck.id)}
+                    key={truckKey}
+                    onClick={() => setSelectedTruckId(truckKey)}
                     className={`py-3 px-4 border-b border-surface-tertiary cursor-pointer transition-colors hover:bg-surface-secondary/50 ${
                       isSelected ? 'bg-accent/5 border-l-2 border-l-accent' : ''
                     }`}
@@ -261,8 +265,8 @@ export function FindMyTruckPage() {
                       <span className="text-body-sm font-semibold text-text-primary">
                         Unit #{truck.unit_number}
                       </span>
-                      <Badge variant={getEldColor(truck.eld_status)} size="sm">
-                        {getEldLabel(truck.eld_status)}
+                      <Badge variant={getEldColor(eldStatus)} size="sm">
+                        {getEldLabel(eldStatus)}
                       </Badge>
                     </div>
 
