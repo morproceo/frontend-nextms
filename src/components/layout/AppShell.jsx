@@ -54,7 +54,8 @@ const navigation = [
       { name: 'Trucks', href: '/assets/trucks', icon: Truck },
       { name: 'Trailers', href: '/assets/trailers', icon: Container },
       { name: 'Fuel', href: '/fuel', icon: Fuel },
-      { name: 'Fuel Cards', href: '/fuel/cards', icon: CreditCard }
+      { name: 'Fuel Cards', href: '/fuel/cards', icon: CreditCard },
+      { name: 'Fuel Import', href: '/fuel/transactions/import', icon: FileText }
     ]
   },
 
@@ -322,7 +323,7 @@ export function AppShell() {
                   </button>
                   <div className={cn(
                     'ml-4 space-y-1 overflow-hidden transition-all duration-200',
-                    isExpanded ? 'mt-1 max-h-60 opacity-100' : 'max-h-0 opacity-0'
+                    isExpanded ? 'mt-1 max-h-96 opacity-100' : 'max-h-0 opacity-0'
                   )}>
                     {item.children.map((child) => {
                       const childHref = `${basePath}${child.href}`;
