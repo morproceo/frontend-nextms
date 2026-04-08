@@ -522,27 +522,25 @@ export function FuelCardsPage() {
       )}
 
       {/* Assignment Modals */}
-      {assignModalCard && (
-        <AssignFuelCardModal
-          card={assignModalCard}
-          onClose={() => setAssignModalCard(null)}
-          onSuccess={() => {
-            setAssignModalCard(null);
-            refetch();
-          }}
-        />
-      )}
+      <AssignFuelCardModal
+        isOpen={!!assignModalCard}
+        card={assignModalCard}
+        onClose={() => setAssignModalCard(null)}
+        onAssigned={() => {
+          setAssignModalCard(null);
+          refetch();
+        }}
+      />
 
-      {returnModalCard && (
-        <ReturnFuelCardModal
-          card={returnModalCard}
-          onClose={() => setReturnModalCard(null)}
-          onSuccess={() => {
-            setReturnModalCard(null);
-            refetch();
-          }}
-        />
-      )}
+      <ReturnFuelCardModal
+        isOpen={!!returnModalCard}
+        card={returnModalCard}
+        onClose={() => setReturnModalCard(null)}
+        onReturned={() => {
+          setReturnModalCard(null);
+          refetch();
+        }}
+      />
     </div>
   );
 }

@@ -274,10 +274,10 @@ export function FuelCardDetailPage() {
                   </div>
                 </div>
 
-                {card.issuer_account && (
+                {card.issuer_account_number && (
                   <div>
                     <p className="text-small text-text-tertiary mb-1">Issuer Account</p>
-                    <p className="text-body-sm text-text-primary">{card.issuer_account}</p>
+                    <p className="text-body-sm text-text-primary">{card.issuer_account_number}</p>
                   </div>
                 )}
               </div>

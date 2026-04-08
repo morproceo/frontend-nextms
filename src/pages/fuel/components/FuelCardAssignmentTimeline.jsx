@@ -90,14 +90,14 @@ export function FuelCardAssignmentTimeline({ assignments, loading }) {
 
                 {/* Assigned by / Returned by */}
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                  {assignment.assigned_by_user && (
+                  {assignment.assignedBy && (
                     <p className="text-[11px] text-text-tertiary">
-                      Assigned by {assignment.assigned_by_user.first_name || assignment.assigned_by_user.email || 'Unknown'}
+                      Assigned by {assignment.assignedBy.first_name || assignment.assignedBy.email || 'Unknown'}
                     </p>
                   )}
-                  {assignment.returned_by_user && (
+                  {assignment.returnedBy && (
                     <p className="text-[11px] text-text-tertiary">
-                      Returned by {assignment.returned_by_user.first_name || assignment.returned_by_user.email || 'Unknown'}
+                      Returned by {assignment.returnedBy.first_name || assignment.returnedBy.email || 'Unknown'}
                     </p>
                   )}
                 </div>
