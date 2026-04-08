@@ -44,23 +44,78 @@ const SYSTEM_FIELDS = [
   { id: 'transaction_time', label: 'Transaction Time' },
   { id: 'reference_number', label: 'Reference Number' },
   { id: 'invoice_number', label: 'Invoice Number' },
-  { id: 'merchant_name', label: 'Merchant Name' },
+  { id: 'merchant_name', label: 'Merchant / Location Name' },
   { id: 'city', label: 'City' },
   { id: 'state', label: 'State' },
   { id: 'zip', label: 'ZIP Code' },
-  { id: 'fuel_type', label: 'Fuel Type' },
-  { id: 'gallons', label: 'Gallons' },
-  { id: 'price_per_gallon', label: 'Price Per Gallon' },
+  { id: 'fuel_type', label: 'Fuel Type / Item' },
+  { id: 'gallons', label: 'Gallons / Qty' },
+  { id: 'price_per_gallon', label: 'Price Per Gallon / Unit Price' },
   { id: 'fuel_amount', label: 'Fuel Amount' },
   { id: 'def_gallons', label: 'DEF Gallons' },
   { id: 'def_amount', label: 'DEF Amount' },
   { id: 'total_amount', label: 'Total Amount' },
   { id: 'tax_amount', label: 'Tax Amount' },
   { id: 'discount_amount', label: 'Discount Amount' },
+  { id: 'fees_amount', label: 'Fees' },
   { id: 'odometer', label: 'Odometer' },
-  { id: 'unit_number', label: 'Unit Number' },
+  { id: 'unit_number', label: 'Truck Unit # (auto-match)' },
+  { id: 'card_number', label: 'Fuel Card # (auto-match)' },
+  { id: 'driver_name', label: 'Driver Name (auto-match)' },
+  { id: 'driver_code', label: 'Driver ID / Employee # (auto-match)' },
   { id: 'notes', label: 'Notes' }
 ];
+
+// Alias map for auto-detecting CSV headers → system fields
+const HEADER_ALIASES = {
+  transaction_date: ['trandate', 'transactiondate', 'date', 'transdate', 'trans_date', 'tran_date'],
+  transaction_time: ['trantime', 'transactiontime', 'time', 'transtime'],
+  reference_number: ['referencenumber', 'refnum', 'ref', 'refno', 'reference'],
+  invoice_number: ['invoice', 'invoicenumber', 'invoiceno', 'inv'],
+  merchant_name: ['locationname', 'merchant', 'location', 'site', 'sitename', 'stationname', 'station', 'merchantname'],
+  city: ['city'],
+  state: ['state', 'stateprov', 'st', 'province', 'stateprovince'],
+  zip: ['zip', 'zipcode', 'postalcode', 'postal'],
+  fuel_type: ['item', 'fueltype', 'product', 'productname', 'productcode', 'fuelgrade', 'grade', 'type'],
+  gallons: ['qty', 'quantity', 'gallons', 'gal', 'units', 'volume', 'litres', 'liters'],
+  price_per_gallon: ['unitprice', 'priceperunit', 'pricepergal', 'ppg', 'pricepergallon', 'rate', 'ppu'],
+  fuel_amount: ['fuelamount', 'fuelcost', 'fuelamount'],
+  total_amount: ['amt', 'amount', 'totalamount', 'total', 'totalcost', 'cost', 'net', 'netamount'],
+  tax_amount: ['tax', 'taxamount', 'salestax'],
+  discount_amount: ['discount', 'discountamount', 'disc'],
+  fees_amount: ['fees', 'fee', 'feesamount', 'servicefee', 'transfee', 'transactionfee'],
+  odometer: ['odometer', 'odo', 'miles', 'mileage', 'hubodometer', 'hubodo'],
+  unit_number: ['unit', 'unitnumber', 'unitno', 'truck', 'vehicle', 'vehicleno', 'vehiclenumber', 'truckno'],
+  card_number: ['card', 'cardnumber', 'cardno', 'cardnum', 'fuelcard', 'fuelcardnumber', 'accountnumber'],
+  driver_name: ['drivername', 'driver', 'name', 'employeename'],
+  driver_code: ['driverid', 'drivercode', 'driverno', 'employeeid', 'employeeno', 'empid', 'empno', 'employeenumber'],
+  def_gallons: ['defgallons', 'defqty', 'defquantity'],
+  def_amount: ['defamount', 'defcost', 'deftotal'],
+  notes: ['notes', 'memo', 'comments', 'description']
+};
+
+/**
+ * Auto-map CSV headers to system fields using alias matching
+ */
+function autoMapHeaders(headers) {
+  const mapping = {};
+  const usedFields = new Set();
+
+  for (const header of headers) {
+    const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    for (const [fieldId, aliases] of Object.entries(HEADER_ALIASES)) {
+      if (usedFields.has(fieldId)) continue;
+      if (aliases.includes(normalized) || normalized === fieldId.replace(/_/g, '')) {
+        mapping[header] = fieldId;
+        usedFields.add(fieldId);
+        break;
+      }
+    }
+  }
+
+  return mapping;
+}
 
 function StepIndicator({ currentStep }) {
   const steps = [
@@ -128,7 +183,7 @@ function UploadStep({ csvData, uploadFile, defaults, setDefaults }) {
   const handleFileChange = useCallback(
     (e) => {
       const file = e.target.files?.[0];
-      if (file) uploadFile(file);
+      if (file) uploadFile(file, autoMapHeaders);
     },
     [uploadFile]
   );
@@ -254,6 +309,13 @@ function MapColumnsStep({ csvData, columnMapping, setMapping }) {
   const headers = csvData?.headers || [];
   const previewRows = useMemo(() => (csvData?.rows || []).slice(0, 5), [csvData]);
 
+  // Count mapped vs unmapped
+  const mappedCount = headers.filter(h => columnMapping[h]).length;
+  const unmappedHeaders = headers.filter(h => !columnMapping[h]);
+  const hasAmountField = Object.values(columnMapping).some(v =>
+    ['total_amount', 'fuel_amount', 'gallons'].includes(v)
+  );
+
   // Build mapped headers for preview
   const mappedHeaders = useMemo(() => {
     return headers.map((h) => {
@@ -265,6 +327,30 @@ function MapColumnsStep({ csvData, columnMapping, setMapping }) {
 
   return (
     <div className="space-y-6">
+      {/* Mapping summary */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <Badge variant={mappedCount > 0 ? 'green' : 'gray'}>
+          {mappedCount} of {headers.length} columns mapped
+        </Badge>
+        {unmappedHeaders.length > 0 && (
+          <span className="text-small text-text-tertiary">
+            Skipped: {unmappedHeaders.join(', ')}
+          </span>
+        )}
+      </div>
+
+      {/* Validation warning */}
+      {!hasAmountField && mappedCount > 0 && (
+        <Card className="bg-warning/5 border border-warning/20">
+          <CardContent className="p-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+            <p className="text-body-sm text-warning">
+              No amount or gallons field mapped. Rows without a total amount, fuel amount, or gallons value will be skipped.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -274,30 +360,34 @@ function MapColumnsStep({ csvData, columnMapping, setMapping }) {
         </CardHeader>
         <CardContent>
           <p className="text-body-sm text-text-secondary mb-4">
-            Match each CSV column to the corresponding system field.
+            Columns are auto-matched where possible. Adjust any incorrect mappings below.
           </p>
           <div className="space-y-3">
-            {headers.map((header) => (
-              <div
-                key={header}
-                className="grid grid-cols-2 gap-4 items-center py-2 border-b border-surface-tertiary last:border-0"
-              >
-                <div className="text-body-sm font-medium text-text-primary truncate" title={header}>
-                  {header}
-                </div>
-                <select
-                  value={columnMapping[header] || ''}
-                  onChange={(e) => setMapping(header, e.target.value)}
-                  className="w-full rounded-button border border-surface-tertiary bg-white px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            {headers.map((header) => {
+              const isMapped = !!columnMapping[header];
+              return (
+                <div
+                  key={header}
+                  className={`grid grid-cols-2 gap-4 items-center py-2 border-b border-surface-tertiary last:border-0 ${isMapped ? '' : 'opacity-60'}`}
                 >
-                  {SYSTEM_FIELDS.map((field) => (
-                    <option key={field.id} value={field.id}>
-                      {field.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
+                  <div className="text-body-sm font-medium text-text-primary truncate" title={header}>
+                    {header}
+                    {isMapped && <CheckCircle className="w-3 h-3 text-green-500 inline ml-1.5" />}
+                  </div>
+                  <select
+                    value={columnMapping[header] || ''}
+                    onChange={(e) => setMapping(header, e.target.value)}
+                    className={`w-full rounded-button border px-3 py-2 text-body-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent ${isMapped ? 'border-green-300 bg-green-50' : 'border-surface-tertiary bg-white'}`}
+                  >
+                    {SYSTEM_FIELDS.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {field.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -410,12 +500,30 @@ function ReviewStep({ csvData, columnMapping, defaults }) {
 function ResultsStep({ results, onReset, onViewTransactions }) {
   if (!results) return null;
 
-  const { imported = 0, skipped = 0, errors = [] } = results;
+  const { imported = 0, skipped = 0, errors = [], matched = {} } = results;
   const errorCount = errors.length;
   const hasErrors = errorCount > 0;
+  const driversMatched = matched.drivers || 0;
+  const trucksMatched = matched.trucks || 0;
+  const cardsMatched = matched.cards || 0;
+  const anyMatched = driversMatched > 0 || trucksMatched > 0 || cardsMatched > 0;
 
   return (
     <div className="space-y-6">
+      {/* Auto-match summary */}
+      {anyMatched && (
+        <Card className="bg-accent/5 border border-accent/20">
+          <CardContent className="p-4">
+            <p className="text-body-sm text-text-primary font-medium mb-1">Auto-Matched from CSV</p>
+            <div className="flex gap-4 flex-wrap text-body-sm text-text-secondary">
+              {cardsMatched > 0 && <span>{cardsMatched} fuel card{cardsMatched !== 1 ? 's' : ''} matched</span>}
+              {driversMatched > 0 && <span>{driversMatched} driver{driversMatched !== 1 ? 's' : ''} matched by name/ID</span>}
+              {trucksMatched > 0 && <span>{trucksMatched} truck{trucksMatched !== 1 ? 's' : ''} matched by unit number</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>

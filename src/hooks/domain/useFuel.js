@@ -357,20 +357,49 @@ export function useFuelImporter() {
   const [defaults, setDefaults] = useState({ fuel_card_id: '', driver_id: '', truck_id: '' });
   const [results, setResults] = useState(null);
 
+  /**
+   * Parse a single CSV line respecting quoted fields (handles commas inside quotes)
+   */
+  const parseCsvLine = useCallback((line) => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    return values;
+  }, []);
+
   const parseCsvFile = useCallback((file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target.result;
-        const lines = text.split('\n').filter(line => line.trim());
+        // Handle both \r\n and \n line endings
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(line => line.trim());
         if (lines.length < 2) {
           resolve(null);
           return;
         }
 
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        const headers = parseCsvLine(lines[0]).map(h => h.replace(/^"|"$/g, ''));
         const rows = lines.slice(1).map(line => {
-          const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          const values = parseCsvLine(line).map(v => v.replace(/^"|"$/g, ''));
           const row = {};
           headers.forEach((h, i) => {
             row[h] = values[i] || '';
@@ -382,12 +411,17 @@ export function useFuelImporter() {
       };
       reader.readAsText(file);
     });
-  }, []);
+  }, [parseCsvLine]);
 
-  const uploadFile = useCallback(async (file) => {
+  const uploadFile = useCallback(async (file, autoMapFn) => {
     const data = await parseCsvFile(file);
     if (data) {
       setCsvData(data);
+      // Auto-map headers if a mapping function is provided
+      if (autoMapFn) {
+        const autoMapped = autoMapFn(data.headers);
+        setColumnMapping(autoMapped);
+      }
       setStep(2);
     }
     return data;
@@ -400,8 +434,8 @@ export function useFuelImporter() {
   const executeImport = useCallback(async () => {
     if (!csvData?.rows) return null;
     const result = await importCsv(csvData.rows, columnMapping, defaults);
-    if (result?.data) {
-      setResults(result.data);
+    if (result) {
+      setResults(result);
       setStep(4);
     }
     return result;

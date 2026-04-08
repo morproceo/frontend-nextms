@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from 'react';
-import { useApiRequest, useMutation } from './useApiRequest';
+import { useApiRequest, useApiState, useMutation } from './useApiRequest';
 import * as fuelApi from '../../api/fuel.api';
 
 // ============================================
@@ -12,24 +12,30 @@ import * as fuelApi from '../../api/fuel.api';
 // ============================================
 
 export function useFuelCardsList() {
-  const { data: cards, loading, error, execute: fetchCards } = useApiRequest();
+  const { data, loading, error, fetch, clearError } = useApiState(
+    (filters) => fuelApi.getFuelCards(filters),
+    { initialData: [] }
+  );
 
-  const fetch = useCallback((filters = {}) => {
-    return fetchCards(() => fuelApi.getFuelCards(filters));
-  }, [fetchCards]);
+  const fetchCards = useCallback((filters = {}) => {
+    return fetch(filters);
+  }, [fetch]);
 
-  return { cards: cards?.data || [], loading, error, fetchCards: fetch };
+  return { cards: data || [], loading, error, fetchCards, clearError };
 }
 
 export function useFuelCardDetail(cardId) {
-  const { data: card, loading, error, execute: fetchCard } = useApiRequest();
+  const { data, loading, error, fetch, clearError } = useApiState(
+    () => fuelApi.getFuelCard(cardId),
+    { initialData: null }
+  );
 
-  const fetch = useCallback(() => {
+  const fetchCard = useCallback(() => {
     if (!cardId) return;
-    return fetchCard(() => fuelApi.getFuelCard(cardId));
-  }, [cardId, fetchCard]);
+    return fetch();
+  }, [cardId, fetch]);
 
-  return { card: card?.data || null, loading, error, fetchCard: fetch };
+  return { card: data, loading, error, fetchCard, clearError };
 }
 
 export function useFuelCardMutations() {
@@ -55,32 +61,37 @@ export function useFuelCardMutations() {
 // ============================================
 
 export function useFuelTransactionsList() {
-  const { data, loading, error, execute: fetchTxns } = useApiRequest();
+  const { data, loading, error, fetch, clearError } = useApiState(
+    (filters) => fuelApi.getFuelTransactions(filters),
+    { initialData: { transactions: [], total: 0 } }
+  );
 
-  const fetch = useCallback((filters = {}) => {
-    return fetchTxns(() => fuelApi.getFuelTransactions(filters));
-  }, [fetchTxns]);
-
-  const result = data?.data || {};
+  const fetchTransactions = useCallback((filters = {}) => {
+    return fetch(filters);
+  }, [fetch]);
 
   return {
-    transactions: result.transactions || [],
-    total: result.total || 0,
+    transactions: data?.transactions || [],
+    total: data?.total || 0,
     loading,
     error,
-    fetchTransactions: fetch
+    fetchTransactions,
+    clearError
   };
 }
 
 export function useFuelTransactionDetail(txnId) {
-  const { data, loading, error, execute: fetchTxn } = useApiRequest();
+  const { data, loading, error, fetch, clearError } = useApiState(
+    () => fuelApi.getFuelTransaction(txnId),
+    { initialData: null }
+  );
 
-  const fetch = useCallback(() => {
+  const fetchTransaction = useCallback(() => {
     if (!txnId) return;
-    return fetchTxn(() => fuelApi.getFuelTransaction(txnId));
-  }, [txnId, fetchTxn]);
+    return fetch();
+  }, [txnId, fetch]);
 
-  return { transaction: data?.data || null, loading, error, fetchTransaction: fetch };
+  return { transaction: data, loading, error, fetchTransaction, clearError };
 }
 
 export function useFuelTransactionMutations() {
@@ -153,13 +164,16 @@ export function useFuelWorkflow() {
 // ============================================
 
 export function useFuelStats() {
-  const { data, loading, error, execute: fetchStats } = useApiRequest();
+  const { data, loading, error, fetch, clearError } = useApiState(
+    (filters) => fuelApi.getFuelStats(filters),
+    { initialData: null }
+  );
 
-  const fetch = useCallback((filters = {}) => {
-    return fetchStats(() => fuelApi.getFuelStats(filters));
-  }, [fetchStats]);
+  const fetchStats = useCallback((filters = {}) => {
+    return fetch(filters);
+  }, [fetch]);
 
-  return { stats: data?.data || null, loading, error, fetchStats: fetch };
+  return { stats: data, loading, error, fetchStats, clearError };
 }
 
 export function useFuelImport() {
