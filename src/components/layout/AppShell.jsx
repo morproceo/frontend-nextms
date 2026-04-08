@@ -67,7 +67,9 @@ const navigation = [
       { name: 'Fuel Transactions', href: '/fuel/transactions', icon: Fuel },
       { name: 'Invoices', href: '/invoices', icon: DollarSign },
       { name: 'P&L', href: '/pnl', icon: TrendingUp },
-      { name: 'Reports', href: '/reporting', icon: FileBarChart }
+      { name: 'Reports', href: '/reporting', icon: BarChart3 },
+      { name: 'Performance', href: '/reporting/performance', icon: TrendingUp },
+      { name: 'Financials', href: '/reporting/financials', icon: FileBarChart }
     ]
   },
 
