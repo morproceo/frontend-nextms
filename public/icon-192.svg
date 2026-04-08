@@ -1,7 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="38" fill="#1C2C3E"/>
-  <g transform="translate(38, 38) scale(2.9)">
-    <path fill="#3A93E8" d="M10 12h6l8 8-8 8h-6l8-8z"/>
-    <path fill="#ffffff" d="M16 12h6l8 8-8 8h-6l8-8z" opacity="0.6"/>
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 40 40">
+  <!-- Generator: Adobe Illustrator 30.2.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: #26a9e0;
+      }
+
+      .st0, .st2 {
+        fill-rule: evenodd;
+      }
+
+      .st3 {
+        fill: #1c2c3e;
+      }
+
+      .st2 {
+        fill: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="557.8" y1="-993.9" x2="570.5" y2="-995.6" gradientTransform="translate(-533.6 -973.8) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1b75bb"/>
+      <stop offset="0" stop-color="#1c7bbf"/>
+      <stop offset=".1" stop-color="#2190ce"/>
+      <stop offset=".2" stop-color="#249ed8"/>
+      <stop offset=".4" stop-color="#25a6de"/>
+      <stop offset=".6" stop-color="#26a9e0"/>
+      <stop offset="1" stop-color="#26a9e0"/>
+    </linearGradient>
+  </defs>
+  <rect class="st3" width="40" height="40" rx="8" ry="8"/>
+  <path class="st0" d="M33.2,17.1c-1.2-1.5-2.8-1.6-4.5-1.1-1.7.4-2.9,3.1-5.2,4.4l-4.7-6.5s0,0,0,0h0s0,0-.1-.1c0,0,0,0,0,0,0,0-.1,0-.2,0,0,0,0,0,0,0t0,0H2c-.3,0-.5.3-.5.6s.2.6.5.6h15.9l7.9,11.2c0,.1.2.2.4.2h0s0,0,0,0h0c.1,0,.3,0,.4,0,3.3-1.9,1.9-5.6,6.8-7.3.7-.2,1.3-.4,2.9-.3-1-.8-3-1.5-3-1.5Z"/>
+  <path class="st2" d="M33.2,17.1c-1.2-1.5-2.8-1.6-4.5-1.1-1.7.4-2.9,3.1-5.2,4.4,0,0,3.7,5.5,3.8,5.4,3-1.9,1.2-5.1,6.1-6.9.7-.2,1.3-.4,2.9-.3-1-.9-3-1.5-3-1.5Z"/>
+  <path class="st1" d="M5.6,16.5c-.2,0-.4.3-.4.6s.2.6.4.6h12.5s0,0,0,0l-.8-1.2H5.6Z"/>
+  <path class="st1" d="M9.7,19.4c-.2,0-.4.3-.4.6s.2.6.4.6h10.5l-.8-1.2h-9.6Z"/>
+  <path class="st1" d="M13.5,22.3c-.2,0-.4.3-.4.6s.2.6.4.6h8.7l-.8-1.2h-7.8Z"/>
+  <path class="st1" d="M18.4,25.1c-.2,0-.4.3-.4.6s.2.6.4.6h5.8l-.8-1.2h-5Z"/>
 </svg>
