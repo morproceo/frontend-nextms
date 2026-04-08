@@ -62,25 +62,25 @@ export function FuelDashboardPage() {
   const statCards = [
     {
       name: 'Total Spend',
-      value: formatCurrency(stats?.totalSpend),
+      value: formatCurrency(stats?.amounts?.total_spend),
       icon: DollarSign,
       color: 'accent'
     },
     {
       name: 'Total Gallons',
-      value: formatGallons(stats?.totalGallons),
+      value: formatGallons(stats?.amounts?.total_gallons),
       icon: Fuel,
       color: 'blue-600'
     },
     {
       name: 'Avg PPG',
-      value: stats?.avgPpg ? `$${Number(stats.avgPpg).toFixed(3)}` : '$0.000',
+      value: stats?.amounts?.avg_ppg ? `$${Number(stats.amounts.avg_ppg).toFixed(3)}` : '$0.000',
       icon: TrendingDown,
       color: 'success'
     },
     {
       name: 'Pending Verification',
-      value: stats?.pendingVerification?.toString() || '0',
+      value: stats?.counts?.pending_verification?.toString() || '0',
       icon: AlertCircle,
       color: 'warning'
     }
@@ -133,7 +133,7 @@ export function FuelDashboardPage() {
           <Plus className="w-4 h-4 sm:mr-2" />
           <span className="hidden sm:inline">Add Transaction</span>
         </Button>
-        <Button variant="secondary" onClick={() => navigate(orgUrl('/fuel/import'))} className="shrink-0">
+        <Button variant="secondary" onClick={() => navigate(orgUrl('/fuel/transactions/import'))} className="shrink-0">
           <Upload className="w-4 h-4 sm:mr-2" />
           <span className="hidden sm:inline">Import CSV</span>
         </Button>
@@ -250,11 +250,11 @@ export function FuelDashboardPage() {
                         <Truck className="w-4 h-4 text-text-secondary" />
                       </div>
                       <span className="text-body-sm font-medium text-text-primary truncate">
-                        {truck.unit_number || `Truck ${index + 1}`}
+                        {truck.truck?.unit_number || `Truck ${index + 1}`}
                       </span>
                     </div>
                     <span className="text-body-sm font-medium text-text-primary tabular-nums shrink-0 ml-3">
-                      {formatCurrency(truck.total_spend)}
+                      {formatCurrency(truck.total)}
                     </span>
                   </div>
                 ))}
