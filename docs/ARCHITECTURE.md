@@ -197,6 +197,8 @@
 - `load_stops`
 - `dispatch_assignments`
 - `documents`
+- `driver_documents` (compliance docs per driver)
+- `equipment_documents` (compliance docs for trucks/trailers, polymorphic via entity_type + entity_id)
 - `invoices`
 - `notifications`
 - `org_settings`
@@ -956,6 +958,9 @@ GET    /v1/drivers/:id           - Get driver details
 PATCH  /v1/drivers/:id           - Update driver
 DELETE /v1/drivers/:id           - Soft delete driver
 POST   /v1/drivers/:id/invite    - Invite driver to claim account
+GET    /v1/drivers/:id/documents - List driver compliance documents
+POST   /v1/drivers/:id/documents - Upload driver compliance document
+DELETE /v1/drivers/:id/documents/:docId - Delete driver compliance document
 ```
 
 ### Driver Self-Service (Me Endpoints)
@@ -971,7 +976,14 @@ GET    /v1/me/notifications      - Driver notifications
 ### Asset Endpoints
 ```
 GET/POST/PATCH/DELETE /v1/trucks
+GET    /v1/trucks/:id/documents           - List truck compliance documents
+POST   /v1/trucks/:id/documents           - Upload truck compliance document (multipart)
+DELETE /v1/trucks/:id/documents/:docId    - Delete truck compliance document
+
 GET/POST/PATCH/DELETE /v1/trailers
+GET    /v1/trailers/:id/documents         - List trailer compliance documents
+POST   /v1/trailers/:id/documents         - Upload trailer compliance document (multipart)
+DELETE /v1/trailers/:id/documents/:docId  - Delete trailer compliance document
 ```
 
 ### Document Endpoints
@@ -1113,10 +1125,23 @@ export default {
 
 1. **Auth Pages**: Full-screen, centered card, minimal
 2. **Org Switcher**: Top-left dropdown, shows role badge
-3. **Dashboard**: 4-column KPI grid, activity feed, quick actions
-4. **Dispatch Board**: Kanban columns OR list view toggle
+3. **Dashboard**: 6-column financial KPI grid (Total Loads, Revenue, Rate/Mile, Cost/Mile, Net Profit/Mile, Operating Margin), period selector (This Week/This Month/Last Month/YTD), performance trend chart (revenue vs costs), quick actions, full-width recent loads
+4. **Reporting Section**: Collapsible nav group with 3 sub-pages:
+   - **Summary** (`/reporting`): Same KPIs as Dashboard + performance trend + exportable monthly breakdown table. Uses `useDashboard` hook.
+   - **Performance** (`/reporting/performance`): Filter by driver/truck/dispatcher (client-side). 4 KPIs (Loads, Revenue, Miles, RPM), filterable loads table with mobile card view. Uses `useReportingPerformance` domain hook. CSV export of filtered loads.
+   - **Financials** (`/reporting/financials`): Gross/Net view toggle, 4 KPI cards, income statement, trend chart. Uses `usePnl` hook. CSV export of income statement line items.
+   - **Shared**: `exportToCSV` utility (`utils/exportCsv.js`) for CSV blob downloads.
+5. **Dispatch Board**: Kanban columns OR list view toggle
+   - **Load Timeline** (`LoadTimeline.jsx`): Shows active/recent loads with dispatch event timelines. List view and Calendar view toggle. Each timeline row displays ELD status badge (color-coded dot: red=Driving, orange=On Duty, blue=Sleeper, green=Off Duty, gray=No ELD) with hours remaining ("Xh Ym left"). Stale ELD data (>30 min old) is shown dimmed/italic.
 5. **Load Detail**: Timeline left, docs/invoice right, actions top
 6. **Driver Mobile**: Large touch targets, swipe actions, offline indicator
+7. **Compliance Command Center** (`/tools/compliance`): Fleet compliance dashboard under Tools.
+   - **KPI Strip**: Total Alerts, Driver Alerts, Equipment Alerts, Company Permits (compliant/total)
+   - **Dashboard tab**: Combined alerts across drivers, trucks, trailers sorted by urgency (expired first). Click navigates to entity detail.
+   - **Drivers tab**: Drivers with expiring/expired CDL, medical card, drug test, MVR. Grid layout with badge status per field.
+   - **Equipment tab**: Combined trucks + trailers needing attention, showing unit number, type, and alert badges.
+   - **Company Permits tab**: FMCSA 12-item checklist (UCR, MCS-150, BOC-3, Operating Authority, IFTA, IRP, Drug/Alcohol Program, DQ Files, Vehicle Marking, ELD Compliance, Insurance Filing, Hazmat Permit). Click-to-cycle status (Compliant/Non-Compliant/N-A), expiry date, notes. Save button persists to `org_settings.settings.companyPermits` JSON. Each permit row has a Paperclip upload button and expandable document list (view/delete). Documents uploaded to S3 via `PermitDocumentUploadModal` component, stored using polymorphic `EquipmentDocument` model with `entity_type='company_permit'`.
+   - Uses `useComplianceCommandCenter` domain hook. API: `compliance.api.js` (summary, company permits CRUD, permit document upload/list/delete), `drivers.api.js` (attention endpoint).
 
 ---
 

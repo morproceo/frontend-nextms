@@ -1,48 +1,50 @@
 /**
- * DocumentUploadModal
- * Modal for uploading documents to a load
- * Note: uploadsApi kept as exception (simple one-time upload operation)
+ * EquipmentDocumentUploadModal
+ * Modal for uploading compliance documents for trucks and trailers
  */
 
 import { useState } from 'react';
-import { X, Upload, FileText } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
-import uploadsApi from '../../../api/uploads.api'; // Exception: Simple upload operation
+import uploadsApi from '../../../api/uploads.api';
 
-const DOCUMENT_TYPES = [
-  { value: 'BOL', label: 'Bill of Lading (BOL)' },
-  { value: 'POD', label: 'Proof of Delivery (POD)' },
-  { value: 'RATE_CON', label: 'Rate Confirmation' },
-  { value: 'INVOICE', label: 'Invoice' },
-  { value: 'LUMPER', label: 'Lumper Receipt' },
-  { value: 'SCALE_TICKET', label: 'Scale Ticket' },
+const EQUIPMENT_DOCUMENT_TYPES = [
+  { value: 'REGISTRATION', label: 'Vehicle Registration' },
+  { value: 'INSURANCE', label: 'Insurance Certificate' },
+  { value: 'ANNUAL_INSPECTION', label: 'Annual DOT Inspection' },
+  { value: 'TITLE', label: 'Vehicle Title' },
+  { value: 'LEASE', label: 'Lease Agreement' },
+  { value: 'IRP_PERMIT', label: 'IRP Permit' },
+  { value: 'IFTA_PERMIT', label: 'IFTA Permit' },
+  { value: 'REPAIR_RECORD', label: 'Repair / Maintenance Record' },
   { value: 'OTHER', label: 'Other' }
 ];
 
-export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
+export function EquipmentDocumentUploadModal({ isOpen, onClose, entityType, entityId, onSuccess }) {
   const [docType, setDocType] = useState('OTHER');
+  const [expiryDate, setExpiryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
 
   if (!isOpen) return null;
 
+  const entityLabel = entityType === 'truck' ? 'truck' : 'trailer';
+
   const handleUpload = async (file, onProgress) => {
     setIsUploading(true);
 
     try {
-      const result = await uploadsApi.uploadDocument(file, {
-        context: 'load_document',
-        loadId,
-        docType,
-        notes
+      const result = await uploadsApi.uploadEquipmentDocument(entityType, entityId, file, {
+        type: docType,
+        expiryDate: expiryDate || undefined,
+        notes: notes || undefined
       }, onProgress);
 
       setUploadComplete(true);
       onSuccess?.(result);
 
-      // Close after a brief delay to show success state
       setTimeout(() => {
         handleClose();
       }, 1500);
@@ -56,6 +58,7 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
 
   const handleClose = () => {
     setDocType('OTHER');
+    setExpiryDate('');
     setNotes('');
     setIsUploading(false);
     setUploadComplete(false);
@@ -80,7 +83,7 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-900">Upload Document</h3>
-              <p className="text-sm text-gray-500">Add a document to this load</p>
+              <p className="text-sm text-gray-500">Add a compliance document for this {entityLabel}</p>
             </div>
           </div>
           <button
@@ -105,12 +108,26 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
               disabled={isUploading}
               className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
             >
-              {DOCUMENT_TYPES.map((type) => (
+              {EQUIPMENT_DOCUMENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Expiry Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Expiry Date (optional)
+            </label>
+            <input
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+              disabled={isUploading}
+              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
+            />
           </div>
 
           {/* Notes */}
@@ -155,4 +172,4 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
   );
 }
 
-export default DocumentUploadModal;
+export default EquipmentDocumentUploadModal;

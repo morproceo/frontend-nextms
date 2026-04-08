@@ -25,7 +25,10 @@ import {
   MoreHorizontal,
   Wrench,
   Zap,
-  Mail
+  Mail,
+  FileBarChart,
+  BarChart3,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
@@ -53,11 +56,21 @@ const navigation = [
   { name: 'Invoices', href: '/invoices', icon: DollarSign },
   { name: 'P&L', href: '/pnl', icon: TrendingUp },
   {
+    name: 'Reporting',
+    icon: FileBarChart,
+    children: [
+      { name: 'Summary', href: '/reporting', icon: BarChart3 },
+      { name: 'Performance', href: '/reporting/performance', icon: TrendingUp },
+      { name: 'Financials', href: '/reporting/financials', icon: DollarSign }
+    ]
+  },
+  {
     name: 'Tools',
     icon: Wrench,
     children: [
       { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap },
-      { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail }
+      { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail },
+      { name: 'Compliance', href: '/tools/compliance', icon: ShieldCheck }
     ]
   },
   {
@@ -88,7 +101,7 @@ export function AppShell() {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
-  const [expandedMenus, setExpandedMenus] = useState(['Assets']);
+  const [expandedMenus, setExpandedMenus] = useState(['Assets', 'Reporting']);
 
   // Save sidebar state to localStorage
   useEffect(() => {

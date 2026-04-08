@@ -6,8 +6,11 @@ import { LoadWizard } from './LoadWizard';
  * LoadFormModal - Modal wrapper for creating new loads
  * Shows mode selection (AI/Manual) first, then the wizard
  */
-export function LoadFormModal({ isOpen, onClose, onSuccess }) {
+export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
   const [mode, setMode] = useState(null); // null = selection, 'ai' = AI mode, 'manual' = manual mode
+
+  // Skip mode selection when prefill is provided (from LogIQ)
+  const effectiveMode = prefill && mode === null ? 'manual' : mode;
 
   if (!isOpen) return null;
 
@@ -43,7 +46,7 @@ export function LoadFormModal({ isOpen, onClose, onSuccess }) {
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {mode === null ? 'New Load' : mode === 'ai' ? 'AI Import' : 'Create Load'}
+            {effectiveMode === null ? 'New Load' : effectiveMode === 'ai' ? 'AI Import' : 'Create Load'}
           </h2>
           <button
             onClick={handleClose}
@@ -55,7 +58,7 @@ export function LoadFormModal({ isOpen, onClose, onSuccess }) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-8 py-6 bg-white dark:bg-gray-900">
-          {mode === null ? (
+          {effectiveMode === null ? (
             // Mode Selection
             <div className="space-y-4">
               <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
@@ -96,9 +99,10 @@ export function LoadFormModal({ isOpen, onClose, onSuccess }) {
             // Wizard
             <LoadWizard
               isModal={true}
-              onClose={handleBack}
+              onClose={prefill ? handleClose : handleBack}
               onSuccess={handleSuccess}
-              initialMode={mode}
+              initialMode={effectiveMode}
+              prefill={prefill}
             />
           )}
         </div>

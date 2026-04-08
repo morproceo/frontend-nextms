@@ -7,6 +7,7 @@
  * - Component focuses on rendering
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useTrailer } from '../../hooks';
@@ -14,6 +15,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { EquipmentDocumentUploadModal } from '../../components/features/documents/EquipmentDocumentUploadModal';
+import uploadsApi from '../../api/uploads.api';
 import {
   ArrowLeft,
   Container,
@@ -27,7 +30,11 @@ import {
   Snowflake,
   Ruler,
   Weight,
-  Package
+  Package,
+  Upload,
+  FileText,
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 const statusVariants = {
@@ -64,6 +71,18 @@ const ownershipLabels = {
   customer: 'Customer Trailer'
 };
 
+const equipDocTypeBadgeConfig = {
+  REGISTRATION: { label: 'Registration', variant: 'blue' },
+  INSURANCE: { label: 'Insurance', variant: 'green' },
+  ANNUAL_INSPECTION: { label: 'Inspection', variant: 'purple' },
+  TITLE: { label: 'Title', variant: 'gray' },
+  LEASE: { label: 'Lease', variant: 'gray' },
+  IRP_PERMIT: { label: 'IRP', variant: 'orange' },
+  IFTA_PERMIT: { label: 'IFTA', variant: 'orange' },
+  REPAIR_RECORD: { label: 'Repair', variant: 'yellow' },
+  OTHER: { label: 'Other', variant: 'gray' }
+};
+
 export function TrailerDetailPage() {
   const { trailerId } = useParams();
   const navigate = useNavigate();
@@ -71,6 +90,62 @@ export function TrailerDetailPage() {
 
   // All data and logic from the hook
   const { trailer, loading, error, isExpiringSoon } = useTrailer(trailerId);
+
+  // Document state
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState(null);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!trailerId) return;
+    setDocumentsLoading(true);
+    try {
+      const res = await uploadsApi.getEquipmentDocuments('trailer', trailerId);
+      setDocuments(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch trailer documents:', err);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }, [trailerId]);
+
+  useEffect(() => {
+    if (trailer) fetchDocuments();
+  }, [trailer, fetchDocuments]);
+
+  const handleDeleteDocument = async (documentId) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    setDeletingDocId(documentId);
+    try {
+      await uploadsApi.deleteEquipmentDocument('trailer', trailerId, documentId);
+      setDocuments(prev => prev.filter(d => d.id !== documentId));
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      alert('Failed to delete document');
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  const handleViewDocument = (doc) => {
+    if (doc.viewUrl) {
+      window.open(doc.viewUrl, '_blank');
+    }
+  };
+
+  const isDocExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const isDocExpiringSoon = (expiryDate) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return expiry <= thirtyDaysFromNow && expiry >= now;
+  };
 
   const handleEdit = () => {
     navigate(orgUrl(`/assets/trailers/${trailerId}/edit`));
@@ -406,6 +481,107 @@ export function TrailerDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Documents */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <CardTitle>Documents</CardTitle>
+                <Button
+                  size="sm"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Upload className="w-4 h-4 mr-1.5" />
+                  Upload Document
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {documentsLoading ? (
+                <div className="flex justify-center py-6">
+                  <Spinner size="sm" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-12 h-12 bg-surface-secondary rounded-full flex items-center justify-center mb-3">
+                    <FileText className="w-6 h-6 text-text-tertiary" />
+                  </div>
+                  <p className="text-body-sm text-text-secondary mb-1">No documents uploaded</p>
+                  <p className="text-small text-text-tertiary">
+                    Upload compliance documents like registration, insurance, inspections, etc.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-surface-tertiary">
+                  {documents.map((doc) => {
+                    const typeConfig = equipDocTypeBadgeConfig[doc.type] || equipDocTypeBadgeConfig.OTHER;
+                    const expired = isDocExpired(doc.expiry_date);
+                    const expiringSoon = isDocExpiringSoon(doc.expiry_date);
+
+                    return (
+                      <div key={doc.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                        {/* Type Badge */}
+                        <Badge variant={typeConfig.variant} className="flex-shrink-0">
+                          {typeConfig.label}
+                        </Badge>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-body-sm font-medium text-text-primary truncate">
+                            {doc.file_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-small text-text-tertiary">
+                              {formatDate(doc.created_at)}
+                            </span>
+                            {doc.expiry_date && (
+                              <>
+                                <span className="text-small text-text-tertiary">&middot;</span>
+                                <span className={`text-small flex items-center gap-1 ${
+                                  expired ? 'text-error font-medium' :
+                                  expiringSoon ? 'text-warning font-medium' :
+                                  'text-text-tertiary'
+                                }`}>
+                                  {(expired || expiringSoon) && (
+                                    <AlertTriangle className="w-3 h-3" />
+                                  )}
+                                  {expired ? 'Expired' : expiringSoon ? 'Expiring soon' : 'Expires'} {formatDate(doc.expiry_date)}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => handleViewDocument(doc)}
+                            disabled={!doc.viewUrl}
+                            className="p-1.5 hover:bg-surface-secondary rounded-lg transition-colors disabled:opacity-50"
+                            title="View document"
+                          >
+                            <Eye className="w-4 h-4 text-text-secondary" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={deletingDocId === doc.id}
+                            className="p-1.5 hover:bg-error/10 rounded-lg transition-colors disabled:opacity-50"
+                            title="Delete document"
+                          >
+                            {deletingDocId === doc.id ? (
+                              <Spinner size="xs" />
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-text-secondary hover:text-error" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Ownership */}
           <Card>
             <CardHeader>
@@ -562,6 +738,14 @@ export function TrailerDetailPage() {
           )}
         </div>
       </div>
+      {/* Equipment Document Upload Modal */}
+      <EquipmentDocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        entityType="trailer"
+        entityId={trailerId}
+        onSuccess={() => fetchDocuments()}
+      />
     </div>
   );
 }

@@ -27,3 +27,7 @@ export {
   useDriverPortalDocuments
 } from './useDriverPortal';
 export { useAtlas } from './useAtlas';
+export { useDispatchCommandCenter } from './useDispatchCommandCenter';
+export { useComplianceCommandCenter } from './useComplianceCommandCenter';
+export { useDashboard } from './useDashboard';
+export { useReportingPerformance } from './useReportingPerformance';

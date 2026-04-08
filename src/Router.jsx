@@ -46,6 +46,9 @@ import TrailersListPage from './pages/assets/TrailersListPage';
 import TrailerDetailPage from './pages/assets/TrailerDetailPage';
 import TrailerFormPage from './pages/assets/TrailerFormPage';
 
+// Dispatch
+import DispatchCommandCenter from './pages/dispatch/DispatchCommandCenter';
+
 // Loads
 import LoadsListPage from './pages/loads/LoadsListPage';
 import LoadFormPage from './pages/loads/LoadFormPage';
@@ -66,12 +69,17 @@ import ExpenseDetailPage from './pages/expenses/ExpenseDetailPage';
 // P&L
 import PnlPage from './pages/pnl/PnlPage';
 
+// Reporting
+import ReportingSummaryPage from './pages/reporting/ReportingSummaryPage';
+import ReportingPerformancePage from './pages/reporting/ReportingPerformancePage';
+import ReportingFinancialsPage from './pages/reporting/ReportingFinancialsPage';
+
 // Settings
 import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 
 // Tools
-import { AvaPage, AvaTruckDetailPage, AvaSettingsPage } from './pages/tools';
+import { AvaPage, AvaTruckDetailPage, AvaSettingsPage, ComplianceCommandCenter } from './pages/tools';
 import {
   AtlasDashboardPage,
   AtlasConnectionsPage,
@@ -256,7 +264,7 @@ export function Router() {
             <Route path="loads/new" element={<LoadFormPage />} />
             <Route path="loads/:loadId" element={<LoadDetailPage />} />
             <Route path="loads/:loadId/edit" element={<LoadFormPage />} />
-            <Route path="dispatch" element={<PlaceholderPage title="Dispatch Board" />} />
+            <Route path="dispatch" element={<DispatchCommandCenter />} />
             <Route path="drivers" element={<DriversListPage />} />
             <Route path="drivers/new" element={<DriverFormPage />} />
             <Route path="drivers/:driverId" element={<DriverDetailPage />} />
@@ -283,6 +291,9 @@ export function Router() {
             <Route path="documents" element={<PlaceholderPage title="Documents" />} />
             <Route path="invoices" element={<PlaceholderPage title="Invoices" />} />
             <Route path="pnl" element={<PnlPage />} />
+            <Route path="reporting" element={<ReportingSummaryPage />} />
+            <Route path="reporting/performance" element={<ReportingPerformancePage />} />
+            <Route path="reporting/financials" element={<ReportingFinancialsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/billing" element={<BillingPage />} />
             <Route path="tools/ava" element={<AvaPage />} />
@@ -293,6 +304,7 @@ export function Router() {
             <Route path="tools/atlas/opportunities" element={<AtlasOpportunitiesPage />} />
             <Route path="tools/atlas/opportunities/:opportunityId" element={<AtlasOpportunityDetailPage />} />
             <Route path="tools/atlas/settings" element={<AtlasSettingsPage />} />
+            <Route path="tools/compliance" element={<ComplianceCommandCenter />} />
           </Route>
         </Route>
 

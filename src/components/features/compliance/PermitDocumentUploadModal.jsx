@@ -1,27 +1,15 @@
 /**
- * DocumentUploadModal
- * Modal for uploading documents to a load
- * Note: uploadsApi kept as exception (simple one-time upload operation)
+ * PermitDocumentUploadModal
+ * Modal for uploading proof documents for company permits (FMCSA checklist)
+ * Simplified version of EquipmentDocumentUploadModal — no doc type dropdown needed
  */
 
 import { useState } from 'react';
-import { X, Upload, FileText } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { FileUpload } from '../../ui/FileUpload';
-import uploadsApi from '../../../api/uploads.api'; // Exception: Simple upload operation
 
-const DOCUMENT_TYPES = [
-  { value: 'BOL', label: 'Bill of Lading (BOL)' },
-  { value: 'POD', label: 'Proof of Delivery (POD)' },
-  { value: 'RATE_CON', label: 'Rate Confirmation' },
-  { value: 'INVOICE', label: 'Invoice' },
-  { value: 'LUMPER', label: 'Lumper Receipt' },
-  { value: 'SCALE_TICKET', label: 'Scale Ticket' },
-  { value: 'OTHER', label: 'Other' }
-];
-
-export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
-  const [docType, setDocType] = useState('OTHER');
+export function PermitDocumentUploadModal({ isOpen, onClose, permitKey, permitLabel, onUpload }) {
   const [notes, setNotes] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
@@ -32,17 +20,10 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
     setIsUploading(true);
 
     try {
-      const result = await uploadsApi.uploadDocument(file, {
-        context: 'load_document',
-        loadId,
-        docType,
-        notes
-      }, onProgress);
+      const result = await onUpload(file, { notes: notes || undefined }, onProgress);
 
       setUploadComplete(true);
-      onSuccess?.(result);
 
-      // Close after a brief delay to show success state
       setTimeout(() => {
         handleClose();
       }, 1500);
@@ -55,7 +36,6 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
   };
 
   const handleClose = () => {
-    setDocType('OTHER');
     setNotes('');
     setIsUploading(false);
     setUploadComplete(false);
@@ -80,7 +60,7 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-900">Upload Document</h3>
-              <p className="text-sm text-gray-500">Add a document to this load</p>
+              <p className="text-sm text-gray-500">{permitLabel}</p>
             </div>
           </div>
           <button
@@ -94,25 +74,6 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
 
         {/* Content */}
         <div className="p-5 space-y-4">
-          {/* Document Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Document Type
-            </label>
-            <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value)}
-              disabled={isUploading}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50"
-            >
-              {DOCUMENT_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -155,4 +116,4 @@ export function DocumentUploadModal({ isOpen, onClose, loadId, onSuccess }) {
   );
 }
 
-export default DocumentUploadModal;
+export default PermitDocumentUploadModal;

@@ -125,6 +125,13 @@ export {
   useAgentsApi
 } from './useAgentsApi';
 
+// Dispatch API
+export {
+  useDispatchTimeline,
+  useCostSettings,
+  useSaveCostSettings
+} from './useDispatchApi';
+
 // ATLAS API
 export {
   useAtlasDashboard,

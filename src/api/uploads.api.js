@@ -1,31 +1,27 @@
 /**
  * Uploads API
- * Handles file uploads to S3 via presigned URLs
+ * Handles file uploads via backend proxy to S3
  */
 
-import api from './client';
-
-/**
- * Get presigned URL for uploading a file
- */
-export const getPresignedUrl = async (fileName, mimeType, context, options = {}) => {
-  const response = await api.post('/v1/uploads/presign', {
-    fileName,
-    mimeType,
-    context,
-    loadId: options.loadId,
-    docType: options.docType,
-    fileSize: options.fileSize
-  });
-  return response.data;
-};
+import api, { TokenManager } from './client';
+import { getOrgSlug } from '../lib/utils';
 
 /**
- * Upload file directly to S3 using presigned URL
+ * Upload file via backend proxy (bypasses S3 CORS issues)
+ * Uses XHR for progress tracking
  */
-export const uploadToS3 = async (uploadUrl, file, onProgress) => {
+const proxyUpload = (url, file, extraFields = {}, onProgress) => {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Append extra form fields
+    Object.entries(extraFields).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
 
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && onProgress) {
@@ -36,7 +32,11 @@ export const uploadToS3 = async (uploadUrl, file, onProgress) => {
 
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve({ success: true });
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          resolve({ success: true });
+        }
       } else {
         reject(new Error(`Upload failed with status ${xhr.status}`));
       }
@@ -46,9 +46,21 @@ export const uploadToS3 = async (uploadUrl, file, onProgress) => {
       reject(new Error('Upload failed'));
     });
 
-    xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
-    xhr.send(file);
+    xhr.open('POST', url);
+
+    // Copy auth header
+    const token = TokenManager.getAccessToken();
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
+
+    // Copy org slug header
+    const orgSlug = getOrgSlug();
+    if (orgSlug) {
+      xhr.setRequestHeader('X-Organization-Slug', orgSlug);
+    }
+
+    xhr.send(formData);
   });
 };
 
@@ -69,24 +81,24 @@ export const confirmUpload = async (key, options = {}) => {
 };
 
 /**
- * Full upload flow: get URL, upload to S3, confirm
+ * Full upload flow: proxy upload to backend → confirm
  */
 export const uploadDocument = async (file, options = {}, onProgress) => {
   const { context = 'load_document', loadId, docType, notes } = options;
+  const baseUrl = api.defaults.baseURL || '';
 
-  // Step 1: Get presigned URL
-  const { data: presignData } = await getPresignedUrl(
-    file.name,
-    file.type,
-    context,
-    { loadId, docType, fileSize: file.size }
+  // Step 1: Upload file via backend proxy
+  const uploadResult = await proxyUpload(
+    `${baseUrl}/v1/uploads/upload`,
+    file,
+    { context, loadId, docType },
+    onProgress
   );
 
-  // Step 2: Upload to S3
-  await uploadToS3(presignData.uploadUrl, file, onProgress);
+  const key = uploadResult.data?.key || uploadResult.key;
 
-  // Step 3: Confirm upload
-  const { data: confirmData } = await confirmUpload(presignData.key, {
+  // Step 2: Confirm upload and create document record
+  const { data: confirmData } = await confirmUpload(key, {
     loadId,
     type: docType,
     fileName: file.name,
@@ -123,54 +135,145 @@ export const getLoadDocuments = async (loadId) => {
 };
 
 /**
- * Upload avatar
+ * Upload avatar via backend proxy
  */
 export const uploadAvatar = async (file, onProgress) => {
-  // Get presigned URL for avatar
-  const response = await api.post('/v1/uploads/presign/avatar', {
-    fileName: file.name,
-    mimeType: file.type
-  });
-  const { data: presignData } = response;
+  const baseUrl = api.defaults.baseURL || '';
+  const result = await proxyUpload(
+    `${baseUrl}/v1/uploads/upload/avatar`,
+    file,
+    {},
+    onProgress
+  );
 
-  // Upload to S3
-  await uploadToS3(presignData.uploadUrl, file, onProgress);
-
-  // Return the S3 key (caller can update user profile with this)
   return {
-    key: presignData.key,
-    url: `https://${import.meta.env.VITE_S3_BUCKET || 'tms-documents-571170910626'}.s3.amazonaws.com/${presignData.key}`
+    key: result.data?.key || result.key,
+    url: result.data?.url || result.url
   };
 };
 
 /**
- * Upload organization logo
+ * Upload organization logo via backend proxy
  */
 export const uploadLogo = async (file, onProgress) => {
-  // Get presigned URL for logo
-  const response = await api.post('/v1/uploads/presign/logo', {
-    fileName: file.name,
-    mimeType: file.type
-  });
-  const { data: presignData } = response;
-
-  // Upload to S3
-  await uploadToS3(presignData.uploadUrl, file, onProgress);
+  const baseUrl = api.defaults.baseURL || '';
+  const result = await proxyUpload(
+    `${baseUrl}/v1/uploads/upload/logo`,
+    file,
+    {},
+    onProgress
+  );
 
   return {
-    key: presignData.key,
-    url: `https://${import.meta.env.VITE_S3_BUCKET || 'tms-documents-571170910626'}.s3.amazonaws.com/${presignData.key}`
+    key: result.data?.key || result.key,
+    url: result.data?.url || result.url
   };
 };
 
+// ============================================
+// DRIVER DOCUMENTS (Compliance)
+// ============================================
+
+/**
+ * Get all documents for a driver
+ */
+export const getDriverDocuments = async (driverId) => {
+  const response = await api.get(`/v1/drivers/${driverId}/documents`);
+  return response.data;
+};
+
+/**
+ * Upload a compliance document for a driver
+ */
+export const uploadDriverDocument = async (driverId, file, options = {}, onProgress) => {
+  const { type = 'OTHER', expiryDate, notes } = options;
+  const baseUrl = api.defaults.baseURL || '';
+
+  const extraFields = { type };
+  if (expiryDate) extraFields.expiryDate = expiryDate;
+  if (notes) extraFields.notes = notes;
+
+  const result = await proxyUpload(
+    `${baseUrl}/v1/drivers/${driverId}/documents`,
+    file,
+    extraFields,
+    onProgress
+  );
+
+  return result.data || result;
+};
+
+/**
+ * Delete a driver compliance document
+ */
+export const deleteDriverDocument = async (driverId, documentId) => {
+  const response = await api.delete(`/v1/drivers/${driverId}/documents/${documentId}`);
+  return response.data;
+};
+
+// ============================================
+// EQUIPMENT DOCUMENTS (Truck/Trailer Compliance)
+// ============================================
+
+/**
+ * Get all documents for a truck or trailer
+ * @param {'truck'|'trailer'} entityType
+ * @param {string} entityId
+ */
+export const getEquipmentDocuments = async (entityType, entityId) => {
+  const response = await api.get(`/v1/${entityType}s/${entityId}/documents`);
+  return response.data;
+};
+
+/**
+ * Upload a compliance document for a truck or trailer
+ * @param {'truck'|'trailer'} entityType
+ * @param {string} entityId
+ * @param {File} file
+ * @param {object} options - { type, expiryDate, notes }
+ * @param {function} onProgress
+ */
+export const uploadEquipmentDocument = async (entityType, entityId, file, options = {}, onProgress) => {
+  const { type = 'OTHER', expiryDate, notes } = options;
+  const baseUrl = api.defaults.baseURL || '';
+
+  const extraFields = { type };
+  if (expiryDate) extraFields.expiryDate = expiryDate;
+  if (notes) extraFields.notes = notes;
+
+  const result = await proxyUpload(
+    `${baseUrl}/v1/${entityType}s/${entityId}/documents`,
+    file,
+    extraFields,
+    onProgress
+  );
+
+  return result.data || result;
+};
+
+/**
+ * Delete an equipment compliance document
+ * @param {'truck'|'trailer'} entityType
+ * @param {string} entityId
+ * @param {string} documentId
+ */
+export const deleteEquipmentDocument = async (entityType, entityId, documentId) => {
+  const response = await api.delete(`/v1/${entityType}s/${entityId}/documents/${documentId}`);
+  return response.data;
+};
+
 export default {
-  getPresignedUrl,
-  uploadToS3,
   confirmUpload,
   uploadDocument,
   getDocumentUrl,
   deleteDocument,
   getLoadDocuments,
   uploadAvatar,
-  uploadLogo
+  uploadLogo,
+  getDriverDocuments,
+  uploadDriverDocument,
+  deleteDriverDocument,
+  getEquipmentDocuments,
+  uploadEquipmentDocument,
+  deleteEquipmentDocument
 };

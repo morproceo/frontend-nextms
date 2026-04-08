@@ -93,6 +93,14 @@ export const acceptDriverInvite = async (token, password) => {
 };
 
 /**
+ * Get drivers needing attention (expiring docs within 30 days)
+ */
+export const getDriversNeedingAttention = async () => {
+  const response = await api.get('/v1/drivers/attention');
+  return response.data;
+};
+
+/**
  * Get current user's driver profiles across all orgs
  */
 export const getMyDriverProfiles = async () => {
@@ -111,5 +119,6 @@ export default {
   resendDriverInvite,
   getDriverInviteInfo,
   acceptDriverInvite,
-  getMyDriverProfiles
+  getMyDriverProfiles,
+  getDriversNeedingAttention
 };

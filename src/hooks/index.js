@@ -103,6 +103,11 @@ export {
   useDriverLocation,
   useDriverPortalApi,
 
+  // Dispatch
+  useDispatchTimeline,
+  useCostSettings,
+  useSaveCostSettings,
+
   // Driver Settings
   useDriverOrganizations,
   useDriverInvites,
@@ -141,7 +146,11 @@ export {
   useDriverPortalExpenseForm,
   useDriverPortalEarnings,
   useDriverPortalSettings,
-  useDriverPortalDocuments
+  useDriverPortalDocuments,
+  useDispatchCommandCenter,
+  useComplianceCommandCenter,
+  useDashboard,
+  useReportingPerformance
 } from './domain';
 
 // ============================================

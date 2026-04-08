@@ -7,13 +7,17 @@
  * - Component focuses on rendering
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
-import { useTruck } from '../../hooks';
+import { useTruck, useDriversList } from '../../hooks';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
+import { EquipmentDocumentUploadModal } from '../../components/features/documents/EquipmentDocumentUploadModal';
+import uploadsApi from '../../api/uploads.api';
 import {
   ArrowLeft,
   Truck,
@@ -27,7 +31,14 @@ import {
   AlertTriangle,
   Shield,
   DollarSign,
-  Wrench
+  Wrench,
+  X,
+  CheckCircle,
+  UserMinus,
+  Upload,
+  FileText,
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 const statusVariants = {
@@ -64,13 +75,122 @@ const ownershipLabels = {
   rental: 'Rental'
 };
 
+const equipDocTypeBadgeConfig = {
+  REGISTRATION: { label: 'Registration', variant: 'blue' },
+  INSURANCE: { label: 'Insurance', variant: 'green' },
+  ANNUAL_INSPECTION: { label: 'Inspection', variant: 'purple' },
+  TITLE: { label: 'Title', variant: 'gray' },
+  LEASE: { label: 'Lease', variant: 'gray' },
+  IRP_PERMIT: { label: 'IRP', variant: 'orange' },
+  IFTA_PERMIT: { label: 'IFTA', variant: 'orange' },
+  REPAIR_RECORD: { label: 'Repair', variant: 'yellow' },
+  OTHER: { label: 'Other', variant: 'gray' }
+};
+
 export function TruckDetailPage() {
   const { truckId } = useParams();
   const navigate = useNavigate();
   const { orgUrl } = useOrg();
 
   // All data and logic from the hook
-  const { truck, loading, error, isExpiringSoon } = useTruck(truckId);
+  const { truck, loading, error, isExpiringSoon, assignDriver, assigning } = useTruck(truckId);
+
+  // Assign driver modal state
+  const [showAssignDriver, setShowAssignDriver] = useState(false);
+  const [assignDriverId, setAssignDriverId] = useState('');
+  const [assignError, setAssignError] = useState(null);
+  const [assignSuccess, setAssignSuccess] = useState(false);
+
+  // Document state
+  const [documents, setDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState(null);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!truckId) return;
+    setDocumentsLoading(true);
+    try {
+      const res = await uploadsApi.getEquipmentDocuments('truck', truckId);
+      setDocuments(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch truck documents:', err);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }, [truckId]);
+
+  useEffect(() => {
+    if (truck) fetchDocuments();
+  }, [truck, fetchDocuments]);
+
+  const handleDeleteDocument = async (documentId) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    setDeletingDocId(documentId);
+    try {
+      await uploadsApi.deleteEquipmentDocument('truck', truckId, documentId);
+      setDocuments(prev => prev.filter(d => d.id !== documentId));
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      alert('Failed to delete document');
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  const handleViewDocument = (doc) => {
+    if (doc.viewUrl) {
+      window.open(doc.viewUrl, '_blank');
+    }
+  };
+
+  const isDocExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const isDocExpiringSoon = (expiryDate) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return expiry <= thirtyDaysFromNow && expiry >= now;
+  };
+
+  // Fetch drivers when modal opens
+  const { drivers, loading: driversLoading, fetchDrivers } = useDriversList();
+
+  useEffect(() => {
+    if (showAssignDriver) {
+      fetchDrivers();
+      setAssignDriverId('');
+      setAssignError(null);
+      setAssignSuccess(false);
+    }
+  }, [showAssignDriver]);
+
+  const handleAssignDriver = async () => {
+    if (!assignDriverId) {
+      setAssignError('Please select a driver');
+      return;
+    }
+    try {
+      setAssignError(null);
+      await assignDriver(assignDriverId);
+      setAssignSuccess(true);
+      setTimeout(() => setShowAssignDriver(false), 1200);
+    } catch (err) {
+      setAssignError(err.response?.data?.message || err.message || 'Failed to assign driver');
+    }
+  };
+
+  const handleUnassignDriver = async () => {
+    try {
+      await assignDriver(null);
+    } catch (err) {
+      console.error('Failed to unassign driver:', err);
+    }
+  };
 
   const handleEdit = () => {
     navigate(orgUrl(`/assets/trucks/${truckId}/edit`));
@@ -305,6 +425,107 @@ export function TruckDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Documents */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <CardTitle>Documents</CardTitle>
+                <Button
+                  size="sm"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Upload className="w-4 h-4 mr-1.5" />
+                  Upload Document
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {documentsLoading ? (
+                <div className="flex justify-center py-6">
+                  <Spinner size="sm" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-12 h-12 bg-surface-secondary rounded-full flex items-center justify-center mb-3">
+                    <FileText className="w-6 h-6 text-text-tertiary" />
+                  </div>
+                  <p className="text-body-sm text-text-secondary mb-1">No documents uploaded</p>
+                  <p className="text-small text-text-tertiary">
+                    Upload compliance documents like registration, insurance, inspections, etc.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-surface-tertiary">
+                  {documents.map((doc) => {
+                    const typeConfig = equipDocTypeBadgeConfig[doc.type] || equipDocTypeBadgeConfig.OTHER;
+                    const expired = isDocExpired(doc.expiry_date);
+                    const expiringSoon = isDocExpiringSoon(doc.expiry_date);
+
+                    return (
+                      <div key={doc.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                        {/* Type Badge */}
+                        <Badge variant={typeConfig.variant} className="flex-shrink-0">
+                          {typeConfig.label}
+                        </Badge>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-body-sm font-medium text-text-primary truncate">
+                            {doc.file_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-small text-text-tertiary">
+                              {formatDate(doc.created_at)}
+                            </span>
+                            {doc.expiry_date && (
+                              <>
+                                <span className="text-small text-text-tertiary">&middot;</span>
+                                <span className={`text-small flex items-center gap-1 ${
+                                  expired ? 'text-error font-medium' :
+                                  expiringSoon ? 'text-warning font-medium' :
+                                  'text-text-tertiary'
+                                }`}>
+                                  {(expired || expiringSoon) && (
+                                    <AlertTriangle className="w-3 h-3" />
+                                  )}
+                                  {expired ? 'Expired' : expiringSoon ? 'Expiring soon' : 'Expires'} {formatDate(doc.expiry_date)}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => handleViewDocument(doc)}
+                            disabled={!doc.viewUrl}
+                            className="p-1.5 hover:bg-surface-secondary rounded-lg transition-colors disabled:opacity-50"
+                            title="View document"
+                          >
+                            <Eye className="w-4 h-4 text-text-secondary" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={deletingDocId === doc.id}
+                            className="p-1.5 hover:bg-error/10 rounded-lg transition-colors disabled:opacity-50"
+                            title="Delete document"
+                          >
+                            {deletingDocId === doc.id ? (
+                              <Spinner size="xs" />
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-text-secondary hover:text-error" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Ownership & Financials */}
           <Card>
             <CardHeader>
@@ -418,17 +639,28 @@ export function TruckDetailPage() {
             </CardHeader>
             <CardContent>
               {truck.currentDriver ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-surface-secondary rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-text-secondary" />
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-surface-secondary rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-body font-medium text-text-primary">
+                        {truck.currentDriver.first_name} {truck.currentDriver.last_name}
+                      </p>
+                      <p className="text-small text-text-secondary">
+                        {truck.currentDriver.status}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-body font-medium text-text-primary">
-                      {truck.currentDriver.first_name} {truck.currentDriver.last_name}
-                    </p>
-                    <p className="text-small text-text-secondary">
-                      {truck.currentDriver.status}
-                    </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="secondary" size="sm" onClick={() => setShowAssignDriver(true)}>
+                      Change Driver
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleUnassignDriver} disabled={assigning}>
+                      <UserMinus className="w-3.5 h-3.5 mr-1" />
+                      Unassign
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -437,7 +669,7 @@ export function TruckDetailPage() {
                     <User className="w-6 h-6 text-text-tertiary" />
                   </div>
                   <p className="text-body-sm text-text-tertiary">No driver assigned</p>
-                  <Button variant="secondary" size="sm" className="mt-3">
+                  <Button variant="secondary" size="sm" className="mt-3" onClick={() => setShowAssignDriver(true)}>
                     Assign Driver
                   </Button>
                 </div>
@@ -549,6 +781,108 @@ export function TruckDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Equipment Document Upload Modal */}
+      <EquipmentDocumentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        entityType="truck"
+        entityId={truckId}
+        onSuccess={() => fetchDocuments()}
+      />
+
+      {/* Assign Driver Modal */}
+      {showAssignDriver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAssignDriver(false)} />
+
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-modal max-w-md w-full animate-scale-in">
+            {assignSuccess ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 mx-auto bg-success/10 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle className="w-8 h-8 text-success" />
+                </div>
+                <h2 className="text-xl font-semibold text-text-primary mb-2">Driver Assigned!</h2>
+                <p className="text-body text-text-secondary">
+                  Driver has been assigned to Unit #{truck.unit_number}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-surface-tertiary">
+                  <div>
+                    <h2 className="text-lg font-semibold text-text-primary">Assign Driver</h2>
+                    <p className="text-body-sm text-text-secondary mt-0.5">
+                      Unit #{truck.unit_number} &middot; {truck.year} {truck.make} {truck.model}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignDriver(false)}
+                    className="p-2 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-surface-secondary transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                  {driversLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Spinner size="lg" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
+                        <User className="w-4 h-4 text-accent" />
+                        Select Driver
+                      </label>
+                      <SearchableSelect
+                        value={assignDriverId}
+                        onChange={(option) => setAssignDriverId(option?.id || '')}
+                        options={drivers
+                          .filter((d) => d.status !== 'inactive')
+                          .map((d) => ({
+                            id: d.id,
+                            label: `${d.first_name} ${d.last_name}`,
+                            sublabel: d.phone || d.email || d.status,
+                          }))}
+                        placeholder="Search drivers..."
+                      />
+                    </div>
+                  )}
+
+                  {assignError && (
+                    <div className="mt-4 p-3 bg-error/10 border border-error/20 rounded-lg">
+                      <p className="text-body-sm text-error">{assignError}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 p-6 border-t border-surface-tertiary bg-surface-secondary">
+                  <Button variant="ghost" onClick={() => setShowAssignDriver(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAssignDriver} disabled={assigning || !assignDriverId}>
+                    {assigning ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Assigning...
+                      </>
+                    ) : (
+                      'Assign Driver'
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,7 @@ const generateLoadNumber = () => {
   return `LD-${timestamp.slice(-4)}`;
 };
 
-export function LoadWizard({ loadId = null, isModal = false, onClose = null, onSuccess = null, initialMode = null }) {
+export function LoadWizard({ loadId = null, isModal = false, onClose = null, onSuccess = null, initialMode = null, prefill = null }) {
   const navigate = useNavigate();
   const { orgUrl } = useOrg();
   const isEdit = Boolean(loadId);
@@ -100,6 +100,17 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
     fetchBrokers({ is_active: true });
     fetchFacilities({ is_active: true });
   }, []);
+
+  // Apply prefill data from LogIQ or other sources
+  useEffect(() => {
+    if (prefill && !isEdit) {
+      setFormData(prev => ({
+        ...prev,
+        ...prefill,
+        reference_number: prev.reference_number, // keep generated load number
+      }));
+    }
+  }, [prefill, isEdit]);
 
   // Load existing load data if editing
   useEffect(() => {
