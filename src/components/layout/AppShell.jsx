@@ -149,8 +149,8 @@ export function AppShell() {
           sidebarCollapsed && !isChild ? 'justify-center px-2' : '',
           'text-body-sm font-medium',
           isActive
-            ? 'bg-accent/10 text-accent'
-            : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+            ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm'
+            : 'text-white/70 hover:bg-white/10 hover:text-white'
         )}
       >
         <item.icon className={cn('flex-shrink-0', isChild ? 'w-4 h-4' : 'w-5 h-5')} />
@@ -201,7 +201,7 @@ export function AppShell() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-white shadow-card flex flex-col',
+          'fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-[#1a1f36] to-[#0f1225] shadow-card flex flex-col',
           'transform transition-all duration-300 ease-in-out',
           'lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -209,7 +209,7 @@ export function AppShell() {
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-surface-tertiary flex-shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
           <Link to={basePath || '/dashboard'} className="flex items-center overflow-hidden">
             {sidebarCollapsed ? (
               <img src="/app-icon.svg" alt="Next TMS" className="w-10 h-10 flex-shrink-0" />
@@ -218,10 +218,10 @@ export function AppShell() {
             )}
           </Link>
           <button
-            className="lg:hidden p-2 rounded-chip hover:bg-surface-secondary"
+            className="lg:hidden p-2 rounded-chip hover:bg-white/10"
             onClick={() => setSidebarOpen(false)}
           >
-            <X className="w-5 h-5 text-text-secondary" />
+            <X className="w-5 h-5 text-white/70" />
           </button>
         </div>
 
@@ -247,8 +247,8 @@ export function AppShell() {
                                 'w-full flex items-center justify-center p-2.5 rounded-button',
                                 'text-body-sm font-medium transition-colors',
                                 isChildActive
-                                  ? 'bg-accent/10 text-accent'
-                                  : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm'
+                                  : 'text-white/70 hover:bg-white/10 hover:text-white'
                               )}
                             >
                               <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -308,8 +308,8 @@ export function AppShell() {
                       'w-full flex items-center gap-3 px-3 py-2.5 rounded-button',
                       'text-body-sm font-medium transition-colors',
                       isChildActive
-                        ? 'bg-accent/10 text-accent'
-                        : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                     )}
                   >
                     <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -337,8 +337,8 @@ export function AppShell() {
                             'flex items-center gap-3 px-3 py-2 rounded-button',
                             'text-body-sm transition-colors',
                             isChildItemActive
-                              ? 'bg-accent/10 text-accent font-medium'
-                              : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                              ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium shadow-sm'
+                              : 'text-white/60 hover:bg-white/10 hover:text-white'
                           )}
                         >
                           <child.icon className="w-4 h-4" />
@@ -366,13 +366,13 @@ export function AppShell() {
         </nav>
 
         {/* Collapse Toggle Button */}
-        <div className="flex-shrink-0 border-t border-surface-tertiary p-4">
+        <div className="flex-shrink-0 border-t border-white/10 p-4">
           <button
             onClick={toggleSidebar}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-button',
               'text-body-sm font-medium transition-all duration-200',
-              'text-text-secondary hover:bg-surface-secondary hover:text-text-primary',
+              'text-white/50 hover:bg-white/10 hover:text-white',
               sidebarCollapsed && 'justify-center px-2'
             )}
           >
@@ -397,14 +397,14 @@ export function AppShell() {
         <TrialBanner />
 
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-glass border-b border-surface-tertiary">
+        <header className="sticky top-0 z-30 h-16 bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
           <div className="h-full px-4 flex items-center justify-between">
             {/* Mobile menu button */}
             <button
-              className="lg:hidden p-2 rounded-chip hover:bg-surface-secondary"
+              className="lg:hidden p-2 rounded-chip hover:bg-white/10"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="w-5 h-5 text-text-secondary" />
+              <Menu className="w-5 h-5 text-white/70" />
             </button>
 
             {/* Spacer */}
@@ -418,9 +418,9 @@ export function AppShell() {
               {/* User menu */}
               <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
-                <button className="flex items-center gap-2 p-2 rounded-button hover:bg-surface-secondary">
-                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-                    <span className="text-small font-semibold text-accent">
+                <button className="flex items-center gap-2 p-2 rounded-button hover:bg-white/10">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <span className="text-small font-semibold text-white">
                       {getInitials(user?.first_name || user?.email)}
                     </span>
                   </div>
