@@ -200,7 +200,7 @@ export function AppShell() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-white shadow-card',
+          'fixed inset-y-0 left-0 z-50 bg-white shadow-card flex flex-col',
           'transform transition-all duration-300 ease-in-out',
           'lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -208,7 +208,7 @@ export function AppShell() {
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-surface-tertiary">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-surface-tertiary flex-shrink-0">
           <Link to={basePath || '/dashboard'} className="flex items-center overflow-hidden">
             {sidebarCollapsed ? (
               <img src="/app-icon.svg" alt="Next TMS" className="w-10 h-10 flex-shrink-0" />
@@ -225,7 +225,7 @@ export function AppShell() {
         </div>
 
         {/* Navigation */}
-        <nav className={cn('p-4 space-y-1', sidebarCollapsed && 'px-2')}>
+        <nav className={cn('p-4 space-y-1 flex-1 overflow-y-auto', sidebarCollapsed && 'px-2')}>
           {navigation.map((item) => {
             if (item.children) {
               const isExpanded = expandedMenus.includes(item.name) && !sidebarCollapsed;
@@ -322,7 +322,7 @@ export function AppShell() {
                   </button>
                   <div className={cn(
                     'ml-4 space-y-1 overflow-hidden transition-all duration-200',
-                    isExpanded ? 'mt-1 max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                    isExpanded ? 'mt-1 max-h-60 opacity-100' : 'max-h-0 opacity-0'
                   )}>
                     {item.children.map((child) => {
                       const childHref = `${basePath}${child.href}`;
@@ -365,7 +365,7 @@ export function AppShell() {
         </nav>
 
         {/* Collapse Toggle Button */}
-        <div className="absolute bottom-4 left-0 right-0 px-4">
+        <div className="flex-shrink-0 border-t border-surface-tertiary p-4">
           <button
             onClick={toggleSidebar}
             className={cn(
