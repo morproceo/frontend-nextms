@@ -22,29 +22,29 @@ export function OrgSwitcher({ className }) {
         <button
           className={cn(
             'flex items-center gap-3 px-3 py-2 rounded-button',
-            'hover:bg-surface-secondary transition-colors',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50',
+            'hover:bg-white/10 transition-colors',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
             className
           )}
         >
           {/* Org Avatar */}
-          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-            <span className="text-small font-semibold text-accent">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <span className="text-small font-semibold text-blue-400">
               {getInitials(currentOrg.name)}
             </span>
           </div>
 
           {/* Org Info */}
           <div className="flex-1 text-left hidden sm:block">
-            <div className="text-body-sm font-medium text-text-primary truncate max-w-[140px]">
+            <div className="text-body-sm font-medium text-white truncate max-w-[140px]">
               {currentOrg.name}
             </div>
-            <div className="text-small text-text-tertiary">
+            <div className="text-small text-white/50">
               {RoleLabels[currentRole] || currentRole}
             </div>
           </div>
 
-          <ChevronDown className="w-4 h-4 text-text-tertiary" />
+          <ChevronDown className="w-4 h-4 text-white/50" />
         </button>
       </DropdownMenu.Trigger>
 
