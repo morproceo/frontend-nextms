@@ -38,7 +38,7 @@ export function Navbar() {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <img src="/next_tms_logo_white.svg" alt="Next TMS" className="h-8 w-auto" />
+              <img src="/next_logo_white.png" alt="Next TMS" className="h-8 w-auto" />
             </Link>
 
             {/* Desktop Navigation */}
