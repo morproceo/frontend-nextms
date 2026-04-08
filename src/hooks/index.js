@@ -113,7 +113,20 @@ export {
   useDriverInvites,
   useDriverDisconnect,
   useDriverSettingsProfiles,
-  useDriverSettingsApi
+  useDriverSettingsApi,
+
+  // Fuel
+  useFuelCardsList,
+  useFuelCardDetail,
+  useFuelCardMutations,
+  useFuelTransactionsList,
+  useFuelTransactionDetail,
+  useFuelTransactionMutations,
+  useFuelWorkflow,
+  useFuelStats,
+  useFuelImport,
+  useFuelExport,
+  useFuelApi
 } from './api';
 
 // ============================================
@@ -150,7 +163,13 @@ export {
   useDispatchCommandCenter,
   useComplianceCommandCenter,
   useDashboard,
-  useReportingPerformance
+  useReportingPerformance,
+  useFuelCards,
+  useFuelCard,
+  useFuelTransactions,
+  useFuelTransaction,
+  useFuelDashboard,
+  useFuelImporter
 } from './domain';
 
 // ============================================

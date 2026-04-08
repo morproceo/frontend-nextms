@@ -142,3 +142,18 @@ export {
   useAtlasMutations,
   useAtlasSettings
 } from './useAtlasApi';
+
+// Fuel API
+export {
+  useFuelCardsList,
+  useFuelCardDetail,
+  useFuelCardMutations,
+  useFuelTransactionsList,
+  useFuelTransactionDetail,
+  useFuelTransactionMutations,
+  useFuelWorkflow,
+  useFuelStats,
+  useFuelImport,
+  useFuelExport,
+  useFuelApi
+} from './useFuelApi';

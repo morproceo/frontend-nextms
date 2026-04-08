@@ -66,6 +66,14 @@ import ExpensesListPage from './pages/expenses/ExpensesListPage';
 import ExpenseFormPage from './pages/expenses/ExpenseFormPage';
 import ExpenseDetailPage from './pages/expenses/ExpenseDetailPage';
 
+// Fuel
+import FuelDashboardPage from './pages/fuel/FuelDashboardPage';
+import FuelCardsPage from './pages/fuel/FuelCardsPage';
+import FuelTransactionsPage from './pages/fuel/FuelTransactionsPage';
+import FuelTransactionFormPage from './pages/fuel/FuelTransactionFormPage';
+import FuelTransactionDetailPage from './pages/fuel/FuelTransactionDetailPage';
+import FuelImportPage from './pages/fuel/FuelImportPage';
+
 // P&L
 import PnlPage from './pages/pnl/PnlPage';
 
@@ -288,6 +296,13 @@ export function Router() {
             <Route path="expenses/new" element={<ExpenseFormPage />} />
             <Route path="expenses/:expenseId" element={<ExpenseDetailPage />} />
             <Route path="expenses/:expenseId/edit" element={<ExpenseFormPage />} />
+            <Route path="fuel" element={<FuelDashboardPage />} />
+            <Route path="fuel/cards" element={<FuelCardsPage />} />
+            <Route path="fuel/transactions" element={<FuelTransactionsPage />} />
+            <Route path="fuel/transactions/new" element={<FuelTransactionFormPage />} />
+            <Route path="fuel/transactions/import" element={<FuelImportPage />} />
+            <Route path="fuel/transactions/:transactionId" element={<FuelTransactionDetailPage />} />
+            <Route path="fuel/transactions/:transactionId/edit" element={<FuelTransactionFormPage />} />
             <Route path="documents" element={<PlaceholderPage title="Documents" />} />
             <Route path="invoices" element={<PlaceholderPage title="Invoices" />} />
             <Route path="pnl" element={<PnlPage />} />

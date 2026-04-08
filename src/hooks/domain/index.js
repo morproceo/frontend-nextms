@@ -31,3 +31,11 @@ export { useDispatchCommandCenter } from './useDispatchCommandCenter';
 export { useComplianceCommandCenter } from './useComplianceCommandCenter';
 export { useDashboard } from './useDashboard';
 export { useReportingPerformance } from './useReportingPerformance';
+export {
+  useFuelCards,
+  useFuelCard,
+  useFuelTransactions,
+  useFuelTransaction,
+  useFuelDashboard,
+  useFuelImporter
+} from './useFuel';

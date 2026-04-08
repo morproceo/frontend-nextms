@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  Fuel,
   TrendingUp,
   MoreHorizontal,
   Wrench,
@@ -53,6 +54,16 @@ const navigation = [
   },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
+  {
+    name: 'Fuel',
+    icon: Fuel,
+    children: [
+      { name: 'Dashboard', href: '/fuel', icon: Fuel },
+      { name: 'Cards', href: '/fuel/cards', icon: CreditCard },
+      { name: 'Transactions', href: '/fuel/transactions', icon: Receipt },
+      { name: 'Import', href: '/fuel/transactions/import', icon: FileText }
+    ]
+  },
   { name: 'Invoices', href: '/invoices', icon: DollarSign },
   { name: 'P&L', href: '/pnl', icon: TrendingUp },
   {

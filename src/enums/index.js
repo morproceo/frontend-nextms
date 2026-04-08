@@ -120,3 +120,22 @@ export {
   PaymentMethod,
   PaymentMethodLabels
 } from './expense.js';
+
+// Fuel Management
+export {
+  FuelTransactionStatus,
+  FuelTransactionStatusLabels,
+  FuelTransactionStatusColors,
+  FuelTransactionStatusTransitions,
+  EditableFuelStatuses,
+  canTransitionFuelTo,
+  FuelCardStatus,
+  FuelCardStatusLabels,
+  FuelCardStatusColors,
+  FuelCardProvider,
+  FuelCardProviderLabels,
+  FuelType,
+  FuelTypeLabels,
+  FuelImportSource,
+  FuelImportSourceLabels
+} from './fuel.js';
