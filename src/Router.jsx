@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useOrg } from './contexts/OrgContext';
 import { LoadingScreen } from './components/ui/Spinner';
@@ -123,12 +123,20 @@ function ProtectedRoute({ children }) {
  */
 function PublicRoute({ children }) {
   const { isAuthenticated, loading, organizations, isDriverOnly } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <LoadingScreen />;
   }
 
   if (isAuthenticated) {
+    // Check for redirect param (e.g. from invite flow)
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
+    if (redirect && redirect.startsWith('/')) {
+      return <Navigate to={redirect} replace />;
+    }
+
     // Driver-only users go to driver portal
     if (isDriverOnly) {
       return <Navigate to="/driver" replace />;
