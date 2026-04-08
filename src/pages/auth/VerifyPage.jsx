@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/client';
 import { ArrowLeft, Mail, Truck } from 'lucide-react';
 import '../../styles/marketing.css';
 
@@ -11,6 +12,7 @@ export function VerifyPage() {
   const { verifyOTP, requestOTP, error, clearError } = useAuth();
 
   const email = location.state?.email;
+  const pendingRedirect = location.state?.redirect;
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -89,6 +91,22 @@ export function VerifyPage() {
       const result = await verifyOTP(email, fullCode);
 
       if (result.success) {
+        // If there's a pending invite, accept it first
+        if (pendingRedirect && pendingRedirect.includes('/invitations/')) {
+          try {
+            const token = pendingRedirect.split('/invitations/')[1]?.split('/')[0];
+            if (token) {
+              await api.post(`/v1/organizations/invitations/${token}/accept`);
+            }
+          } catch (inviteErr) {
+            // Ignore — might already be accepted or expired
+            console.log('Invite accept:', inviteErr.response?.data?.error?.message || inviteErr.message);
+          }
+          // Full reload to refresh auth context with new org
+          window.location.href = '/';
+          return;
+        }
+
         if (result.data.organizations.length > 0) {
           const isDriverOnly = result.data.organizations.every(o => o.role === 'driver');
           if (isDriverOnly) {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Truck } from 'lucide-react';
@@ -7,7 +7,12 @@ import '../../styles/marketing.css';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { requestOTP, loginWithPassword, error, clearError } = useAuth();
+
+  // Capture redirect param (e.g. from invite flow)
+  const params = new URLSearchParams(location.search);
+  const redirect = params.get('redirect');
 
   const [loginMethod, setLoginMethod] = useState('email');
   const [email, setEmail] = useState('');
@@ -22,7 +27,7 @@ export function LoginPage() {
 
     try {
       await requestOTP(email);
-      navigate('/verify', { state: { email } });
+      navigate('/verify', { state: { email, redirect } });
     } catch (err) {
       // Error is set in context
     } finally {
