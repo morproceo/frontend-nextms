@@ -57,6 +57,45 @@ export function useFuelCardMutations() {
 }
 
 // ============================================
+// FUEL CARD ASSIGNMENTS
+// ============================================
+
+export function useFuelCardAssignmentMutations() {
+  const { mutate, loading } = useMutation();
+
+  const assignCard = useCallback(async (cardId, payload, options) => {
+    return mutate(() => fuelApi.assignFuelCard(cardId, payload), options);
+  }, [mutate]);
+
+  const returnCard = useCallback(async (cardId, payload, options) => {
+    return mutate(() => fuelApi.returnFuelCard(cardId, payload), options);
+  }, [mutate]);
+
+  return { assignCard, returnCard, loading };
+}
+
+export function useFuelCardAssignments(cardId) {
+  const { data, loading, error, fetch, clearError } = useApiState(
+    () => fuelApi.getFuelCardAssignments(cardId),
+    { initialData: { assignments: [], total: 0 } }
+  );
+
+  const fetchAssignments = useCallback(() => {
+    if (!cardId) return;
+    return fetch();
+  }, [cardId, fetch]);
+
+  return {
+    assignments: data?.assignments || [],
+    total: data?.total || 0,
+    loading,
+    error,
+    fetchAssignments,
+    clearError
+  };
+}
+
+// ============================================
 // FUEL TRANSACTIONS
 // ============================================
 

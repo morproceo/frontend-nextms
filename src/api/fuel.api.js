@@ -177,6 +177,30 @@ export const importFuelCsv = async (rows, columnMapping, defaults = {}) => {
   return response.data;
 };
 
+// ============================================
+// FUEL CARD ASSIGNMENTS
+// ============================================
+
+export const assignFuelCard = async (cardId, payload) => {
+  const response = await api.post(`/v1/fuel/cards/${cardId}/assign`, payload);
+  return response.data;
+};
+
+export const returnFuelCard = async (cardId, payload) => {
+  const response = await api.post(`/v1/fuel/cards/${cardId}/return`, payload);
+  return response.data;
+};
+
+export const getFuelCardAssignments = async (cardId, params = {}) => {
+  const response = await api.get(`/v1/fuel/cards/${cardId}/assignments`, { params });
+  return response.data;
+};
+
+export const getDriverFuelCards = async (driverId) => {
+  const response = await api.get(`/v1/fuel/drivers/${driverId}/fuel-cards`);
+  return response.data;
+};
+
 export default {
   // Cards
   getFuelCards,
@@ -202,5 +226,10 @@ export default {
   bulkVerify,
   bulkConfirm,
   // Import
-  importFuelCsv
+  importFuelCsv,
+  // Card Assignments
+  assignFuelCard,
+  returnFuelCard,
+  getFuelCardAssignments,
+  getDriverFuelCards
 };

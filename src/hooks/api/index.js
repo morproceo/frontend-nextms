@@ -148,6 +148,8 @@ export {
   useFuelCardsList,
   useFuelCardDetail,
   useFuelCardMutations,
+  useFuelCardAssignmentMutations,
+  useFuelCardAssignments,
   useFuelTransactionsList,
   useFuelTransactionDetail,
   useFuelTransactionMutations,

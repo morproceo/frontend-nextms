@@ -6,8 +6,11 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
-import { useFuelCards, useDriversList, useTrucksList } from '../../hooks';
+import { useFuelCards } from '../../hooks';
+import AssignFuelCardModal from './AssignFuelCardModal';
+import ReturnFuelCardModal from './ReturnFuelCardModal';
 import {
   FuelCardStatus,
   FuelCardStatusLabels,
@@ -20,7 +23,6 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { Input } from '../../components/ui/Input';
-import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import {
   Plus,
   Search,
@@ -28,7 +30,10 @@ import {
   Pencil,
   Trash2,
   X,
-  Save
+  Save,
+  UserPlus,
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react';
 
 const PROVIDER_BADGE_COLORS = {
@@ -47,8 +52,6 @@ const EMPTY_FORM = {
   card_number: '',
   card_provider: '',
   card_label: '',
-  driver_id: '',
-  truck_id: '',
   spending_limit_daily: '',
   spending_limit_weekly: '',
   spending_limit_monthly: '',
@@ -69,6 +72,7 @@ const formatCurrency = (amount) => {
 
 export function FuelCardsPage() {
   const { orgUrl } = useOrg();
+  const navigate = useNavigate();
   const {
     cards,
     loading,
@@ -84,43 +88,25 @@ export function FuelCardsPage() {
     refetch
   } = useFuelCards();
 
-  const { drivers, loading: driversLoading, fetchDrivers } = useDriversList();
-  const { trucks, loading: trucksLoading, fetchTrucks } = useTrucksList();
-
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [formError, setFormError] = useState(null);
-
-  // Build option lists for SearchableSelect
-  const driverOptions = (drivers || []).map(d => ({
-    id: d.id,
-    label: `${d.first_name || ''} ${d.last_name || ''}`.trim() || d.email || 'Unknown',
-    sublabel: d.phone || d.email || ''
-  }));
-
-  const truckOptions = (trucks || []).map(t => ({
-    id: t.id,
-    label: t.unit_number || `Truck ${t.id?.slice(0, 8)}`,
-    sublabel: `${t.year || ''} ${t.make || ''} ${t.model || ''}`.trim()
-  }));
+  const [assignModalCard, setAssignModalCard] = useState(null);
+  const [returnModalCard, setReturnModalCard] = useState(null);
 
   const openAddForm = useCallback(() => {
     setFormData({ ...EMPTY_FORM });
     setEditingId(null);
     setFormError(null);
     setShowForm(true);
-    if (!drivers || drivers.length === 0) fetchDrivers();
-    if (!trucks || trucks.length === 0) fetchTrucks();
-  }, [drivers, trucks, fetchDrivers, fetchTrucks]);
+  }, []);
 
   const openEditForm = useCallback((card) => {
     setFormData({
       card_number: card.card_number || '',
       card_provider: card.card_provider || '',
       card_label: card.card_label || '',
-      driver_id: card.driver_id || '',
-      truck_id: card.truck_id || '',
       spending_limit_daily: card.spending_limit_daily || '',
       spending_limit_weekly: card.spending_limit_weekly || '',
       spending_limit_monthly: card.spending_limit_monthly || '',
@@ -131,9 +117,7 @@ export function FuelCardsPage() {
     setEditingId(card.id);
     setFormError(null);
     setShowForm(true);
-    if (!drivers || drivers.length === 0) fetchDrivers();
-    if (!trucks || trucks.length === 0) fetchTrucks();
-  }, [drivers, trucks, fetchDrivers, fetchTrucks]);
+  }, []);
 
   const closeForm = useCallback(() => {
     setShowForm(false);
@@ -160,6 +144,9 @@ export function FuelCardsPage() {
 
     try {
       const payload = { ...formData };
+      // Remove driver/truck — managed via assignment flow
+      delete payload.driver_id;
+      delete payload.truck_id;
       // Convert spending limits to numbers or null
       ['spending_limit_daily', 'spending_limit_weekly', 'spending_limit_monthly'].forEach(field => {
         payload[field] = payload[field] ? Number(payload[field]) : null;
@@ -321,34 +308,6 @@ export function FuelCardsPage() {
                 placeholder="e.g., Main Fleet Card"
               />
 
-              {/* Driver Assignment */}
-              <div className="space-y-2">
-                <label className="block text-body-sm font-medium text-text-primary">
-                  Assigned Driver
-                </label>
-                <SearchableSelect
-                  value={formData.driver_id}
-                  onChange={(option) => handleFieldChange('driver_id', option?.id || '')}
-                  options={driverOptions}
-                  placeholder="Select driver..."
-                  loading={driversLoading}
-                />
-              </div>
-
-              {/* Truck Assignment */}
-              <div className="space-y-2">
-                <label className="block text-body-sm font-medium text-text-primary">
-                  Assigned Truck
-                </label>
-                <SearchableSelect
-                  value={formData.truck_id}
-                  onChange={(option) => handleFieldChange('truck_id', option?.id || '')}
-                  options={truckOptions}
-                  placeholder="Select truck..."
-                  loading={trucksLoading}
-                />
-              </div>
-
               {/* Expiration Date */}
               <Input
                 label="Expiration Date"
@@ -443,7 +402,12 @@ export function FuelCardsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map((card) => (
-            <Card key={card.id} padding="default" className="p-4 hover:shadow-card transition-shadow">
+            <Card
+              key={card.id}
+              padding="default"
+              className="p-4 hover:shadow-card transition-shadow cursor-pointer"
+              onClick={() => navigate(orgUrl(`/fuel/cards/${card.id}`))}
+            >
               {/* Card Header: Provider + Masked Number */}
               <div className="flex items-start justify-between mb-3">
                 <div className="min-w-0">
@@ -459,7 +423,7 @@ export function FuelCardsPage() {
                     {maskCardNumber(card.card_number)}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => openEditForm(card)}
                     className="p-1.5 hover:bg-surface-secondary rounded-lg transition-colors"
@@ -484,18 +448,48 @@ export function FuelCardsPage() {
                 </p>
               )}
 
-              {/* Driver & Truck */}
-              <div className="space-y-1 mb-3">
-                <p className="text-small text-text-secondary">
-                  <span className="text-text-tertiary">Driver:</span>{' '}
-                  {card.driver
-                    ? `${card.driver.first_name || ''} ${card.driver.last_name || ''}`.trim()
-                    : 'Unassigned'}
-                </p>
-                <p className="text-small text-text-secondary">
-                  <span className="text-text-tertiary">Truck:</span>{' '}
-                  {card.truck?.unit_number || 'Unassigned'}
-                </p>
+              {/* Driver Assignment */}
+              <div className="space-y-1 mb-3" onClick={(e) => e.stopPropagation()}>
+                {card.driver ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-small text-text-secondary truncate">
+                      <span className="text-text-tertiary">Driver:</span>{' '}
+                      {`${card.driver.first_name || ''} ${card.driver.last_name || ''}`.trim()}
+                      {card.current_assignment && (
+                        <span className="text-text-tertiary">
+                          {' '}&middot; Since {new Date(card.current_assignment.assigned_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setReturnModalCard(card)}
+                        className="p-1 hover:bg-surface-secondary rounded transition-colors"
+                        title="Return card"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-text-tertiary" />
+                      </button>
+                      <button
+                        onClick={() => setAssignModalCard(card)}
+                        className="p-1 hover:bg-surface-secondary rounded transition-colors"
+                        title="Reassign"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-text-tertiary" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-small text-text-tertiary">Unassigned</p>
+                    <button
+                      onClick={() => setAssignModalCard(card)}
+                      className="flex items-center gap-1 px-2 py-0.5 text-small text-accent hover:bg-accent/5 rounded transition-colors"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Assign Driver
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Spending Limits */}
@@ -525,6 +519,29 @@ export function FuelCardsPage() {
         <div className="text-body-sm text-text-secondary">
           Showing {cards.length} fuel card{cards.length !== 1 ? 's' : ''}
         </div>
+      )}
+
+      {/* Assignment Modals */}
+      {assignModalCard && (
+        <AssignFuelCardModal
+          card={assignModalCard}
+          onClose={() => setAssignModalCard(null)}
+          onSuccess={() => {
+            setAssignModalCard(null);
+            refetch();
+          }}
+        />
+      )}
+
+      {returnModalCard && (
+        <ReturnFuelCardModal
+          card={returnModalCard}
+          onClose={() => setReturnModalCard(null)}
+          onSuccess={() => {
+            setReturnModalCard(null);
+            refetch();
+          }}
+        />
       )}
     </div>
   );

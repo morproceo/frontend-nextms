@@ -73,6 +73,7 @@ import FuelTransactionsPage from './pages/fuel/FuelTransactionsPage';
 import FuelTransactionFormPage from './pages/fuel/FuelTransactionFormPage';
 import FuelTransactionDetailPage from './pages/fuel/FuelTransactionDetailPage';
 import FuelImportPage from './pages/fuel/FuelImportPage';
+import FuelCardDetailPage from './pages/fuel/FuelCardDetailPage';
 
 // P&L
 import PnlPage from './pages/pnl/PnlPage';
@@ -298,6 +299,7 @@ export function Router() {
             <Route path="expenses/:expenseId/edit" element={<ExpenseFormPage />} />
             <Route path="fuel" element={<FuelDashboardPage />} />
             <Route path="fuel/cards" element={<FuelCardsPage />} />
+            <Route path="fuel/cards/:cardId" element={<FuelCardDetailPage />} />
             <Route path="fuel/transactions" element={<FuelTransactionsPage />} />
             <Route path="fuel/transactions/new" element={<FuelTransactionFormPage />} />
             <Route path="fuel/transactions/import" element={<FuelImportPage />} />
