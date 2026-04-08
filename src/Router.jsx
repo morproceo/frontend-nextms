@@ -89,6 +89,7 @@ import BillingPage from './pages/settings/BillingPage';
 
 // Tools
 import { AvaPage, AvaTruckDetailPage, AvaSettingsPage, ComplianceCommandCenter } from './pages/tools';
+import FindMyTruckPage from './pages/tools/FindMyTruckPage';
 import {
   AtlasDashboardPage,
   AtlasConnectionsPage,
@@ -315,6 +316,7 @@ export function Router() {
             <Route path="settings/billing" element={<BillingPage />} />
             <Route path="tools/ava" element={<AvaPage />} />
             <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
+            <Route path="tools/find-my-truck" element={<FindMyTruckPage />} />
             <Route path="tools/ava/:truckId" element={<AvaTruckDetailPage />} />
             <Route path="tools/atlas" element={<AtlasDashboardPage />} />
             <Route path="tools/atlas/connections" element={<AtlasConnectionsPage />} />

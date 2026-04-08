@@ -29,7 +29,8 @@ import {
   Mail,
   FileBarChart,
   BarChart3,
-  ShieldCheck
+  ShieldCheck,
+  MapPin
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
@@ -81,6 +82,7 @@ const navigation = [
     icon: Wrench,
     children: [
       { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap },
+      { name: 'Find My Truck', href: '/tools/find-my-truck', icon: MapPin },
       { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail },
       { name: 'Compliance', href: '/tools/compliance', icon: ShieldCheck }
     ]
