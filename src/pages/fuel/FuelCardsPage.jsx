@@ -9,8 +9,8 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useFuelCards } from '../../hooks';
-import AssignFuelCardModal from './AssignFuelCardModal';
-import ReturnFuelCardModal from './ReturnFuelCardModal';
+import AssignFuelCardModal from './components/AssignFuelCardModal';
+import ReturnFuelCardModal from './components/ReturnFuelCardModal';
 import {
   FuelCardStatus,
   FuelCardStatusLabels,
