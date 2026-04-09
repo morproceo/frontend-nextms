@@ -7,7 +7,7 @@
  * - Component focuses on rendering
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useExpense } from '../../hooks';
@@ -38,7 +38,8 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 
 // Icon mappings for entity types
@@ -61,6 +62,7 @@ export function ExpenseDetailPage() {
     loading,
     error,
     refetch,
+    updateExpense,
     deleteExpense,
     submitForApproval,
     approveExpense,
@@ -73,6 +75,8 @@ export function ExpenseDetailPage() {
   const [receiptUrl, setReceiptUrl] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localError, setLocalError] = useState(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const receiptInputRef = useRef(null);
 
   // Fetch receipt URL when expense loads
   useEffect(() => {
@@ -82,6 +86,29 @@ export function ExpenseDetailPage() {
         .catch(err => console.error('Failed to get receipt URL:', err));
     }
   }, [expense?.id, expense?.has_receipt, expense?.receipt_storage_path]);
+
+  const handleReceiptUpload = async (file) => {
+    setUploadingReceipt(true);
+    try {
+      const uploadResult = await uploadsApi.uploadDocument(file, {
+        context: 'expense_receipt',
+        docType: 'receipt'
+      });
+
+      await updateExpense({
+        receipt_storage_path: uploadResult.key || uploadResult.data?.key,
+        receipt_file_name: file.name,
+        receipt_mime_type: file.type
+      });
+
+      refetch();
+    } catch (err) {
+      console.error('Failed to upload receipt:', err);
+      setLocalError('Failed to upload receipt: ' + (err.message || 'Unknown error'));
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
 
   const handleSubmitForApproval = async () => {
     try {
@@ -189,8 +216,8 @@ export function ExpenseDetailPage() {
   const StatusIcon = statusConfig.icon || FileText;
   const EntityIcon = entityTypeIcons[expense.entity_type] || Building2;
   const canApprove = hasPermission?.('expenses:approve');
-  const canEdit = expense.status === 'draft' || expense.status === 'rejected';
-  const canDelete = expense.status === 'draft';
+  const canEdit = ['draft', 'rejected', 'pending_receipt', 'pending_confirmation'].includes(expense.status);
+  const canDelete = expense.status === 'draft' || expense.status === 'rejected';
   const displayError = localError || error;
 
   return (
@@ -394,40 +421,73 @@ export function ExpenseDetailPage() {
           {/* Receipt */}
           <Card>
             <CardHeader>
-              <CardTitle>Receipt</CardTitle>
+              <CardTitle>Receipts & Attachments</CardTitle>
             </CardHeader>
-            <CardContent>
-              {expense.has_receipt ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-surface-secondary rounded-lg">
-                    <Receipt className="w-5 h-5 text-accent" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium text-text-primary truncate">
-                        {expense.receipt_file_name || 'Receipt'}
-                      </p>
-                      <p className="text-small text-text-tertiary">
-                        {expense.receipt_mime_type}
-                      </p>
-                    </div>
+            <CardContent className="space-y-3">
+              {/* Existing receipt */}
+              {expense.has_receipt && (
+                <div className="flex items-center gap-3 p-3 bg-surface-secondary rounded-lg">
+                  <Receipt className="w-5 h-5 text-accent flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-sm font-medium text-text-primary truncate">
+                      {expense.receipt_file_name || 'Receipt'}
+                    </p>
+                    <p className="text-small text-text-tertiary">
+                      {expense.receipt_mime_type}
+                    </p>
                   </div>
                   {receiptUrl && (
                     <a
                       href={receiptUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-accent text-accent hover:bg-accent/5 transition-colors text-body-sm font-medium"
+                      className="text-accent hover:text-accent/80 transition-colors"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      View Receipt
                     </a>
                   )}
                 </div>
-              ) : (
-                <div className="text-center py-6 text-text-tertiary">
-                  <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-small">No receipt attached</p>
-                </div>
               )}
+
+              {/* Upload area — always visible */}
+              <div
+                onClick={() => receiptInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-accent', 'bg-accent/5'); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('border-accent', 'bg-accent/5'); }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-accent', 'bg-accent/5');
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) await handleReceiptUpload(file);
+                }}
+                className="border-2 border-dashed border-surface-tertiary rounded-lg p-4 text-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-all"
+              >
+                {uploadingReceipt ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Spinner size="sm" />
+                    <span className="text-small text-text-secondary">Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5 text-text-tertiary mx-auto mb-1" />
+                    <p className="text-small text-text-secondary">
+                      {expense.has_receipt ? 'Upload another receipt' : 'Drop receipt here or click to upload'}
+                    </p>
+                    <p className="text-[11px] text-text-tertiary mt-0.5">PDF, PNG, JPG</p>
+                  </>
+                )}
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleReceiptUpload(file);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+              </div>
             </CardContent>
           </Card>
 
