@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -30,9 +30,18 @@ const mobileNavigation = [
 ];
 
 export function InvestorShell() {
-  const { user, logout } = useAuth();
+  const { user, organizations, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Store org slug for API calls (investor portal isn't under /o/:slug)
+  useEffect(() => {
+    if (organizations?.length > 0) {
+      localStorage.setItem('tms_portal_org_slug', organizations[0].slug);
+    }
+  }, [organizations]);
+
+  const orgName = organizations?.[0]?.name || 'Organization';
 
   return (
     <div className="min-h-screen bg-surface-secondary">

@@ -22,7 +22,15 @@ export function getOrgSlug() {
 
   // Check path: /o/{slug}/...
   const match = window.location.pathname.match(/^\/o\/([a-z0-9-]+)/);
-  return match ? match[1] : null;
+  if (match) return match[1];
+
+  // For investor/driver portals — use stored org slug from their single org
+  const storedSlug = localStorage.getItem('tms_portal_org_slug');
+  if (storedSlug && (window.location.pathname.startsWith('/investor') || window.location.pathname.startsWith('/driver'))) {
+    return storedSlug;
+  }
+
+  return null;
 }
 
 /**
