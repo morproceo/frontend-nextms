@@ -42,6 +42,7 @@ const ROLES = [
   { value: 'dispatcher', label: 'Dispatcher', description: 'Manage loads, drivers, and dispatch' },
   { value: 'driver', label: 'Driver', description: 'View assigned loads and upload documents' },
   { value: 'accountant', label: 'Accountant', description: 'Access to invoicing and financial reports' },
+  { value: 'investor', label: 'Investor', description: 'Read-only access to financials, loads, and fleet' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access to operational data' },
 ];
 
