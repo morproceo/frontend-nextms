@@ -126,6 +126,7 @@ export function LoadDetailPage() {
     updateField: hookUpdateField,
     updateFields,
     updateStatus: hookUpdateStatus,
+    deleteLoad,
     addStop,
     updateStop,
     deleteStop,
@@ -242,6 +243,29 @@ export function LoadDetailPage() {
       refreshRouteAndLoad();
     } catch (err) {
       console.error('Failed to update stop:', err);
+    }
+  };
+
+  const handleDeleteLoad = async () => {
+    if (!window.confirm(`Delete load ${load?.reference_number}? This will permanently remove the load and all associated data.`)) {
+      return;
+    }
+    try {
+      // Delete attached documents from S3
+      if (documents.length > 0) {
+        for (const doc of documents) {
+          try {
+            await uploadsApi.deleteDocument(doc.id);
+          } catch (e) {
+            // Continue even if doc delete fails
+          }
+        }
+      }
+      await deleteLoad();
+      navigate(orgUrl('/loads'));
+    } catch (err) {
+      console.error('Failed to delete load:', err);
+      alert('Failed to delete load: ' + (err.response?.data?.error?.message || err.message));
     }
   };
 
@@ -396,7 +420,10 @@ export function LoadDetailPage() {
                   <Printer className="w-4 h-4" />Print
                 </button>
                 <hr className="my-1" />
-                <button className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600">
+                <button
+                  onClick={handleDeleteLoad}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
+                >
                   <Trash2 className="w-4 h-4" />Delete
                 </button>
               </div>

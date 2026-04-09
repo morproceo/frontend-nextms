@@ -357,6 +357,9 @@ export function useLoad(loadId, options = {}) {
     updateStatus,
     updateBillingStatus: (status) => mutations.updateBillingStatus(loadId, status),
 
+    // Load actions
+    deleteLoad: () => mutations.deleteLoad(loadId),
+
     // Stop actions
     addStop: stops.addStop,
     updateStop: stops.updateStop,
