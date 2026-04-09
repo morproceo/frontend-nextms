@@ -216,7 +216,7 @@ export function ExpenseDetailPage() {
   const StatusIcon = statusConfig.icon || FileText;
   const EntityIcon = entityTypeIcons[expense.entity_type] || Building2;
   const canApprove = hasPermission?.('expenses:approve');
-  const canEdit = ['draft', 'rejected', 'pending_receipt', 'pending_confirmation'].includes(expense.status);
+  const canEdit = expense.status !== 'paid';
   const canDelete = expense.status === 'draft' || expense.status === 'rejected';
   const displayError = localError || error;
 
