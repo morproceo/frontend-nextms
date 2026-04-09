@@ -482,15 +482,9 @@ export function LoadsListPage() {
 
                       {/* Billing */}
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          billing.variant === 'green' ? 'bg-success/10 text-success' :
-                          billing.variant === 'blue' ? 'bg-accent/10 text-accent' :
-                          billing.variant === 'yellow' ? 'bg-warning/10 text-warning' :
-                          billing.variant === 'red' ? 'bg-error/10 text-error' :
-                          'bg-surface-secondary text-text-tertiary'
-                        }`}>
+                        <Badge variant={billing.variant || 'gray'} size="sm">
                           {billing.label}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Actions */}
