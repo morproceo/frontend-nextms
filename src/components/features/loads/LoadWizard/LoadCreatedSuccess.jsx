@@ -20,7 +20,8 @@ export function LoadCreatedSuccess({
 
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const d = new Date(typeof dateStr === 'string' && dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr);
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });

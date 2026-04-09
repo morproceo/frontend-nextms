@@ -45,7 +45,9 @@ function InlineField({ value, onSave, placeholder = '-', className = '' }) {
 
 const fmtDate = (date) => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  // Append T12:00 to prevent timezone shift on DATEONLY strings
+  const d = new Date(typeof date === 'string' && date.length === 10 ? date + 'T12:00:00' : date);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 const fmtTime = (date) => {

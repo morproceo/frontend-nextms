@@ -5,7 +5,8 @@ import { Spinner } from '../../../../ui/Spinner';
 export function ReviewStep({ formData, goToStep, onSubmit, onSaveAsDraft, saving, error }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const d = new Date(typeof dateStr === 'string' && dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr);
+    return d.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
