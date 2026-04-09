@@ -8,6 +8,7 @@ export const Roles = Object.freeze({
   DISPATCHER: 'dispatcher',
   DRIVER: 'driver',
   ACCOUNTANT: 'accountant',
+  INVESTOR: 'investor',
   VIEWER: 'viewer'
 });
 
@@ -17,6 +18,7 @@ export const RoleHierarchy = Object.freeze({
   [Roles.DISPATCHER]: 60,
   [Roles.ACCOUNTANT]: 50,
   [Roles.DRIVER]: 40,
+  [Roles.INVESTOR]: 30,
   [Roles.VIEWER]: 20
 });
 
@@ -26,6 +28,7 @@ export const RoleLabels = Object.freeze({
   [Roles.DISPATCHER]: 'Dispatcher',
   [Roles.DRIVER]: 'Driver',
   [Roles.ACCOUNTANT]: 'Accountant',
+  [Roles.INVESTOR]: 'Investor',
   [Roles.VIEWER]: 'Viewer'
 });
 
@@ -35,5 +38,6 @@ export const RoleDescriptions = Object.freeze({
   [Roles.DISPATCHER]: 'Manage loads, drivers, and dispatch',
   [Roles.DRIVER]: 'View assigned loads and upload documents',
   [Roles.ACCOUNTANT]: 'Access to invoicing and financial reports',
+  [Roles.INVESTOR]: 'Read-only access to financials, loads, and fleet',
   [Roles.VIEWER]: 'Read-only access to operational data'
 });

@@ -28,6 +28,15 @@ import InviteAcceptPage from './pages/auth/InviteAcceptPage';
 
 // Driver Portal
 import { DriverShell } from './components/layout/DriverShell';
+import { InvestorShell } from './components/layout/InvestorShell';
+
+// Investor Portal
+import InvestorDashboard from './pages/investor/InvestorDashboard';
+import InvestorLoadsPage from './pages/investor/InvestorLoadsPage';
+import InvestorLoadDetailPage from './pages/investor/InvestorLoadDetailPage';
+import InvestorFleetPage from './pages/investor/InvestorFleetPage';
+import InvestorFinancialsPage from './pages/investor/InvestorFinancialsPage';
+import InvestorSettingsPage from './pages/investor/InvestorSettingsPage';
 import {
   DriverDashboard,
   DriverLoadsPage,
@@ -122,7 +131,7 @@ function ProtectedRoute({ children }) {
  * Redirects to dashboard if already authenticated
  */
 function PublicRoute({ children }) {
-  const { isAuthenticated, loading, organizations, isDriverOnly } = useAuth();
+  const { isAuthenticated, loading, organizations, isDriverOnly, isInvestorOnly } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -140,6 +149,10 @@ function PublicRoute({ children }) {
     // Driver-only users go to driver portal
     if (isDriverOnly) {
       return <Navigate to="/driver" replace />;
+    }
+    // Investor-only users go to investor portal
+    if (isInvestorOnly) {
+      return <Navigate to="/investor" replace />;
     }
     // Redirect to first org or create-org
     if (organizations.length > 0) {
@@ -203,7 +216,7 @@ function AdminOnlyRoute({ children }) {
  * Redirects authenticated users to appropriate dashboard
  */
 function HomeRoute() {
-  const { isAuthenticated, loading, organizations, isDriverOnly } = useAuth();
+  const { isAuthenticated, loading, organizations, isDriverOnly, isInvestorOnly } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
@@ -213,6 +226,10 @@ function HomeRoute() {
     // Driver-only users go to driver portal
     if (isDriverOnly) {
       return <Navigate to="/driver" replace />;
+    }
+    // Investor-only users go to investor portal
+    if (isInvestorOnly) {
+      return <Navigate to="/investor" replace />;
     }
     // Admin users go to their org dashboard
     if (organizations.length > 0) {
@@ -270,6 +287,18 @@ export function Router() {
             <Route path="expenses/:expenseId" element={<DriverExpenseFormPage />} />
             <Route path="earnings" element={<DriverEarningsPage />} />
             <Route path="settings" element={<DriverSettingsPage />} />
+          </Route>
+        </Route>
+
+        {/* Investor Portal (protected, uses InvestorShell) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/investor" element={<InvestorShell />}>
+            <Route index element={<InvestorDashboard />} />
+            <Route path="loads" element={<InvestorLoadsPage />} />
+            <Route path="loads/:loadId" element={<InvestorLoadDetailPage />} />
+            <Route path="fleet" element={<InvestorFleetPage />} />
+            <Route path="financials" element={<InvestorFinancialsPage />} />
+            <Route path="settings" element={<InvestorSettingsPage />} />
           </Route>
         </Route>
 

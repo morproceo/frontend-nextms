@@ -109,8 +109,11 @@ export function VerifyPage() {
 
         if (result.data.organizations.length > 0) {
           const isDriverOnly = result.data.organizations.every(o => o.role === 'driver');
+          const isInvestorOnly = result.data.organizations.every(o => o.role === 'investor');
           if (isDriverOnly) {
             navigate('/driver');
+          } else if (isInvestorOnly) {
+            navigate('/investor');
           } else {
             const firstOrg = result.data.organizations[0];
             navigate(`/o/${firstOrg.slug}/dashboard`);

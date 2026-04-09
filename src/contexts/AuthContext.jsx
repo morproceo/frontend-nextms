@@ -147,10 +147,16 @@ export function AuthProvider({ children }) {
     return organizations.some(org => org.role === Roles.DRIVER);
   }, [user, organizations]);
 
-  // Check if user has admin access (any non-driver role)
+  // Check if user is investor-only (all org memberships are investor role)
+  const isInvestorOnly = useMemo(() => {
+    if (!user || organizations.length === 0) return false;
+    return organizations.every(org => org.role === Roles.INVESTOR);
+  }, [user, organizations]);
+
+  // Check if user has admin access (any non-driver, non-investor role)
   const hasAdminAccess = useMemo(() => {
     if (!user || organizations.length === 0) return false;
-    return organizations.some(org => org.role !== Roles.DRIVER);
+    return organizations.some(org => org.role !== Roles.DRIVER && org.role !== Roles.INVESTOR);
   }, [user, organizations]);
 
   const value = {
@@ -160,6 +166,7 @@ export function AuthProvider({ children }) {
     error,
     isAuthenticated: !!user,
     isDriverOnly,
+    isInvestorOnly,
     hasDriverRole,
     hasAdminAccess,
     requestOTP,
