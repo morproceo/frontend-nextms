@@ -107,7 +107,7 @@ export function ExpenseFormPage() {
   useEffect(() => {
     fetchTrucks({ status: 'active' });
     fetchTrailers({ status: 'active' });
-    fetchDrivers({ status: 'active' });
+    fetchDrivers();
     fetchLoads({ limit: 50 });
     fetchCategories();
   }, []);

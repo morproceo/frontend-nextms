@@ -35,7 +35,7 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
   // Fetch reference data when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetchDrivers({ status: 'active' });
+      fetchDrivers();
       fetchTrucks({ is_active: true });
       fetchTrailers({ is_active: true });
     }

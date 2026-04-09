@@ -103,7 +103,7 @@ export function FuelTransactionFormPage() {
   // Fetch entity lists on mount
   useEffect(() => {
     fetchCards({ status: 'active' });
-    fetchDrivers({ status: 'active' });
+    fetchDrivers();
     fetchTrucks({ status: 'active' });
   }, []);
 
