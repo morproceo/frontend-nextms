@@ -1,12 +1,17 @@
 import { cn } from '../../lib/utils';
 
 const badgeVariants = {
-  gray: 'bg-surface-tertiary text-text-secondary',
-  blue: 'bg-accent/10 text-accent',
-  green: 'bg-success/10 text-success',
-  yellow: 'bg-warning/10 text-warning',
-  red: 'bg-error/10 text-error',
-  purple: 'bg-purple-100 text-purple-700'
+  gray: 'bg-gray-100 text-gray-600 border border-gray-200',
+  blue: 'bg-blue-500 text-white',
+  green: 'bg-emerald-500 text-white',
+  yellow: 'bg-amber-400 text-white',
+  red: 'bg-red-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  indigo: 'bg-indigo-500 text-white',
+  teal: 'bg-teal-500 text-white',
+  emerald: 'bg-green-500 text-white',
+  cyan: 'bg-cyan-500 text-white'
 };
 
 export function Badge({
