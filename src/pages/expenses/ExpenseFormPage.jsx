@@ -36,7 +36,8 @@ import {
   Truck,
   User,
   Package,
-  Building2
+  Building2,
+  AlertTriangle
 } from 'lucide-react';
 
 const paymentMethods = [
@@ -492,6 +493,16 @@ export function ExpenseFormPage() {
               <Button type="button" variant="secondary" onClick={handleBack}>
                 Cancel
               </Button>
+              {/* Warning if editing an approved/pending expense */}
+              {isEditing && expense && ['approved', 'pending_approval'].includes(expense.status) && (
+                <div className="w-full mb-3 p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                  <p className="text-small text-warning">
+                    Saving changes will reset this expense to <strong>Draft</strong> status and remove its approval. You'll need to re-submit for approval.
+                  </p>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 variant="secondary"
@@ -502,7 +513,7 @@ export function ExpenseFormPage() {
                 ) : (
                   <Save className="w-4 h-4 mr-2" />
                 )}
-                Save as Draft
+                {isEditing && expense && ['approved', 'pending_approval'].includes(expense.status) ? 'Save & Reset to Draft' : 'Save as Draft'}
               </Button>
               <Button
                 type="button"
@@ -514,7 +525,7 @@ export function ExpenseFormPage() {
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                Submit for Approval
+                {isEditing ? 'Save & Submit for Approval' : 'Submit for Approval'}
               </Button>
             </div>
           </form>
