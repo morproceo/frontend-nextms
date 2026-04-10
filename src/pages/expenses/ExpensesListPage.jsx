@@ -8,7 +8,7 @@
  * - Component focuses on rendering
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useExpenses } from '../../hooks';
@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import expensesApi from '../../api/expenses.api';
 import {
   Plus,
   Search,
@@ -33,12 +34,36 @@ import {
   X,
   Download,
   ChevronRight,
-  Calendar
+  Calendar,
+  Camera,
+  FileText,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 export function ExpensesListPage() {
   const navigate = useNavigate();
   const { orgUrl, hasPermission } = useOrg();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleScanReceipt = async (file) => {
+    if (!file) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const result = await expensesApi.parseReceipt(file);
+      const extracted = result?.data?.formData || result?.formData || {};
+      // Navigate to new expense form with pre-filled data
+      navigate(orgUrl('/expenses/new'), { state: { prefill: extracted, receiptFile: file.name } });
+    } catch (err) {
+      console.error('Receipt scan failed:', err);
+      setScanError('Failed to scan receipt. Try again or enter manually.');
+      setScanning(false);
+    }
+  };
 
   // All data and logic from the hook
   const {
@@ -153,7 +178,7 @@ export function ExpensesListPage() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => navigate(orgUrl('/expenses/new'))} className="shrink-0">
+          <Button onClick={() => setShowAddModal(true)} className="shrink-0">
             <Plus className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">New Expense</span>
           </Button>
@@ -457,6 +482,102 @@ export function ExpensesListPage() {
           Filtered Total: <span className="font-semibold text-text-primary">{formatCurrency(stats.amounts.filtered)}</span>
         </span>
       </div>
+
+      {/* Add Expense Modal / Bottom Sheet */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => { setShowAddModal(false); setScanError(null); }}
+          />
+
+          {/* Sheet */}
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            {/* Handle bar (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            <div className="p-6">
+              <h2 className="text-lg font-semibold text-text-primary text-center mb-1">New Expense</h2>
+              <p className="text-small text-text-tertiary text-center mb-6">How would you like to add it?</p>
+
+              {scanError && (
+                <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
+                  <p className="text-small text-error">{scanError}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {/* Scan Receipt (AI) */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={scanning}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-accent/20 bg-accent/5 hover:bg-accent/10 hover:border-accent/40 transition-all text-left"
+                >
+                  {scanning ? (
+                    <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                      <Loader2 className="w-6 h-6 text-accent animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                      <Camera className="w-6 h-6 text-accent" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-text-primary">{scanning ? 'Scanning...' : 'Scan Receipt'}</span>
+                      <Sparkles className="w-3.5 h-3.5 text-accent" />
+                    </div>
+                    <p className="text-small text-text-secondary mt-0.5">
+                      {scanning ? 'AI is reading your receipt' : 'Take a photo or upload — AI fills in the details'}
+                    </p>
+                  </div>
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  capture="environment"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleScanReceipt(file);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+
+                {/* Manual Entry */}
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    navigate(orgUrl('/expenses/new'));
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-surface-tertiary hover:border-gray-300 hover:bg-surface-secondary transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-surface-secondary flex items-center justify-center shrink-0">
+                    <FileText className="w-6 h-6 text-text-secondary" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-text-primary">Manual Entry</span>
+                    <p className="text-small text-text-secondary mt-0.5">Fill in expense details yourself</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Cancel */}
+              <button
+                onClick={() => { setShowAddModal(false); setScanError(null); }}
+                className="w-full mt-4 py-3 text-body-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
