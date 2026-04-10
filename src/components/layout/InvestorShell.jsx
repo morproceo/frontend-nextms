@@ -136,29 +136,40 @@ export function InvestorShell() {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top bar (mobile) */}
-        <header className="sticky top-0 z-30 h-16 bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10 lg:hidden">
+        {/* Top header bar — always visible */}
+        <header className="sticky top-0 z-30 h-16 bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
           <div className="h-full px-4 flex items-center justify-between">
             {/* Mobile menu button */}
             <button
-              className="p-2 rounded-chip hover:bg-white/10"
+              className="lg:hidden p-2 rounded-chip hover:bg-white/10"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-5 h-5 text-white/70" />
             </button>
 
-            {/* Page title - mobile */}
-            <div className="flex-1 text-center">
-              <h1 className="text-body font-semibold text-white">
-                {navigation.find(n =>
-                  n.href === location.pathname ||
-                  (n.href !== '/investor' && location.pathname.startsWith(n.href))
-                )?.name || 'Investor Portal'}
-              </h1>
+            {/* Org name — desktop */}
+            <div className="hidden lg:flex items-center gap-2">
+              <span className="text-body-sm font-medium text-white/70">{orgName}</span>
+              <span className="text-[11px] text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Investor</span>
             </div>
 
-            {/* Spacer for alignment */}
-            <div className="w-9" />
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* User menu — right side */}
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <div className="text-body-sm font-medium text-white">
+                  {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.email}
+                </div>
+                <div className="text-[11px] text-white/40">{user?.email}</div>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                <span className="text-small font-semibold text-white">
+                  {getInitials(user?.first_name || user?.email)}
+                </span>
+              </div>
+            </div>
           </div>
         </header>
 
