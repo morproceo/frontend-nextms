@@ -15,7 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Trash2 } from 'lucide-react';
 
 // Status config
 const STATUS_OPTIONS = [
@@ -71,6 +71,17 @@ export function SettlementsListPage() {
       setLoading(false);
     }
   }, [driverFilter, statusFilter]);
+
+  const handleDelete = async (e, id, number) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete settlement ${number}? This cannot be undone.`)) return;
+    try {
+      await settlementsApi.deleteSettlement(id);
+      fetchSettlements();
+    } catch (err) {
+      alert('Failed to delete: ' + (err.response?.data?.error?.message || err.message));
+    }
+  };
 
   // Fetch on mount and when filters change
   useEffect(() => {
@@ -200,9 +211,19 @@ export function SettlementsListPage() {
                 <span className="text-small text-text-secondary">
                   {formatDate(s.period_start)} &mdash; {formatDate(s.period_end)}
                 </span>
-                <Badge variant={STATUS_BADGE_COLORS[s.status] || 'gray'} size="sm">
-                  {STATUS_LABELS[s.status] || s.status}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={STATUS_BADGE_COLORS[s.status] || 'gray'} size="sm">
+                    {STATUS_LABELS[s.status] || s.status}
+                  </Badge>
+                  {s.status !== 'paid' && (
+                    <button
+                      onClick={(e) => handleDelete(e, s.id, s.settlement_number)}
+                      className="p-1.5 rounded-lg text-text-tertiary hover:text-error hover:bg-error/10 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -220,6 +241,7 @@ export function SettlementsListPage() {
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Period</th>
                 <th className="px-3 py-3 text-right text-small font-medium text-text-secondary uppercase tracking-wider">Net Pay</th>
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Status</th>
+                <th className="px-3 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-tertiary">
@@ -254,6 +276,17 @@ export function SettlementsListPage() {
                       <Badge variant={STATUS_BADGE_COLORS[s.status] || 'gray'} size="sm">
                         {STATUS_LABELS[s.status] || s.status}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-3">
+                      {s.status !== 'paid' && (
+                        <button
+                          onClick={(e) => handleDelete(e, s.id, s.settlement_number)}
+                          className="p-1.5 rounded-lg text-text-tertiary hover:text-error hover:bg-error/10 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
