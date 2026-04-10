@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   LayoutDashboard,
   Package,
@@ -8,7 +9,9 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  User,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn, getInitials } from '../../lib/utils';
@@ -136,7 +139,7 @@ export function InvestorShell() {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top header bar — always visible */}
+        {/* Top bar — same as AppShell */}
         <header className="sticky top-0 z-30 h-16 bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
           <div className="h-full px-4 flex items-center justify-between">
             {/* Mobile menu button */}
@@ -147,28 +150,71 @@ export function InvestorShell() {
               <Menu className="w-5 h-5 text-white/70" />
             </button>
 
-            {/* Org name — desktop */}
-            <div className="hidden lg:flex items-center gap-2">
-              <span className="text-body-sm font-medium text-white/70">{orgName}</span>
-              <span className="text-[11px] text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Investor</span>
-            </div>
-
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* User menu — right side */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
-                <div className="text-body-sm font-medium text-white">
-                  {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.email}
+            {/* Right side controls */}
+            <div className="flex items-center gap-2">
+              {/* Org info */}
+              <button className="flex items-center gap-3 px-3 py-2 rounded-button hover:bg-white/10 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-small font-semibold text-blue-400">
+                    {getInitials(orgName)}
+                  </span>
                 </div>
-                <div className="text-[11px] text-white/40">{user?.email}</div>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-small font-semibold text-white">
-                  {getInitials(user?.first_name || user?.email)}
-                </span>
-              </div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-body-sm font-medium text-white truncate max-w-[140px]">
+                    {orgName}
+                  </div>
+                  <div className="text-small text-white/50">Investor</div>
+                </div>
+              </button>
+
+              {/* User menu */}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button className="flex items-center gap-2 p-2 rounded-button hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                      <span className="text-small font-semibold text-white">
+                        {getInitials(user?.first_name || user?.email)}
+                      </span>
+                    </div>
+                  </button>
+                </DropdownMenu.Trigger>
+
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="min-w-[200px] bg-white rounded-card shadow-elevated p-2 z-50 animate-fade-in"
+                    sideOffset={8}
+                    align="end"
+                  >
+                    <div className="px-2 py-2 border-b border-surface-tertiary mb-2">
+                      <div className="text-body-sm font-medium text-text-primary">
+                        {user?.first_name || 'Investor'}
+                      </div>
+                      <div className="text-small text-text-tertiary truncate">
+                        {user?.email}
+                      </div>
+                    </div>
+
+                    <DropdownMenu.Item
+                      className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm"
+                      onSelect={() => window.location.href = '/investor/settings'}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </DropdownMenu.Item>
+
+                    <DropdownMenu.Item
+                      className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-error"
+                      onSelect={logout}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </div>
           </div>
         </header>
