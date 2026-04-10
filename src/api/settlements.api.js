@@ -17,7 +17,9 @@ export const getSettlements = async (filters = {}) => {
 };
 
 export const getSettlement = async (id) => {
-  const response = await api.get(`/v1/settlements/${id}`);
+  const response = await api.get(`/v1/settlements/${id}`, {
+    headers: { 'Cache-Control': 'no-cache' }
+  });
   return response.data;
 };
 
@@ -75,12 +77,16 @@ export const voidSettlement = async (id) => {
 
 // Available loads & expenses
 export const getAvailableLoads = async (driverId) => {
-  const response = await api.get(`/v1/settlements/driver/${driverId}/available-loads`);
+  const response = await api.get(`/v1/settlements/driver/${driverId}/available-loads`, {
+    headers: { 'Cache-Control': 'no-cache' }
+  });
   return response.data;
 };
 
 export const getAvailableExpenses = async (driverId) => {
-  const response = await api.get(`/v1/settlements/driver/${driverId}/available-expenses`);
+  const response = await api.get(`/v1/settlements/driver/${driverId}/available-expenses`, {
+    headers: { 'Cache-Control': 'no-cache' }
+  });
   return response.data;
 };
 
