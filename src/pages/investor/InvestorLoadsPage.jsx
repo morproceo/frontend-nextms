@@ -53,7 +53,9 @@ export function InvestorLoadsPage() {
       const ref = (load.reference_number || '').toLowerCase();
       const shipperCity = (load.shipper?.city || '').toLowerCase();
       const consigneeCity = (load.consignee?.city || '').toLowerCase();
-      return ref.includes(q) || shipperCity.includes(q) || consigneeCity.includes(q);
+      const lane = (load.lane || '').toLowerCase();
+      const broker = (load.broker?.name || '').toLowerCase();
+      return ref.includes(q) || shipperCity.includes(q) || consigneeCity.includes(q) || lane.includes(q) || broker.includes(q);
     });
   }, [loads, search]);
 
@@ -103,8 +105,8 @@ export function InvestorLoadsPage() {
             {filtered.map((load) => {
               const status = getStatusConfig(LoadStatusConfig, load.status, { label: load.status, variant: 'gray', icon: Package });
               const StatusIcon = status.icon;
-              const origin = load.shipper_city && load.shipper_state ? `${load.shipper_city}, ${load.shipper_state}` : '-';
-              const dest = load.consignee_city && load.consignee_state ? `${load.consignee_city}, ${load.consignee_state}` : '-';
+              const origin = load.shipper?.city ? `${load.shipper.city}, ${load.shipper.state || ''}`.trim() : '-';
+              const dest = load.consignee?.city ? `${load.consignee.city}, ${load.consignee.state || ''}`.trim() : '-';
 
               return (
                 <Card
@@ -119,13 +121,13 @@ export function InvestorLoadsPage() {
                       {status.label}
                     </Badge>
                   </div>
-                  <p className="text-body-sm text-text-primary">{origin} → {dest}</p>
+                  <p className="text-body-sm text-text-primary">{load.lane || `${origin} → ${dest}`}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-small text-text-tertiary">{formatDate(load.pickup_date)}</span>
-                    <span className="text-body-sm font-semibold text-text-primary">{formatCurrency(load.revenue)}</span>
+                    <span className="text-small text-text-tertiary">{formatDate(load.schedule?.pickup_date || load.pickup_date)}</span>
+                    <span className="text-body-sm font-semibold text-text-primary">{formatCurrency(load.financials?.revenue || load.revenue)}</span>
                   </div>
-                  {(load.broker_name || load.broker?.name) && (
-                    <p className="text-small text-text-tertiary mt-1">{load.broker_name || load.broker?.name}</p>
+                  {load.broker?.name && (
+                    <p className="text-small text-text-tertiary mt-1">{load.broker.name}</p>
                   )}
                 </Card>
               );
@@ -161,11 +163,11 @@ export function InvestorLoadsPage() {
                         <td className="px-4 py-3">
                           <span className="font-mono font-semibold text-accent">{load.reference_number || '-'}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-text-primary">{formatDate(load.pickup_date)}</td>
-                        <td className="px-4 py-3 text-sm text-text-primary">{load.shipper_city && load.shipper_state ? `${load.shipper_city}, ${load.shipper_state}` : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-text-primary">{load.consignee_city && load.consignee_state ? `${load.consignee_city}, ${load.consignee_state}` : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-text-primary">{load.broker_name || load.broker?.name || '-'}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-text-primary text-right">{formatCurrency(load.revenue)}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{formatDate(load.schedule?.pickup_date || load.pickup_date)}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.shipper?.city ? `${load.shipper.city}, ${load.shipper.state || ''}`.trim() : '-'}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.consignee?.city ? `${load.consignee.city}, ${load.consignee.state || ''}`.trim() : '-'}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.broker?.name || '-'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-text-primary text-right">{formatCurrency(load.financials?.revenue || load.revenue)}</td>
                         <td className="px-4 py-3">
                           <Badge variant={status.variant} className="gap-1">
                             <StatusIcon className="w-3 h-3" />

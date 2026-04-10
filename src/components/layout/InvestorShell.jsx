@@ -11,7 +11,9 @@ import {
   X,
   LogOut,
   User,
-  Building2
+  Building2,
+  Receipt,
+  Fuel
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn, getInitials } from '../../lib/utils';
@@ -21,14 +23,16 @@ const navigation = [
   { name: 'Loads', href: '/investor/loads', icon: Package },
   { name: 'Fleet', href: '/investor/fleet', icon: Truck },
   { name: 'Financials', href: '/investor/financials', icon: DollarSign },
+  { name: 'Expenses', href: '/investor/expenses', icon: Receipt },
+  { name: 'Fuel', href: '/investor/fuel', icon: Fuel },
   { name: 'Settings', href: '/investor/settings', icon: Settings },
 ];
 
 const mobileNavigation = [
   { name: 'Dashboard', href: '/investor', icon: LayoutDashboard, exact: true },
   { name: 'Loads', href: '/investor/loads', icon: Package },
-  { name: 'Fleet', href: '/investor/fleet', icon: Truck },
   { name: 'Financials', href: '/investor/financials', icon: DollarSign },
+  { name: 'Expenses', href: '/investor/expenses', icon: Receipt },
   { name: 'Settings', href: '/investor/settings', icon: Settings },
 ];
 
@@ -67,11 +71,8 @@ export function InvestorShell() {
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
-          <Link to="/investor" className="flex flex-col">
+          <Link to="/investor" className="flex items-center">
             <img src="/next_logo_white.png" alt="neXt TMS" className="w-36 h-auto" />
-            <span className="text-[11px] text-white/40 uppercase tracking-wider">
-              Investor Portal
-            </span>
           </Link>
           <button
             className="lg:hidden p-2 rounded-chip hover:bg-white/10"

@@ -298,6 +298,10 @@ export function Router() {
             <Route path="loads/:loadId" element={<InvestorLoadDetailPage />} />
             <Route path="fleet" element={<InvestorFleetPage />} />
             <Route path="financials" element={<InvestorFinancialsPage />} />
+            <Route path="expenses" element={<ExpensesListPage />} />
+            <Route path="expenses/:expenseId" element={<ExpenseDetailPage />} />
+            <Route path="fuel" element={<FuelDashboardPage />} />
+            <Route path="fuel/transactions" element={<FuelTransactionsPage />} />
             <Route path="settings" element={<InvestorSettingsPage />} />
           </Route>
         </Route>
