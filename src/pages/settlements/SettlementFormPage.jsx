@@ -213,8 +213,8 @@ export function SettlementFormPage() {
         item_type: 'load_pay',
         load_id: load.id,
         description: `Load #${load.reference_number || load.id} - ${lane}`,
-        amount: load.driver_pay,
-        date: load.delivery_date,
+        amount: parseFloat(load.driver_pay) || 0,
+        date: load.delivery_date || load.pickup_date || new Date().toISOString().split('T')[0],
       });
       await fetchSettlement();
       await fetchAvailableLoads(settlement.driver_id);
