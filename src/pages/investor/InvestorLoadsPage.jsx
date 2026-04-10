@@ -84,82 +84,103 @@ export function InvestorLoadsPage() {
         />
       </div>
 
-      {/* Table */}
-      <Card padding="none" className="overflow-hidden border border-surface-tertiary">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-surface-secondary/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Reference #</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Pickup Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Origin</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Destination</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Customer</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-text-tertiary uppercase tracking-wider">Revenue</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-tertiary">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center">
-                        <Package className="w-6 h-6 text-text-tertiary" />
-                      </div>
-                      <p className="text-text-primary font-medium">No loads yet</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((load) => {
-                  const status = getStatusConfig(LoadStatusConfig, load.status, {
-                    label: load.status,
-                    variant: 'gray',
-                    icon: Package
-                  });
-                  const StatusIcon = status.icon;
+      {/* Empty state */}
+      {filtered.length === 0 && !loading && (
+        <Card className="py-16 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center">
+              <Package className="w-6 h-6 text-text-tertiary" />
+            </div>
+            <p className="text-text-primary font-medium">No loads yet</p>
+          </div>
+        </Card>
+      )}
 
-                  return (
-                    <tr
-                      key={load.id}
-                      className="group hover:bg-accent/5 cursor-pointer transition-colors"
-                      onClick={() => navigate('/investor/loads/' + load.id)}
-                    >
-                      <td className="px-4 py-3">
-                        <span className="font-mono font-semibold text-accent">
-                          {load.reference_number || '-'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-primary">
-                        {formatDate(load.schedule?.pickup_date)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-primary">
-                        {getLocationShort(load.shipper)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-primary">
-                        {getLocationShort(load.consignee)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-primary">
-                        {load.broker?.name || load.broker_name || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-text-primary text-right">
-                        {formatCurrency(load.financials?.revenue)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={status.variant} className="gap-1">
-                          <StatusIcon className="w-3 h-3" />
-                          {status.label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {filtered.length > 0 && (
+        <>
+          {/* Mobile card view */}
+          <div className="space-y-3 lg:hidden">
+            {filtered.map((load) => {
+              const status = getStatusConfig(LoadStatusConfig, load.status, { label: load.status, variant: 'gray', icon: Package });
+              const StatusIcon = status.icon;
+              const origin = load.shipper_city && load.shipper_state ? `${load.shipper_city}, ${load.shipper_state}` : '-';
+              const dest = load.consignee_city && load.consignee_state ? `${load.consignee_city}, ${load.consignee_state}` : '-';
+
+              return (
+                <Card
+                  key={load.id}
+                  className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate('/investor/loads/' + load.id)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="font-mono font-semibold text-accent">{load.reference_number || '-'}</span>
+                    <Badge variant={status.variant} className="gap-1">
+                      <StatusIcon className="w-3 h-3" />
+                      {status.label}
+                    </Badge>
+                  </div>
+                  <p className="text-body-sm text-text-primary">{origin} → {dest}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-small text-text-tertiary">{formatDate(load.pickup_date)}</span>
+                    <span className="text-body-sm font-semibold text-text-primary">{formatCurrency(load.revenue)}</span>
+                  </div>
+                  {(load.broker_name || load.broker?.name) && (
+                    <p className="text-small text-text-tertiary mt-1">{load.broker_name || load.broker?.name}</p>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <Card padding="none" className="overflow-hidden border border-surface-tertiary hidden lg:block">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-surface-secondary/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Reference #</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Pickup Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Origin</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Destination</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-text-tertiary uppercase tracking-wider">Revenue</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-tertiary">
+                  {filtered.map((load) => {
+                    const status = getStatusConfig(LoadStatusConfig, load.status, { label: load.status, variant: 'gray', icon: Package });
+                    const StatusIcon = status.icon;
+
+                    return (
+                      <tr
+                        key={load.id}
+                        className="group hover:bg-accent/5 cursor-pointer transition-colors"
+                        onClick={() => navigate('/investor/loads/' + load.id)}
+                      >
+                        <td className="px-4 py-3">
+                          <span className="font-mono font-semibold text-accent">{load.reference_number || '-'}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{formatDate(load.pickup_date)}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.shipper_city && load.shipper_state ? `${load.shipper_city}, ${load.shipper_state}` : '-'}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.consignee_city && load.consignee_state ? `${load.consignee_city}, ${load.consignee_state}` : '-'}</td>
+                        <td className="px-4 py-3 text-sm text-text-primary">{load.broker_name || load.broker?.name || '-'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-text-primary text-right">{formatCurrency(load.revenue)}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={status.variant} className="gap-1">
+                            <StatusIcon className="w-3 h-3" />
+                            {status.label}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
 
       {/* Footer */}
       {filtered.length > 0 && (
