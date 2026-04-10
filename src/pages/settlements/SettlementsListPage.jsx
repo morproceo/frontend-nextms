@@ -61,8 +61,9 @@ export function SettlementsListPage() {
       const params = {};
       if (driverFilter) params.driver_id = driverFilter;
       if (statusFilter) params.status = statusFilter;
-      const data = await settlementsApi.getSettlements(params);
-      setSettlements(Array.isArray(data) ? data : data.settlements || []);
+      const res = await settlementsApi.getSettlements(params);
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setSettlements(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Failed to fetch settlements:', err);
       setSettlements([]);
