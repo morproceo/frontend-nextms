@@ -76,6 +76,10 @@ import ExpensesListPage from './pages/expenses/ExpensesListPage';
 import ExpenseFormPage from './pages/expenses/ExpenseFormPage';
 import ExpenseDetailPage from './pages/expenses/ExpenseDetailPage';
 
+// Settlements
+import SettlementsListPage from './pages/settlements/SettlementsListPage';
+import SettlementFormPage from './pages/settlements/SettlementFormPage';
+
 // Fuel
 import FuelDashboardPage from './pages/fuel/FuelDashboardPage';
 import FuelCardsPage from './pages/fuel/FuelCardsPage';
@@ -343,6 +347,9 @@ export function Router() {
             <Route path="expenses/new" element={<ExpenseFormPage />} />
             <Route path="expenses/:expenseId" element={<ExpenseDetailPage />} />
             <Route path="expenses/:expenseId/edit" element={<ExpenseFormPage />} />
+            <Route path="settlements" element={<SettlementsListPage />} />
+            <Route path="settlements/new" element={<SettlementFormPage />} />
+            <Route path="settlements/:settlementId" element={<SettlementFormPage />} />
             <Route path="fuel" element={<FuelDashboardPage />} />
             <Route path="fuel/cards" element={<FuelCardsPage />} />
             <Route path="fuel/cards/:cardId" element={<FuelCardDetailPage />} />

@@ -67,6 +67,7 @@ const navigation = [
     children: [
       { name: 'Expenses', href: '/expenses', icon: Receipt },
       { name: 'Fuel Transactions', href: '/fuel/transactions', icon: Fuel },
+      { name: 'Settlements', href: '/settlements', icon: CreditCard },
       { name: 'Invoices', href: '/invoices', icon: DollarSign },
       { name: 'P&L', href: '/pnl', icon: TrendingUp },
       { name: 'Reports', href: '/reporting', icon: BarChart3 },
