@@ -209,11 +209,12 @@ export function SettlementFormPage() {
     try {
       setActionLoading(true);
       const lane = [load.shipper_city, load.consignee_city].filter(Boolean).join(' → ');
+      const payAmount = load.calculated_pay || parseFloat(load.driver_pay) || 0;
       await settlementsApi.addItem(settlementId, {
         item_type: 'load_pay',
         load_id: load.id,
         description: `Load #${load.reference_number || load.id} - ${lane}`,
-        amount: parseFloat(load.driver_pay) || 0,
+        amount: payAmount,
         date: load.delivery_date || load.pickup_date || new Date().toISOString().split('T')[0],
       });
       await fetchSettlement();
@@ -516,14 +517,28 @@ export function SettlementFormPage() {
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
                           <span className="text-body-sm font-semibold text-text-primary">
-                            {formatCurrency(load.driver_pay)}
+                            {formatCurrency(load.calculated_pay || load.driver_pay || 0)}
                           </span>
+                          {load.revenue > 0 && (
+                            <span className="text-small text-text-tertiary">Rev: {formatCurrency(load.revenue)}</span>
+                          )}
+                          {load.miles > 0 && (
+                            <span className="text-small text-text-tertiary">{load.miles} mi</span>
+                          )}
                           {load.delivery_date && (
                             <span className="text-small text-text-tertiary">
                               {formatDate(load.delivery_date)}
                             </span>
                           )}
                         </div>
+                        {load.pay_method && load.pay_method !== 'none' && (
+                          <p className="text-[11px] text-text-tertiary mt-0.5">
+                            {load.pay_method === 'per_mile' ? `$${load.pay_rate}/mi` :
+                             load.pay_method === 'percentage' ? `${load.pay_rate}% of revenue` :
+                             load.pay_method === 'flat_rate' ? `Flat $${load.pay_rate}` :
+                             `$${load.pay_rate}/hr`}
+                          </p>
+                        )}
                       </div>
                       <Button
                         size="sm"
