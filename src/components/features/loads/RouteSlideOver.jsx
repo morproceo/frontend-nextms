@@ -84,7 +84,7 @@ export function RouteSlideOver({
 
         {/* Map - Only rendered when panel is open */}
         {isOpen && (
-          <div className="h-[280px] sm:h-[320px] relative shrink-0">
+          <div className="h-[280px] sm:h-[320px] relative shrink-0 overflow-hidden">
             <Suspense fallback={
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                 <Spinner size="lg" />
@@ -109,7 +109,7 @@ export function RouteSlideOver({
         )}
 
         {/* Stops Manager */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 pb-24">
           <StopsManager
             load={load}
             stops={stops}
