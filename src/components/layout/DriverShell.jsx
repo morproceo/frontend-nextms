@@ -7,6 +7,7 @@ import {
   FileText,
   DollarSign,
   Receipt,
+  Fuel,
   Settings,
   Menu,
   X,
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Documents', href: '/driver/documents', icon: FileText },
   { name: 'Expenses', href: '/driver/expenses', icon: Receipt },
   { name: 'Earnings', href: '/driver/earnings', icon: DollarSign },
+  { name: 'FuelIQ', href: '/driver/fueliq', icon: Fuel },
   { name: 'Settings', href: '/driver/settings', icon: Settings }
 ];
 
@@ -30,7 +32,7 @@ const navigation = [
 const mobileNavigation = [
   { name: 'Home', href: '/driver', icon: LayoutDashboard, exact: true },
   { name: 'Loads', href: '/driver/loads', icon: Package },
-  { name: 'Expenses', href: '/driver/expenses', icon: Receipt },
+  { name: 'FuelIQ', href: '/driver/fueliq', icon: Fuel },
   { name: 'Earnings', href: '/driver/earnings', icon: DollarSign },
   { name: 'Settings', href: '/driver/settings', icon: Settings }
 ];

@@ -111,6 +111,12 @@ import {
   AtlasOpportunityDetailPage,
   AtlasSettingsPage
 } from './pages/tools/atlas';
+import {
+  FuelIQDashboardPage,
+  FuelIQTripPlannerPage,
+  FuelIQSurchargePage
+} from './pages/tools/fueliq';
+import DriverFuelIQPage from './pages/driver/DriverFuelIQPage';
 
 /**
  * Protected Route wrapper
@@ -290,6 +296,7 @@ export function Router() {
             <Route path="expenses/new" element={<DriverExpenseFormPage />} />
             <Route path="expenses/:expenseId" element={<DriverExpenseFormPage />} />
             <Route path="earnings" element={<DriverEarningsPage />} />
+            <Route path="fueliq" element={<DriverFuelIQPage />} />
             <Route path="settings" element={<DriverSettingsPage />} />
           </Route>
         </Route>
@@ -376,6 +383,10 @@ export function Router() {
             <Route path="tools/atlas/opportunities/:opportunityId" element={<AtlasOpportunityDetailPage />} />
             <Route path="tools/atlas/settings" element={<AtlasSettingsPage />} />
             <Route path="tools/compliance" element={<ComplianceCommandCenter />} />
+            <Route path="tools/fueliq" element={<FuelIQDashboardPage />} />
+            <Route path="tools/fueliq/trip" element={<FuelIQTripPlannerPage />} />
+            <Route path="tools/fueliq/trip/:loadId" element={<FuelIQTripPlannerPage />} />
+            <Route path="tools/fueliq/surcharge" element={<FuelIQSurchargePage />} />
           </Route>
         </Route>
 

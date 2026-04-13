@@ -85,7 +85,8 @@ const navigation = [
       { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap },
       { name: 'Find My Truck', href: '/tools/find-my-truck', icon: MapPin },
       { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail },
-      { name: 'Compliance', href: '/tools/compliance', icon: ShieldCheck }
+      { name: 'Compliance', href: '/tools/compliance', icon: ShieldCheck },
+      { name: 'FuelIQ', href: '/tools/fueliq', icon: Fuel }
     ]
   },
   {
