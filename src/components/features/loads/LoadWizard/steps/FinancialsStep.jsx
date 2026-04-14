@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { DollarSign, Route, Building2, Check } from 'lucide-react';
+import { DollarSign, Route, Building2, Check, Info } from 'lucide-react';
 import { SearchableSelect } from '../../../../ui/SearchableSelect';
+import { includesInRpm } from '../../../../../enums/loadType';
 
 export function FinancialsStep({ formData, updateFormData, onComplete, isValid, brokers }) {
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -41,15 +42,18 @@ export function FinancialsStep({ formData, updateFormData, onComplete, isValid, 
     }
   };
 
-  // Calculate rate per mile
+  const rpmEligible = includesInRpm(formData.load_type);
+
+  // Calculate rate per mile (only for RPM-eligible load types)
   const ratePerMile = useMemo(() => {
+    if (!rpmEligible) return null;
     const revenue = parseFloat(formData.revenue) || 0;
     const miles = parseInt(formData.miles) || 0;
     if (revenue > 0 && miles > 0) {
       return (revenue / miles).toFixed(2);
     }
     return null;
-  }, [formData.revenue, formData.miles]);
+  }, [formData.revenue, formData.miles, rpmEligible]);
 
   return (
     <div className="space-y-8">
@@ -117,6 +121,17 @@ export function FinancialsStep({ formData, updateFormData, onComplete, isValid, 
             <div className="px-4 py-3 bg-success/5 border border-success/20 rounded-lg">
               <span className="text-lg font-semibold text-success">${ratePerMile}</span>
               <span className="text-small text-text-tertiary ml-1">/mi</span>
+            </div>
+          </div>
+        )}
+        {!rpmEligible && (
+          <div className="space-y-2">
+            <label className="text-body-sm text-text-secondary">Rate Per Mile</label>
+            <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <span className="text-small text-amber-700 leading-tight">
+                Flat fee — not counted in RPM metrics
+              </span>
             </div>
           </div>
         )}

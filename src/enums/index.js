@@ -41,6 +41,15 @@ export {
   canTransitionLoadTo
 } from './loadStatus.js';
 
+export {
+  LoadType,
+  LoadTypeLabels,
+  LoadTypeColors,
+  LoadTypeDescriptions,
+  LoadTypesIncludedInRpm,
+  includesInRpm
+} from './loadType.js';
+
 // Billing
 export {
   BillingStatus,

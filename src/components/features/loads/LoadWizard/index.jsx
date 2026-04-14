@@ -64,6 +64,7 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
     reference_number: generateLoadNumber(),
     customer_load_number: '',
     status: 'new',
+    load_type: 'standard',
     // Route
     shipper_facility_id: '',
     shipper_facility_type: 'shipper',
@@ -122,6 +123,7 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
             reference_number: load.reference_number || '',
             customer_load_number: load.customer_load_number || '',
             status: load.status || 'new',
+            load_type: load.load_type || 'standard',
             shipper_facility_id: load.shipper_facility_id || '',
             shipper_name: load.shipper?.name || '',
             shipper_address: load.shipper?.address || '',

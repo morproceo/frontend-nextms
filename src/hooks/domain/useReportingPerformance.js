@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLoadsList, useDriversList, useTrucksList } from '../api';
 import { useCostSettings } from '../api/useDispatchApi';
 import { useOrg } from '../../contexts/OrgContext';
+import { includesInRpm } from '../../enums/loadType';
 
 /**
  * Period preset definitions
@@ -180,6 +181,9 @@ export function useReportingPerformance(options = {}) {
   }, [loadsHook.loads, driverId, truckId, dispatcherId]);
 
   // Computed metrics from filtered loads
+  // Total revenue includes ALL loads (trailer rentals count in revenue).
+  // Rate/Mile calculation uses ONLY RPM-eligible loads (STANDARD type) so
+  // flat-fee trailer rentals don't skew the per-mile metric.
   const metrics = useMemo(() => {
     const totalLoads = filteredLoads.length;
     const totalRevenue = filteredLoads.reduce((sum, l) => {
@@ -188,7 +192,13 @@ export function useReportingPerformance(options = {}) {
     const totalMiles = filteredLoads.reduce((sum, l) => {
       return sum + (Number(l.miles) || 0);
     }, 0);
-    const revenuePerMile = totalMiles > 0 ? totalRevenue / totalMiles : 0;
+
+    // RPM-eligible subset for per-mile calculations
+    const rpmLoads = filteredLoads.filter(l => includesInRpm(l.load_type));
+    const rpmRevenue = rpmLoads.reduce((sum, l) => sum + (Number(l.revenue) || 0), 0);
+    const rpmMiles = rpmLoads.reduce((sum, l) => sum + (Number(l.miles) || 0), 0);
+
+    const revenuePerMile = rpmMiles > 0 ? rpmRevenue / rpmMiles : 0;
     const costPerMile = costHook.costSettings?.calculatedCostPerMile || 0;
     const netProfitPerMile = revenuePerMile - costPerMile;
 

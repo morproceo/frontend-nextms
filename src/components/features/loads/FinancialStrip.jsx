@@ -86,9 +86,18 @@ export function FinancialStrip({ revenue, driverPay, margin, rpm, miles, onUpdat
         {/* $/Mile */}
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">$/Mile</p>
-          <p className="text-lg sm:text-2xl font-bold text-gray-900">
-            ${(rpm || 0).toFixed(2)}
-          </p>
+          {rpm === null || rpm === undefined ? (
+            <p
+              className="text-lg sm:text-2xl font-bold text-gray-400"
+              title="Flat-fee load — excluded from rate-per-mile metrics"
+            >
+              —
+            </p>
+          ) : (
+            <p className="text-lg sm:text-2xl font-bold text-gray-900">
+              ${(rpm || 0).toFixed(2)}
+            </p>
+          )}
           {miles > 0 && (
             <p className="text-xs text-gray-400 mt-0.5">{miles.toLocaleString()} mi</p>
           )}

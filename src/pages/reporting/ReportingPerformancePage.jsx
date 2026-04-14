@@ -13,6 +13,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { LoadStatusConfig, getStatusConfig } from '../../config/status';
 import { exportToCSV } from '../../utils/exportCsv';
+import { includesInRpm } from '../../enums/loadType';
 import {
   Package,
   DollarSign,
@@ -111,13 +112,24 @@ function LoadsTable({ loads }) {
             {loads.map((load) => {
               const revenue = Number(load.revenue) || 0;
               const miles = Number(load.miles) || 0;
-              const rpm = miles > 0 ? revenue / miles : 0;
+              const rpmEligible = includesInRpm(load.load_type);
+              const rpm = rpmEligible && miles > 0 ? revenue / miles : 0;
               const statusConfig = getStatusConfig(LoadStatusConfig, load.status);
 
               return (
                 <tr key={load.id} className="hover:bg-surface-secondary/50">
                   <td className="px-6 py-3 text-body-sm font-medium text-text-primary">
-                    {load.reference_number || '—'}
+                    <div className="flex items-center gap-1.5">
+                      {load.reference_number || '—'}
+                      {load.load_type === 'trailer_rental' && (
+                        <span
+                          className="text-caption bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium"
+                          title="Flat-fee load — excluded from rate-per-mile metrics"
+                        >
+                          Rental
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-3 text-body-sm text-text-secondary max-w-[200px] truncate">
                     {load.lane}
@@ -135,7 +147,7 @@ function LoadsTable({ loads }) {
                     {formatCurrency(revenue)}
                   </td>
                   <td className="px-6 py-3 text-body-sm text-text-primary text-right tabular-nums">
-                    {rpm > 0 ? formatRate(rpm) : '—'}
+                    {rpmEligible ? (rpm > 0 ? formatRate(rpm) : '—') : <span className="text-text-tertiary" title="Excluded from RPM">—</span>}
                   </td>
                   <td className="px-6 py-3 text-center">
                     <Badge variant={statusConfig?.color || 'gray'}>
@@ -154,7 +166,8 @@ function LoadsTable({ loads }) {
         {loads.map((load) => {
           const revenue = Number(load.revenue) || 0;
           const miles = Number(load.miles) || 0;
-          const rpm = miles > 0 ? revenue / miles : 0;
+          const rpmEligible = includesInRpm(load.load_type);
+          const rpm = rpmEligible && miles > 0 ? revenue / miles : 0;
           const statusConfig = getStatusConfig(LoadStatusConfig, load.status);
 
           return (

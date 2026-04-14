@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Package, MapPin, Plus, Pencil, ArrowUpFromLine, ArrowDownToLine, ArrowLeftRight } from 'lucide-react';
+import { Package, MapPin, Plus, Pencil, ArrowUpFromLine, ArrowDownToLine, ArrowLeftRight, Truck, Container } from 'lucide-react';
 import { SearchableSelect } from '../../../../ui/SearchableSelect';
 import { QuickAddFacilityModal } from '../../../customers/QuickAddFacilityModal';
+import { LoadType, LoadTypeLabels, LoadTypeDescriptions } from '../../../../../enums/loadType';
 
 const facilityTypes = [
   { value: 'shipper', label: 'Shipper', icon: ArrowUpFromLine },
@@ -96,8 +97,52 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
     return city || state || '';
   };
 
+  const loadTypeOptions = [
+    { value: LoadType.STANDARD, label: LoadTypeLabels[LoadType.STANDARD], icon: Truck, description: LoadTypeDescriptions[LoadType.STANDARD] },
+    { value: LoadType.TRAILER_RENTAL, label: LoadTypeLabels[LoadType.TRAILER_RENTAL], icon: Container, description: LoadTypeDescriptions[LoadType.TRAILER_RENTAL] }
+  ];
+  const currentLoadType = formData.load_type || LoadType.STANDARD;
+
   return (
     <div className="space-y-6">
+      {/* Load Type */}
+      <div>
+        <label className="flex items-center gap-2 text-body font-medium text-text-primary mb-2">
+          <Package className="w-4 h-4 text-accent" />
+          Load Type
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {loadTypeOptions.map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = currentLoadType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => updateFormData({ load_type: opt.value })}
+                className={`
+                  flex flex-col items-start gap-1 p-3 rounded-xl border-2 transition-all text-left
+                  ${isSelected
+                    ? 'border-accent bg-accent/10'
+                    : 'border-surface-tertiary bg-white hover:border-accent/30'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-accent' : 'text-text-tertiary'}`} />
+                  <span className={`text-body-sm font-medium ${isSelected ? 'text-accent' : 'text-text-primary'}`}>
+                    {opt.label}
+                  </span>
+                </div>
+                <span className="text-caption text-text-tertiary leading-tight">
+                  {opt.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Load Number */}
       <div>
         <label className="flex items-center gap-2 text-body font-medium text-text-primary mb-2">

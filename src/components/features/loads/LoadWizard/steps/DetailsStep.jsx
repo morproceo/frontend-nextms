@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Calendar, DollarSign, Building2, RotateCw, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, DollarSign, Building2, RotateCw, MapPin, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { SearchableSelect } from '../../../../ui/SearchableSelect';
 import { QuickAddBrokerModal } from '../../../customers/QuickAddBrokerModal';
 import { StopsEditor } from '../StopsEditor';
+import { includesInRpm } from '../../../../../enums/loadType';
 
 export function DetailsStep({
   formData,
@@ -65,8 +66,11 @@ export function DetailsStep({
     });
   };
 
-  // Calculate rate per mile
+  const rpmEligible = includesInRpm(formData.load_type);
+
+  // Calculate rate per mile (only for RPM-eligible load types)
   const ratePerMile = (() => {
+    if (!rpmEligible) return null;
     const revenue = parseFloat(formData.revenue) || 0;
     const miles = parseInt(formData.miles) || 0;
     if (revenue > 0 && miles > 0) {
@@ -164,6 +168,12 @@ export function DetailsStep({
           <p className="mt-2 text-small text-success font-medium">
             💰 ${ratePerMile}/mile
           </p>
+        )}
+        {!rpmEligible && formData.revenue && (
+          <div className="mt-2 flex items-start gap-1.5 text-small text-amber-700">
+            <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <span>Flat-fee load — won't count toward rate-per-mile metrics</span>
+          </div>
         )}
       </div>
 

@@ -330,11 +330,15 @@ export function LoadDetailPage() {
     : (load.financials?.margin !== null && load.financials?.margin !== undefined
         ? parseFloat(load.financials.margin)
         : (revenue - driverPay));
-  const rpm = localFinancials?.rpm !== undefined && localFinancials?.rpm !== null
-    ? parseFloat(localFinancials.rpm)
-    : (load.financials?.rpm !== null && load.financials?.rpm !== undefined
-        ? parseFloat(load.financials.rpm)
-        : (miles > 0 ? revenue / miles : 0));
+  // RPM is null for non-STANDARD load types (e.g. trailer rentals)
+  const rpmEligible = !load.load_type || load.load_type === 'standard';
+  const rpm = !rpmEligible
+    ? null
+    : (localFinancials?.rpm !== undefined && localFinancials?.rpm !== null
+        ? parseFloat(localFinancials.rpm)
+        : (load.financials?.rpm !== null && load.financials?.rpm !== undefined
+            ? parseFloat(load.financials.rpm)
+            : (miles > 0 ? revenue / miles : 0)));
 
   // Collapsible Section Component for mobile
   const Section = ({ id, icon: Icon, title, badge, children }) => {
@@ -374,6 +378,14 @@ export function LoadDetailPage() {
               <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{load.reference_number}</h1>
               {load.customer_load_number && (
                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full hidden sm:inline">PO: {load.customer_load_number}</span>
+              )}
+              {load.load_type === 'trailer_rental' && (
+                <span
+                  className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium"
+                  title="Flat-fee load — excluded from rate-per-mile metrics"
+                >
+                  Trailer Rental
+                </span>
               )}
             </div>
           </div>
