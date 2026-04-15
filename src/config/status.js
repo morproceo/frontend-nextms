@@ -774,6 +774,82 @@ export { TaxClassification };
 // HELPER FUNCTIONS
 // ============================================
 
+// ============================================
+// READINESS / IMPACT TIER CONFIG (v1.2 §9.1, §9.2 + UX/UI plan §4.4)
+// ============================================
+//
+// D-tier color choice: D0 = red because it indicates ineligibility, NOT because
+// the driver is "bad." L-tier color choice: L4 = red because it indicates
+// highest operational attention, NOT because the load is "bad."
+// Tooltips on first hover should clarify this in the UI.
+
+export const ReadinessTierConfig = {
+  D0: { value: 'D0', label: 'D0 — Ineligible',     short: 'D0', variant: 'red',    description: 'Hard-gate failure — cannot be assigned' },
+  D1: { value: 'D1', label: 'D1 — Low Impact',     short: 'D1', variant: 'yellow', description: 'Low-impact loads only' },
+  D2: { value: 'D2', label: 'D2 — Standard',       short: 'D2', variant: 'gray',   description: 'Standard load capable' },
+  D3: { value: 'D3', label: 'D3 — High Impact',    short: 'D3', variant: 'green',  description: 'High-impact load capable' },
+  D4: { value: 'D4', label: 'D4 — Strategic',      short: 'D4', variant: 'blue',   description: 'Strategic / dedicated load capable' }
+};
+
+export const LoadImpactTierConfig = {
+  L1: { value: 'L1', label: 'L1 — Low',            short: 'L1', variant: 'gray',   description: 'Low operational impact' },
+  L2: { value: 'L2', label: 'L2 — Standard',       short: 'L2', variant: 'blue',   description: 'Standard load' },
+  L3: { value: 'L3', label: 'L3 — High',           short: 'L3', variant: 'orange', description: 'High operational attention required' },
+  L4: { value: 'L4', label: 'L4 — Strategic',      short: 'L4', variant: 'red',    description: 'Strategic — highest operational attention' }
+};
+
+export const EvaluationDecisionConfig = {
+  allowed:         { value: 'allowed',         label: 'Allowed',         short: 'Allowed', variant: 'green' },
+  review_required: { value: 'review_required', label: 'Review Required', short: 'Review',  variant: 'yellow' },
+  blocked:         { value: 'blocked',         label: 'Blocked',         short: 'Blocked', variant: 'red' }
+};
+
+/**
+ * Reason-code severity → Badge variant.
+ * Mirrors the backend ReasonSeverity enum (block / review_required / info).
+ */
+export const ReasonSeverityVariant = {
+  block: 'red',
+  review_required: 'yellow',
+  info: 'gray'
+};
+
+// Categories whose V1 weight or signal is weak/manual/neutralized.
+// UI uses this to decide where to show the ManualBaselineTooltip ⓘ icon.
+export const ReadinessWeakCategories = {
+  service_reliability: 'Weight 0 at launch — stop timestamps are not yet captured organization-wide. Weight will be restored once data accrues.',
+  safety_performance: 'Default 100 unless compliance admin sets a manual flag. No automated incident model in V1.',
+  communication_quality: 'Manual baseline 100. No automated communication signal yet.',
+  trend_improvement: 'Requires ≥10 recent loads to produce a signal. Currently neutral until volume accumulates.'
+};
+
+/**
+ * Friendly category labels for the readiness card.
+ */
+export const ReadinessCategoryLabels = {
+  experience_baseline: 'Experience',
+  service_reliability: 'Service Reliability',
+  safety_performance: 'Safety Performance',
+  compliance_discipline: 'Compliance Discipline',
+  communication_quality: 'Communication Quality',
+  execution_quality: 'Execution Quality',
+  stability_professionalism: 'Stability',
+  trend_improvement: 'Trend Improvement'
+};
+
+export const LoadImpactCategoryLabels = {
+  customer_relationship: 'Customer Relationship',
+  service_failure: 'Service Failure Sensitivity',
+  freight_sensitivity: 'Freight Sensitivity',
+  appointment_rigidity: 'Appointment Rigidity',
+  documentation_burden: 'Documentation Burden',
+  route_complexity: 'Route Complexity',
+  recovery_difficulty: 'Recovery Difficulty',
+  visibility_requirement: 'Visibility Requirement',
+  counterparty_sensitivity: 'Counterparty Sensitivity',
+  regulatory_sensitivity: 'Regulatory Sensitivity'
+};
+
 /**
  * Get status config with fallback for unknown statuses
  */

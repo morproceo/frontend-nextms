@@ -18,6 +18,8 @@ import { DocumentUploadModal } from '../../components/features/documents/Documen
 import { FinancialStrip } from '../../components/features/loads/FinancialStrip';
 import { RouteOverviewCard } from '../../components/features/loads/RouteOverviewCard';
 import { RouteSlideOver } from '../../components/features/loads/RouteSlideOver';
+import { LoadImpactCard } from '../../components/features/readiness/LoadImpactCard';
+import { LoadSensitivityEditor } from '../../components/features/loads/LoadSensitivityEditor';
 import uploadsApi from '../../api/uploads.api';
 import {
   ArrowLeft,
@@ -496,6 +498,17 @@ export function LoadDetailPage() {
             miles={miles}
             onUpdateField={updateField}
           />
+
+          {/* Load Impact (v1.2 Phase 3) */}
+          {load?.id && <LoadImpactCard loadId={load.id} />}
+
+          {/* Sensitivity editor — dispatcher-entered fields that drive impact scoring */}
+          {load?.id && (
+            <LoadSensitivityEditor
+              load={load}
+              onUpdateField={updateField}
+            />
+          )}
 
           {/* Route Overview Card */}
           <RouteOverviewCard
