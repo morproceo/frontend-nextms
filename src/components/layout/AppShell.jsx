@@ -94,7 +94,8 @@ const navigation = [
     icon: Settings,
     children: [
       { name: 'General', href: '/settings', icon: Settings },
-      { name: 'Billing', href: '/settings/billing', icon: CreditCard }
+      { name: 'Billing', href: '/settings/billing', icon: CreditCard },
+      { name: 'Scoring Config', href: '/settings/scoring-config', icon: ShieldCheck }
     ]
   }
 ];
