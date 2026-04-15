@@ -1,17 +1,23 @@
 /**
- * AssignDriverModal — Phase 4: non-blocking evaluation panel + tier badges.
+ * AssignDriverModal — Phase 5: enforcement + override + approve & assign.
  *
- * Behavior:
- *   - On open, fetches drivers/trucks/trailers AND the org-wide readiness
- *     summary (latest tier per driver) for the dropdown badges.
- *   - On driver select, renders <EvaluationPanel> below the driver picker.
- *     The panel calls POST /v1/dispatch/evaluate inline.
- *   - Phase 4 is non-blocking: Assign stays usable regardless of decision.
- *     A console.warn fires when the dispatcher proceeds despite a
- *     review_required or blocked evaluation (poor-man's telemetry until
- *     a proper analytics provider lands).
+ * Phase 4 behavior preserved when enforce_block === false (advisory mode).
  *
- * Override + Request-Review controls land in Phase 5 along with enforce_block.
+ * Phase 5 (enforce_block === true):
+ *   - Allowed         → Assign button works as today; passes evaluation_id.
+ *   - Review Required → Assign hidden. If user has DISPATCH_REVIEW_APPROVE,
+ *                       "Approve & Assign" creates a child eval, then assigns
+ *                       with that child evaluation_id. Otherwise "Request
+ *                       Review" closes the modal — the original eval is
+ *                       already pending in the queue.
+ *   - Blocked         → Assign hidden. If user has DISPATCH_OVERRIDE AND no
+ *                       unoverridable codes hit, "Override" opens
+ *                       OverrideReasonModal which creates a child eval; we
+ *                       then assign with that child evaluation_id.
+ *
+ * Backend assign endpoint accepts data.evaluation_id; we pass the latest
+ * allowed evaluation (parent or child). Console.warn telemetry fires when
+ * the dispatcher Assigns an evaluation that wasn't originally `allowed`.
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -22,23 +28,37 @@ import {
   useTrailersList,
   useLoadMutations
 } from '../../../hooks';
-import { useDriverReadinessSummary } from '../../../hooks/api/useReadinessApi';
+import {
+  useDriverReadinessSummary,
+  useEvaluationActions,
+  useReadinessFeatureFlag,
+  useScoringConfig
+} from '../../../hooks/api/useReadinessApi';
+import { useOrg } from '../../../contexts/OrgContext';
 import { Button } from '../../ui/Button';
 import { SearchableSelect } from '../../ui/SearchableSelect';
 import { Spinner } from '../../ui/Spinner';
 import { ReadinessTierBadge } from '../../readiness/ReadinessTierBadge';
 import { EvaluationPanel } from './EvaluationPanel';
+import { OverrideReasonModal } from './OverrideReasonModal';
+
+const tierOrder = { D4: 4, D3: 3, D2: 2, D1: 1, D0: 0 };
 
 export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
+  const { hasPermission } = useOrg();
   const { drivers, loading: driversLoading, fetchDrivers } = useDriversList();
   const { trucks, loading: trucksLoading, fetchTrucks } = useTrucksList();
   const { trailers, loading: trailersLoading, fetchTrailers } = useTrailersList();
   const { updateLoad, loading: saving } = useLoadMutations();
   const { summary: readinessSummary, fetchSummary } = useDriverReadinessSummary();
+  const { flag, fetchFlag } = useReadinessFeatureFlag();
+  const { config: scoringConfig, fetchConfig } = useScoringConfig();
+  const { approve, override, loading: actingOnEval, error: evalActionError } = useEvaluationActions();
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     driver_id: '',
@@ -48,54 +68,41 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
 
   const loading = driversLoading || trucksLoading || trailersLoading;
 
-  // Fetch reference data when modal opens (readiness summary is org-wide and cached server-side).
+  // Fetch reference data + readiness summary + feature flag + scoring config when modal opens.
   useEffect(() => {
     if (isOpen) {
       fetchDrivers();
       fetchTrucks({ is_active: true });
       fetchTrailers({ is_active: true });
       fetchSummary();
+      fetchFlag();
+      fetchConfig();
     }
   }, [isOpen]);
 
-  // Reset state when modal opens
+  // Reset state when modal opens.
   useEffect(() => {
     if (isOpen) {
       setFormData({ driver_id: '', truck_id: '', trailer_id: '' });
       setSuccess(false);
       setError(null);
       setEvaluation(null);
+      setOverrideOpen(false);
     }
   }, [isOpen]);
 
-  // driver_id → readiness tier lookup (drivers without a snapshot return undefined).
   const tierByDriver = useMemo(() => {
     const map = new Map();
     for (const r of readinessSummary) map.set(r.driver_id, r.readiness_tier);
     return map;
   }, [readinessSummary]);
 
-  // Sort driver options: drivers WITH a snapshot first, ordered D4..D1, then unknowns.
-  const tierOrder = { D4: 4, D3: 3, D2: 2, D1: 1, D0: 0 };
   const driverOptions = useMemo(() => {
     const opts = drivers.map(d => {
       const tier = tierByDriver.get(d.id);
-      return {
-        id: d.id,
-        label: `${d.first_name} ${d.last_name}`,
-        sublabel: d.phone,
-        tier,
-        // SearchableSelect renders sublabel + (optionally) a custom right-side node.
-        // Several existing call sites just use plain label/sublabel; we keep that
-        // contract and append the tier to the visible label so it shows up in the
-        // dropdown without requiring a SearchableSelect API change.
-      };
+      return { id: d.id, label: `${d.first_name} ${d.last_name}`, sublabel: d.phone, tier };
     });
-    return opts.sort((a, b) => {
-      const at = tierOrder[a.tier] ?? -1;
-      const bt = tierOrder[b.tier] ?? -1;
-      return bt - at;
-    });
+    return opts.sort((a, b) => (tierOrder[b.tier] ?? -1) - (tierOrder[a.tier] ?? -1));
   }, [drivers, tierByDriver]);
 
   const handleDriverSelect = (option) => {
@@ -109,23 +116,43 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
     setEvaluation(null);
   };
 
-  const handleTruckSelect = (option) => {
-    setFormData((prev) => ({ ...prev, truck_id: option?.id || '' }));
-  };
+  const handleTruckSelect = (option) => setFormData((prev) => ({ ...prev, truck_id: option?.id || '' }));
+  const handleTrailerSelect = (option) => setFormData((prev) => ({ ...prev, trailer_id: option?.id || '' }));
 
-  const handleTrailerSelect = (option) => {
-    setFormData((prev) => ({ ...prev, trailer_id: option?.id || '' }));
-  };
+  // ---- Permission + decision derived state ----
+  const enforce = flag?.enforce_block === true;
+  const overridePolicy = scoringConfig?.overridePolicy || {};
+  const unoverridable = overridePolicy.unoverridable_codes || [];
+  const minReasonLength = Number(overridePolicy.require_reason_min_length) || 20;
+  const allowedRoles = overridePolicy.allowed_roles || [];
+  void allowedRoles; // role-based gating handled via permission keys below
 
-  const handleSubmit = async () => {
+  const canOverride = hasPermission('dispatch:override');
+  const canApproveReview = hasPermission('dispatch:review_approve');
+
+  const decision = evaluation?.decision || null;
+  const blockingReasons = (evaluation?.reason_codes || []).filter(r => r.severity === 'block');
+  const hitsUnoverridable = blockingReasons.some(r => {
+    const suffix = (r.code || '').replace(/^HARD_GATE\./, '');
+    return unoverridable.includes(r.code) || unoverridable.includes(suffix);
+  });
+
+  // Visibility rules per UX/UI plan §5 — buttons users cannot use are HIDDEN.
+  const showAssign = !enforce
+    || decision === 'allowed'
+    || decision === null
+    || (decision === 'review_required' && canApproveReview); // approve & assign path
+  const showApproveAndAssign = enforce && decision === 'review_required' && canApproveReview;
+  const showRequestReview = enforce && decision === 'review_required' && !canApproveReview;
+  const showOverride = enforce && decision === 'blocked' && canOverride && !hitsUnoverridable;
+
+  // ---- Assign action ----
+  const performAssign = async (evaluationId = null) => {
     if (!formData.driver_id) {
       setError('Please select a driver');
       return;
     }
-
-    // Phase 4 ignore-rate telemetry. Replace with a real analytics call once
-    // the project has a provider; until then console.warn is the honest signal.
-    if (evaluation && evaluation.decision !== 'allowed') {
+    if (evaluation && evaluation.decision !== 'allowed' && !evaluationId) {
       console.warn('[dispatch] Assigning despite non-allowed evaluation', {
         load_id: load?.id,
         driver_id: formData.driver_id,
@@ -133,7 +160,6 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
         reason_codes: (evaluation.reason_codes || []).map(r => r.code)
       });
     }
-
     try {
       setError(null);
       await updateLoad(load.id, {
@@ -141,6 +167,7 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
         truck_id: formData.truck_id || null,
         trailer_id: formData.trailer_id || null,
         status: 'booked',
+        evaluation_id: evaluationId
       });
       setSuccess(true);
       setTimeout(() => {
@@ -152,15 +179,47 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
       }, 1500);
     } catch (err) {
       console.error('Failed to assign driver:', err);
-      setError(err.response?.data?.message || 'Failed to assign driver');
+      const data = err.response?.data;
+      if (data?.error?.code === 'DISPATCH_GATE_BLOCKED') {
+        setError(`Dispatch blocked: ${data.error.message}`);
+        if (data.error.evaluation) setEvaluation(data.error.evaluation);
+      } else {
+        setError(data?.error?.message || data?.message || 'Failed to assign driver');
+      }
+    }
+  };
+
+  const handleAssign = () => performAssign();
+
+  const handleApproveAndAssign = async () => {
+    if (!evaluation?.id) return;
+    try {
+      setError(null);
+      const child = await approve(evaluation.id, 'Approved & assigned from dispatcher modal');
+      await performAssign(child.id);
+    } catch (err) {
+      const data = err.response?.data;
+      setError(data?.error?.message || data?.message || 'Failed to approve & assign');
+    }
+  };
+
+  const handleOverrideSubmit = async (reason) => {
+    if (!evaluation?.id) return;
+    try {
+      setError(null);
+      const child = await override(evaluation.id, reason);
+      setOverrideOpen(false);
+      await performAssign(child.id);
+    } catch (err) {
+      const data = err.response?.data;
+      setError(data?.error?.message || data?.message || 'Override failed');
     }
   };
 
   if (!isOpen) return null;
-
   const selectedDriver = drivers.find((d) => d.id === formData.driver_id);
 
-  // Success State
+  // Success state
   if (success) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -171,8 +230,7 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
           </div>
           <h2 className="text-xl font-semibold text-text-primary mb-2">Driver Assigned!</h2>
           <p className="text-body text-text-secondary">
-            {selectedDriver?.first_name} {selectedDriver?.last_name} will pick up load{' '}
-            {load?.reference_number}
+            {selectedDriver?.first_name} {selectedDriver?.last_name} will pick up load {load?.reference_number}
           </p>
         </div>
       </div>
@@ -180,145 +238,169 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative bg-surface-primary rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-surface-tertiary">
-          <div>
-            <h2 className="text-lg font-semibold text-text-primary">Assign Driver</h2>
-            <p className="text-body-sm text-text-secondary">
-              Load {load?.reference_number}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-surface-secondary transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner size="lg" />
+        <div className="relative bg-surface-primary rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b border-surface-tertiary">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Assign Driver</h2>
+              <p className="text-body-sm text-text-secondary">
+                Load {load?.reference_number}
+                {enforce && <span className="ml-2 text-[11px] text-warning">• Enforcement on</span>}
+              </p>
             </div>
-          ) : (
-            <>
-              {load && (
-                <div className="p-3 bg-surface-secondary rounded-lg">
-                  <div className="flex items-center gap-2 text-body-sm">
-                    <span className="text-text-secondary">{load.shipper?.city || 'Origin'}</span>
-                    <ArrowRight className="w-3 h-3 text-text-tertiary" />
-                    <span className="text-text-secondary">
-                      {load.consignee?.city || 'Destination'}
-                    </span>
-                  </div>
-                </div>
-              )}
+            <button type="button" onClick={onClose}
+              className="p-2 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-surface-secondary transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-              {/* Driver Select — sorted by tier; selected row shows tier inline */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
-                  <User className="w-4 h-4 text-accent" />
-                  Driver
-                  {selectedDriver && tierByDriver.get(selectedDriver.id) && (
-                    <ReadinessTierBadge
-                      tier={tierByDriver.get(selectedDriver.id)}
-                      size="sm"
-                      className="ml-1"
-                    />
-                  )}
-                </label>
-                <SearchableSelect
-                  value={formData.driver_id}
-                  onChange={handleDriverSelect}
-                  options={driverOptions.map(o => ({
-                    id: o.id,
-                    // Encode tier as a leading [tier] tag in the label so it shows
-                    // in the dropdown without changing the SearchableSelect API.
-                    label: o.tier ? `[${o.tier}] ${o.label}` : o.label,
-                    sublabel: o.sublabel,
-                  }))}
-                  placeholder="Select driver..."
-                />
+          <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner size="lg" />
               </div>
-
-              {/* Phase 4: non-blocking evaluation panel */}
-              {load?.id && formData.driver_id && (
-                <EvaluationPanel
-                  loadId={load.id}
-                  driverId={formData.driver_id}
-                  onEvaluated={setEvaluation}
-                />
-              )}
-
-              {/* Truck Select */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
-                  <Truck className="w-4 h-4 text-text-tertiary" />
-                  Truck
-                  <span className="text-small text-text-tertiary font-normal">(Optional)</span>
-                </label>
-                <SearchableSelect
-                  value={formData.truck_id}
-                  onChange={handleTruckSelect}
-                  options={trucks.map((t) => ({
-                    id: t.id,
-                    label: t.unit_number || t.vin,
-                    sublabel: `${t.year || ''} ${t.make || ''} ${t.model || ''}`.trim(),
-                  }))}
-                  placeholder="Select truck..."
-                />
-              </div>
-
-              {/* Trailer Select */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
-                  <Container className="w-4 h-4 text-text-tertiary" />
-                  Trailer
-                  <span className="text-small text-text-tertiary font-normal">(Optional)</span>
-                </label>
-                <SearchableSelect
-                  value={formData.trailer_id}
-                  onChange={handleTrailerSelect}
-                  options={trailers.map((t) => ({
-                    id: t.id,
-                    label: t.unit_number || t.vin,
-                    sublabel: t.trailer_type,
-                  }))}
-                  placeholder="Select trailer..."
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
-                  <p className="text-body-sm text-error">{error}</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-surface-tertiary bg-surface-secondary/50">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={saving || !formData.driver_id}>
-            {saving ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Assigning...
-              </>
             ) : (
-              'Assign Driver'
+              <>
+                {load && (
+                  <div className="p-3 bg-surface-secondary rounded-lg">
+                    <div className="flex items-center gap-2 text-body-sm">
+                      <span className="text-text-secondary">{load.shipper?.city || 'Origin'}</span>
+                      <ArrowRight className="w-3 h-3 text-text-tertiary" />
+                      <span className="text-text-secondary">{load.consignee?.city || 'Destination'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Driver Select */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
+                    <User className="w-4 h-4 text-accent" />
+                    Driver
+                    {selectedDriver && tierByDriver.get(selectedDriver.id) && (
+                      <ReadinessTierBadge tier={tierByDriver.get(selectedDriver.id)} size="sm" className="ml-1" />
+                    )}
+                  </label>
+                  <SearchableSelect
+                    value={formData.driver_id}
+                    onChange={handleDriverSelect}
+                    options={driverOptions.map(o => ({
+                      id: o.id,
+                      label: o.tier ? `[${o.tier}] ${o.label}` : o.label,
+                      sublabel: o.sublabel,
+                    }))}
+                    placeholder="Select driver..."
+                  />
+                </div>
+
+                {/* Evaluation panel */}
+                {load?.id && formData.driver_id && (
+                  <EvaluationPanel
+                    loadId={load.id}
+                    driverId={formData.driver_id}
+                    onEvaluated={setEvaluation}
+                  />
+                )}
+
+                {/* Truck */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
+                    <Truck className="w-4 h-4 text-text-tertiary" /> Truck
+                    <span className="text-small text-text-tertiary font-normal">(Optional)</span>
+                  </label>
+                  <SearchableSelect
+                    value={formData.truck_id}
+                    onChange={handleTruckSelect}
+                    options={trucks.map((t) => ({
+                      id: t.id, label: t.unit_number || t.vin,
+                      sublabel: `${t.year || ''} ${t.make || ''} ${t.model || ''}`.trim(),
+                    }))}
+                    placeholder="Select truck..."
+                  />
+                </div>
+
+                {/* Trailer */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
+                    <Container className="w-4 h-4 text-text-tertiary" /> Trailer
+                    <span className="text-small text-text-tertiary font-normal">(Optional)</span>
+                  </label>
+                  <SearchableSelect
+                    value={formData.trailer_id}
+                    onChange={handleTrailerSelect}
+                    options={trailers.map((t) => ({
+                      id: t.id, label: t.unit_number || t.vin, sublabel: t.trailer_type,
+                    }))}
+                    placeholder="Select trailer..."
+                  />
+                </div>
+
+                {(error || evalActionError) && (
+                  <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
+                    <p className="text-body-sm text-error">{error || evalActionError}</p>
+                  </div>
+                )}
+
+                {/* Enforcement-mode footnote when locked out of Assign */}
+                {enforce && decision && decision !== 'allowed' && !showApproveAndAssign && !showOverride && (
+                  <div className="text-[11px] text-text-secondary border border-surface-tertiary rounded-lg p-3">
+                    {decision === 'review_required'
+                      ? 'A reviewer must approve this evaluation before this load can be assigned. The pending review is in the queue.'
+                      : 'This driver is blocked for this load and you do not have override permission.'
+                    }
+                  </div>
+                )}
+              </>
             )}
-          </Button>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-surface-tertiary bg-surface-secondary/50">
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+
+            {showRequestReview && (
+              <Button
+                variant="outline"
+                onClick={() => { setSuccess(false); onClose(); }}
+                title="The evaluation is already pending in the review queue."
+              >
+                Request Review
+              </Button>
+            )}
+
+            {showOverride && (
+              <Button variant="danger" onClick={() => setOverrideOpen(true)}>
+                Override
+              </Button>
+            )}
+
+            {showApproveAndAssign && (
+              <Button onClick={handleApproveAndAssign} disabled={saving || actingOnEval}>
+                {(saving || actingOnEval) ? <><Spinner size="sm" className="mr-2" /> Approving…</> : 'Approve & Assign'}
+              </Button>
+            )}
+
+            {showAssign && (
+              <Button onClick={handleAssign} disabled={saving || !formData.driver_id}>
+                {saving ? <><Spinner size="sm" className="mr-2" /> Assigning…</> : 'Assign Driver'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      <OverrideReasonModal
+        isOpen={overrideOpen}
+        evaluation={evaluation}
+        minReasonLength={minReasonLength}
+        unoverridableCodes={unoverridable}
+        saving={actingOnEval}
+        error={evalActionError}
+        onClose={() => setOverrideOpen(false)}
+        onSubmit={handleOverrideSubmit}
+      />
+    </>
   );
 }
 

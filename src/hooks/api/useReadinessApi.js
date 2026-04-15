@@ -102,3 +102,50 @@ export function useAssignmentEvaluation() {
 
   return { evaluate, loading, error, clearError };
 }
+
+// --- Phase 5: evaluation lifecycle + config publish ---
+
+export function useEvaluationsList(initialFilters = {}) {
+  const { data, loading, error, fetch, setData } = useApiState(
+    (filters) => readinessApi.listEvaluations(filters),
+    { initialData: [] }
+  );
+  const fetchEvaluations = useCallback((filters = initialFilters) => fetch(filters), [fetch, initialFilters]);
+  return { evaluations: data || [], loading, error, fetchEvaluations, setEvaluations: setData };
+}
+
+export function useEvaluationActions() {
+  const { mutate, loading, error, clearError } = useMutation();
+  const approve = useCallback((id, note) => mutate(() => readinessApi.approveEvaluation(id, note)), [mutate]);
+  const reject = useCallback((id, note) => mutate(() => readinessApi.rejectEvaluation(id, note)), [mutate]);
+  const override = useCallback((id, reason) => mutate(() => readinessApi.overrideEvaluation(id, reason)), [mutate]);
+  return { approve, reject, override, loading, error, clearError };
+}
+
+export function useScoringConfigHistory() {
+  const { data, loading, error, fetch } = useApiState(
+    () => readinessApi.getScoringConfigHistory(),
+    { initialData: [] }
+  );
+  return { history: data || [], loading, error, fetchHistory: fetch };
+}
+
+export function useScoringConfigPublish() {
+  const { mutate, loading, error } = useMutation();
+  const publish = useCallback((payload) => mutate(() => readinessApi.publishScoringConfig(payload)), [mutate]);
+  return { publish, loading, error };
+}
+
+export function useReadinessFeatureFlag() {
+  const { data, loading, error, fetch, setData } = useApiState(
+    () => readinessApi.getReadinessFeatureFlag(),
+    { initialData: null }
+  );
+  const { mutate, loading: saving } = useMutation();
+  const update = useCallback(async (flag) => {
+    const next = await mutate(() => readinessApi.updateReadinessFeatureFlag(flag));
+    if (next) setData(next);
+    return next;
+  }, [mutate, setData]);
+  return { flag: data, loading, error, fetchFlag: fetch, update, saving };
+}

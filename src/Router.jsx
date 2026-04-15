@@ -100,6 +100,7 @@ import ReportingFinancialsPage from './pages/reporting/ReportingFinancialsPage';
 // Settings
 import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/settings/BillingPage';
+import ScoringConfigPage from './pages/settings/ScoringConfigPage';
 
 // Tools
 import { AvaPage, AvaTruckDetailPage, AvaSettingsPage, ComplianceCommandCenter } from './pages/tools';
@@ -373,6 +374,7 @@ export function Router() {
             <Route path="reporting/financials" element={<ReportingFinancialsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="settings/billing" element={<BillingPage />} />
+            <Route path="settings/scoring-config" element={<ScoringConfigPage />} />
             <Route path="tools/ava" element={<AvaPage />} />
             <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
             <Route path="tools/find-my-truck" element={<FindMyTruckPage />} />
