@@ -92,6 +92,13 @@ export function useDriverReadinessSummary() {
   return { summary: data || [], loading, error, fetchSummary: fetch, setSummary: setData };
 }
 
+/** Phase 6: bulk recompute every driver in the org. */
+export function useBulkRecomputeReadiness() {
+  const { mutate, loading, error } = useMutation();
+  const recomputeAll = useCallback(() => mutate(() => readinessApi.recomputeAllDriverReadiness()), [mutate]);
+  return { recomputeAll, loading, error };
+}
+
 /** Phase 4: synchronously evaluate a (load, driver) pair without persisting an assignment. */
 export function useAssignmentEvaluation() {
   const { mutate, loading, error, clearError } = useMutation();

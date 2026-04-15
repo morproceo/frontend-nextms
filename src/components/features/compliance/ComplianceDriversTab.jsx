@@ -5,12 +5,15 @@
  * Click row navigates to driver detail page.
  */
 
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../../contexts/OrgContext';
 import { Card } from '../../ui/Card';
 import { Badge } from '../../ui/Badge';
 import { Spinner } from '../../ui/Spinner';
 import { Users, ChevronRight, CheckCircle } from 'lucide-react';
+import { ReadinessTierBadge } from '../../readiness/ReadinessTierBadge';
+import { useDriverReadinessSummary } from '../../../hooks/api/useReadinessApi';
 
 const EXPIRY_FIELDS = [
   { key: 'license_expiry', label: 'CDL License' },
@@ -41,6 +44,14 @@ function formatDate(dateStr) {
 export function ComplianceDriversTab({ drivers, loading }) {
   const navigate = useNavigate();
   const { org } = useOrg();
+  const { summary, fetchSummary } = useDriverReadinessSummary();
+
+  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+  const tierByDriver = useMemo(() => {
+    const m = new Map();
+    for (const r of summary) m.set(r.driver_id, r.readiness_tier);
+    return m;
+  }, [summary]);
 
   if (loading) {
     return (
@@ -67,8 +78,9 @@ export function ComplianceDriversTab({ drivers, loading }) {
   return (
     <Card padding="none">
       {/* Header */}
-      <div className="hidden sm:grid sm:grid-cols-[1fr_repeat(4,120px)_32px] gap-2 px-4 py-2.5 border-b border-border bg-surface-secondary">
+      <div className="hidden sm:grid sm:grid-cols-[1fr_60px_repeat(4,120px)_32px] gap-2 px-4 py-2.5 border-b border-border bg-surface-secondary">
         <span className="text-small font-medium text-text-secondary">Driver</span>
+        <span className="text-small font-medium text-text-secondary text-center">Tier</span>
         {EXPIRY_FIELDS.map(f => (
           <span key={f.key} className="text-small font-medium text-text-secondary text-center">{f.label}</span>
         ))}
@@ -83,7 +95,7 @@ export function ComplianceDriversTab({ drivers, loading }) {
             <button
               key={driver.id}
               onClick={() => navigate(`/o/${org?.slug}/drivers/${driver.id}`)}
-              className="w-full flex flex-col sm:grid sm:grid-cols-[1fr_repeat(4,120px)_32px] gap-1 sm:gap-2 sm:items-center px-4 py-3 hover:bg-surface-secondary transition-colors text-left"
+              className="w-full flex flex-col sm:grid sm:grid-cols-[1fr_60px_repeat(4,120px)_32px] gap-1 sm:gap-2 sm:items-center px-4 py-3 hover:bg-surface-secondary transition-colors text-left"
             >
               {/* Driver name */}
               <div className="flex items-center gap-2">
@@ -91,6 +103,14 @@ export function ComplianceDriversTab({ drivers, loading }) {
                   <Users className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-body-sm font-medium text-text-primary truncate">{name}</span>
+              </div>
+
+              {/* Tier */}
+              <div className="flex justify-start sm:justify-center pl-10 sm:pl-0">
+                {tierByDriver.get(driver.id)
+                  ? <ReadinessTierBadge tier={tierByDriver.get(driver.id)} size="sm" />
+                  : <span className="text-[11px] text-text-tertiary">—</span>
+                }
               </div>
 
               {/* Expiry fields */}

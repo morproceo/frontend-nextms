@@ -50,6 +50,13 @@ export const getDriverReadinessSummary = async () => {
   return response.data;
 };
 
+// --- Phase 6: bulk recompute ---
+
+export const recomputeAllDriverReadiness = async () => {
+  const response = await api.post('/v1/drivers/readiness/recompute-all');
+  return response.data;
+};
+
 // --- Dispatch evaluate (Phase 4) ---
 
 export const evaluateAssignment = async (loadId, driverId) => {
@@ -124,6 +131,7 @@ export default {
   recomputeLoadImpact,
   getActiveScoringConfig,
   getDriverReadinessSummary,
+  recomputeAllDriverReadiness,
   evaluateAssignment,
   listEvaluations,
   getEvaluation,

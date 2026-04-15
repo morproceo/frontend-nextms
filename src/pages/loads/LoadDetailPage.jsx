@@ -20,6 +20,7 @@ import { RouteOverviewCard } from '../../components/features/loads/RouteOverview
 import { RouteSlideOver } from '../../components/features/loads/RouteSlideOver';
 import { LoadImpactCard } from '../../components/features/readiness/LoadImpactCard';
 import { LoadSensitivityEditor } from '../../components/features/loads/LoadSensitivityEditor';
+import { EvaluationsList } from '../../components/features/readiness/EvaluationsList';
 import uploadsApi from '../../api/uploads.api';
 import {
   ArrowLeft,
@@ -295,6 +296,7 @@ export function LoadDetailPage() {
   };
 
   // Collapsible section state for mobile
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'evaluations' (Phase 6)
   const [expandedSections, setExpandedSections] = useState({
     broker: true,
     assignment: false,
@@ -510,6 +512,40 @@ export function LoadDetailPage() {
             />
           )}
 
+          {/* Tab Strip (Phase 6) */}
+          <div className="border-b border-border">
+            <nav className="flex gap-0 -mb-px">
+              {[
+                { id: 'details', label: 'Details' },
+                { id: 'evaluations', label: 'Evaluations' }
+              ].map(t => {
+                const isActive = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 text-body-sm font-medium border-b-2 transition-colors ${
+                      isActive
+                        ? 'border-accent text-accent'
+                        : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-border'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {activeTab === 'evaluations' && load?.id && (
+            <EvaluationsList
+              filter={{ load_id: load.id }}
+              emptyHint="No evaluations recorded for this load yet."
+            />
+          )}
+
+          {activeTab === 'details' && (
+            <>
           {/* Route Overview Card */}
           <RouteOverviewCard
             load={load}
@@ -909,6 +945,8 @@ export function LoadDetailPage() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
 

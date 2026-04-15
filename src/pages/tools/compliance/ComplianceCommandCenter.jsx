@@ -17,6 +17,7 @@ import { ComplianceDriversTab } from '../../../components/features/compliance/Co
 import { ComplianceEquipmentTab } from '../../../components/features/compliance/ComplianceEquipmentTab';
 import { ComplianceCompanyPermitsTab } from '../../../components/features/compliance/ComplianceCompanyPermitsTab';
 import { ManualReviewQueueTab } from '../../../components/features/compliance/ManualReviewQueueTab';
+import { ComplianceReadinessTab } from '../../../components/features/compliance/ComplianceReadinessTab';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -25,11 +26,13 @@ import {
   FileCheck,
   LayoutDashboard,
   Container,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from 'lucide-react';
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'readiness', label: 'Readiness', icon: Shield },
   { id: 'drivers', label: 'Drivers', icon: Users },
   { id: 'equipment', label: 'Equipment', icon: Truck },
   { id: 'permits', label: 'Company Permits', icon: FileCheck },
@@ -196,6 +199,10 @@ export function ComplianceCommandCenter() {
 
       {activeTab === 'review-queue' && (
         <ManualReviewQueueTab />
+      )}
+
+      {activeTab === 'readiness' && (
+        <ComplianceReadinessTab />
       )}
     </div>
   );
