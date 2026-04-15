@@ -81,3 +81,24 @@ export function useScoringConfig() {
 
   return { config: data, loading, error, fetchConfig: fetch, setConfig: setData };
 }
+
+/** Org-wide latest tier per driver (for dropdown badges in AssignDriverModal). */
+export function useDriverReadinessSummary() {
+  const { data, loading, error, fetch, setData } = useApiState(
+    () => readinessApi.getDriverReadinessSummary(),
+    { initialData: [] }
+  );
+
+  return { summary: data || [], loading, error, fetchSummary: fetch, setSummary: setData };
+}
+
+/** Phase 4: synchronously evaluate a (load, driver) pair without persisting an assignment. */
+export function useAssignmentEvaluation() {
+  const { mutate, loading, error, clearError } = useMutation();
+
+  const evaluate = useCallback(async (loadId, driverId, options) => {
+    return mutate(() => readinessApi.evaluateAssignment(loadId, driverId), options);
+  }, [mutate]);
+
+  return { evaluate, loading, error, clearError };
+}

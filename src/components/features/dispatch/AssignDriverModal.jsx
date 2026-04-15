@@ -1,8 +1,20 @@
 /**
- * AssignDriverModal - Refactored to use hooks architecture
+ * AssignDriverModal — Phase 4: non-blocking evaluation panel + tier badges.
+ *
+ * Behavior:
+ *   - On open, fetches drivers/trucks/trailers AND the org-wide readiness
+ *     summary (latest tier per driver) for the dropdown badges.
+ *   - On driver select, renders <EvaluationPanel> below the driver picker.
+ *     The panel calls POST /v1/dispatch/evaluate inline.
+ *   - Phase 4 is non-blocking: Assign stays usable regardless of decision.
+ *     A console.warn fires when the dispatcher proceeds despite a
+ *     review_required or blocked evaluation (poor-man's telemetry until
+ *     a proper analytics provider lands).
+ *
+ * Override + Request-Review controls land in Phase 5 along with enforce_block.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Truck, User, Container, CheckCircle, ArrowRight } from 'lucide-react';
 import {
   useDriversList,
@@ -10,19 +22,23 @@ import {
   useTrailersList,
   useLoadMutations
 } from '../../../hooks';
+import { useDriverReadinessSummary } from '../../../hooks/api/useReadinessApi';
 import { Button } from '../../ui/Button';
 import { SearchableSelect } from '../../ui/SearchableSelect';
 import { Spinner } from '../../ui/Spinner';
+import { ReadinessTierBadge } from '../../readiness/ReadinessTierBadge';
+import { EvaluationPanel } from './EvaluationPanel';
 
 export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
-  // Use hooks for data fetching
   const { drivers, loading: driversLoading, fetchDrivers } = useDriversList();
   const { trucks, loading: trucksLoading, fetchTrucks } = useTrucksList();
   const { trailers, loading: trailersLoading, fetchTrailers } = useTrailersList();
   const { updateLoad, loading: saving } = useLoadMutations();
+  const { summary: readinessSummary, fetchSummary } = useDriverReadinessSummary();
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [evaluation, setEvaluation] = useState(null);
 
   const [formData, setFormData] = useState({
     driver_id: '',
@@ -32,12 +48,13 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
 
   const loading = driversLoading || trucksLoading || trailersLoading;
 
-  // Fetch reference data when modal opens
+  // Fetch reference data when modal opens (readiness summary is org-wide and cached server-side).
   useEffect(() => {
     if (isOpen) {
       fetchDrivers();
       fetchTrucks({ is_active: true });
       fetchTrailers({ is_active: true });
+      fetchSummary();
     }
   }, [isOpen]);
 
@@ -47,18 +64,49 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
       setFormData({ driver_id: '', truck_id: '', trailer_id: '' });
       setSuccess(false);
       setError(null);
+      setEvaluation(null);
     }
   }, [isOpen]);
+
+  // driver_id → readiness tier lookup (drivers without a snapshot return undefined).
+  const tierByDriver = useMemo(() => {
+    const map = new Map();
+    for (const r of readinessSummary) map.set(r.driver_id, r.readiness_tier);
+    return map;
+  }, [readinessSummary]);
+
+  // Sort driver options: drivers WITH a snapshot first, ordered D4..D1, then unknowns.
+  const tierOrder = { D4: 4, D3: 3, D2: 2, D1: 1, D0: 0 };
+  const driverOptions = useMemo(() => {
+    const opts = drivers.map(d => {
+      const tier = tierByDriver.get(d.id);
+      return {
+        id: d.id,
+        label: `${d.first_name} ${d.last_name}`,
+        sublabel: d.phone,
+        tier,
+        // SearchableSelect renders sublabel + (optionally) a custom right-side node.
+        // Several existing call sites just use plain label/sublabel; we keep that
+        // contract and append the tier to the visible label so it shows up in the
+        // dropdown without requiring a SearchableSelect API change.
+      };
+    });
+    return opts.sort((a, b) => {
+      const at = tierOrder[a.tier] ?? -1;
+      const bt = tierOrder[b.tier] ?? -1;
+      return bt - at;
+    });
+  }, [drivers, tierByDriver]);
 
   const handleDriverSelect = (option) => {
     const driver = option ? drivers.find((d) => d.id === option.id) : null;
     setFormData((prev) => ({
       ...prev,
       driver_id: driver?.id || '',
-      // Auto-select driver's default truck if available
       truck_id: driver?.truck_id || prev.truck_id,
       trailer_id: driver?.trailer_id || prev.trailer_id,
     }));
+    setEvaluation(null);
   };
 
   const handleTruckSelect = (option) => {
@@ -75,19 +123,26 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
       return;
     }
 
+    // Phase 4 ignore-rate telemetry. Replace with a real analytics call once
+    // the project has a provider; until then console.warn is the honest signal.
+    if (evaluation && evaluation.decision !== 'allowed') {
+      console.warn('[dispatch] Assigning despite non-allowed evaluation', {
+        load_id: load?.id,
+        driver_id: formData.driver_id,
+        decision: evaluation.decision,
+        reason_codes: (evaluation.reason_codes || []).map(r => r.code)
+      });
+    }
+
     try {
       setError(null);
-
       await updateLoad(load.id, {
         driver_id: formData.driver_id,
         truck_id: formData.truck_id || null,
         trailer_id: formData.trailer_id || null,
         status: 'booked',
       });
-
       setSuccess(true);
-
-      // Wait a moment to show success, then notify parent
       setTimeout(() => {
         onAssigned?.({
           driver: drivers.find((d) => d.id === formData.driver_id),
@@ -126,12 +181,9 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative bg-surface-primary rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-surface-tertiary">
           <div>
             <h2 className="text-lg font-semibold text-text-primary">Assign Driver</h2>
@@ -148,15 +200,13 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner size="lg" />
             </div>
           ) : (
             <>
-              {/* Load Summary */}
               {load && (
                 <div className="p-3 bg-surface-secondary rounded-lg">
                   <div className="flex items-center gap-2 text-body-sm">
@@ -169,23 +219,41 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
                 </div>
               )}
 
-              {/* Driver Select */}
+              {/* Driver Select — sorted by tier; selected row shows tier inline */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-body-sm font-medium text-text-primary">
                   <User className="w-4 h-4 text-accent" />
                   Driver
+                  {selectedDriver && tierByDriver.get(selectedDriver.id) && (
+                    <ReadinessTierBadge
+                      tier={tierByDriver.get(selectedDriver.id)}
+                      size="sm"
+                      className="ml-1"
+                    />
+                  )}
                 </label>
                 <SearchableSelect
                   value={formData.driver_id}
                   onChange={handleDriverSelect}
-                  options={drivers.map((d) => ({
-                    id: d.id,
-                    label: `${d.first_name} ${d.last_name}`,
-                    sublabel: d.phone,
+                  options={driverOptions.map(o => ({
+                    id: o.id,
+                    // Encode tier as a leading [tier] tag in the label so it shows
+                    // in the dropdown without changing the SearchableSelect API.
+                    label: o.tier ? `[${o.tier}] ${o.label}` : o.label,
+                    sublabel: o.sublabel,
                   }))}
                   placeholder="Select driver..."
                 />
               </div>
+
+              {/* Phase 4: non-blocking evaluation panel */}
+              {load?.id && formData.driver_id && (
+                <EvaluationPanel
+                  loadId={load.id}
+                  driverId={formData.driver_id}
+                  onEvaluated={setEvaluation}
+                />
+              )}
 
               {/* Truck Select */}
               <div className="space-y-2">
@@ -225,7 +293,6 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
                 />
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
                   <p className="text-body-sm text-error">{error}</p>
@@ -235,7 +302,6 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-surface-tertiary bg-surface-secondary/50">
           <Button variant="ghost" onClick={onClose}>
             Cancel

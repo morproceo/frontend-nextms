@@ -43,11 +43,30 @@ export const getActiveScoringConfig = async () => {
   return response.data;
 };
 
+// --- Org-wide readiness summary (Phase 4 — for dropdown tier badges) ---
+
+export const getDriverReadinessSummary = async () => {
+  const response = await api.get('/v1/drivers/readiness-summary');
+  return response.data;
+};
+
+// --- Dispatch evaluate (Phase 4) ---
+
+export const evaluateAssignment = async (loadId, driverId) => {
+  const response = await api.post('/v1/dispatch/evaluate', {
+    load_id: loadId,
+    driver_id: driverId
+  });
+  return response.data;
+};
+
 export default {
   getDriverReadiness,
   getDriverReadinessHistory,
   recomputeDriverReadiness,
   getLoadImpact,
   recomputeLoadImpact,
-  getActiveScoringConfig
+  getActiveScoringConfig,
+  getDriverReadinessSummary,
+  evaluateAssignment
 };
