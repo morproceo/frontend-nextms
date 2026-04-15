@@ -19,6 +19,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { DriverDocumentUploadModal } from '../../components/features/documents/DriverDocumentUploadModal';
 import { DriverReadinessCard } from '../../components/features/readiness/DriverReadinessCard';
+import { DriverIncidentsCard } from '../../components/features/readiness/DriverIncidentsCard';
 import { EvaluationsList } from '../../components/features/readiness/EvaluationsList';
 import {
   ArrowLeft,
@@ -392,6 +393,9 @@ export function DriverDetailPage() {
 
           {/* Driver Readiness (v1.2 Phase 3) */}
           <DriverReadinessCard driverId={driver.id} />
+
+          {/* Driver Incidents (Phase 7) — feeds safety + execution scoring */}
+          <DriverIncidentsCard driverId={driver.id} />
 
           {/* Pay & Classification */}
           {(driver.driver_type || driver.pay_type || driver.pay_rate || driver.employee_number || driver.tax_classification) && (

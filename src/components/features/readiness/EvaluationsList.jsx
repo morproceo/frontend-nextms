@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { Card, CardContent } from '../../ui/Card';
+import { Button } from '../../ui/Button';
 import { Spinner } from '../../ui/Spinner';
 import { Badge } from '../../ui/Badge';
 import { ReadinessTierBadge } from '../../readiness/ReadinessTierBadge';
@@ -27,14 +28,24 @@ function formatDateTime(d) {
   });
 }
 
-export function EvaluationsList({ filter = {}, emptyHint = 'No evaluations yet.' }) {
-  const { evaluations, loading, error, fetchEvaluations } = useEvaluationsList();
+export function EvaluationsList({ filter = {}, emptyHint = 'No evaluations yet.', pageSize = 25 }) {
+  const { evaluations, total, hasMore, loading, error, fetchEvaluations, loadMore } = useEvaluationsList();
   const [openId, setOpenId] = useState(null);
+  const [paginating, setPaginating] = useState(false);
 
   useEffect(() => {
-    fetchEvaluations({ ...filter, limit: 50 });
+    fetchEvaluations({ ...filter, limit: pageSize });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.driver_id, filter.load_id]);
+  }, [filter.driver_id, filter.load_id, pageSize]);
+
+  const handleLoadMore = async () => {
+    setPaginating(true);
+    try {
+      await loadMore({ ...filter, limit: pageSize });
+    } finally {
+      setPaginating(false);
+    }
+  };
 
   if (loading && evaluations.length === 0) {
     return <div className="flex justify-center py-8"><Spinner size="md" /></div>;
@@ -61,6 +72,10 @@ export function EvaluationsList({ filter = {}, emptyHint = 'No evaluations yet.'
   }
 
   return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-[11px] text-text-secondary px-1">
+        <span>Showing {evaluations.length} of {total}</span>
+      </div>
     <ul className="space-y-2">
       {evaluations.map(ev => {
         const isOpen = openId === ev.id;
@@ -109,6 +124,14 @@ export function EvaluationsList({ filter = {}, emptyHint = 'No evaluations yet.'
         );
       })}
     </ul>
+    {hasMore && (
+      <div className="flex justify-center pt-2">
+        <Button onClick={handleLoadMore} variant="outline" size="sm" disabled={paginating}>
+          {paginating ? <><Spinner size="sm" className="mr-2" /> Loading…</> : `Load more (${total - evaluations.length} remaining)`}
+        </Button>
+      </div>
+    )}
+    </div>
   );
 }
 

@@ -99,6 +99,28 @@ export function useBulkRecomputeReadiness() {
   return { recomputeAll, loading, error };
 }
 
+// --- Phase 7: driver incidents ---
+
+export function useDriverIncidents(driverId) {
+  const { data, loading, error, fetch, setData } = useApiState(
+    () => readinessApi.listDriverIncidents(driverId),
+    { initialData: [] }
+  );
+  const fetchIncidents = useCallback(() => {
+    if (!driverId) return Promise.resolve([]);
+    return fetch();
+  }, [fetch, driverId]);
+  return { incidents: data || [], loading, error, fetchIncidents, setIncidents: setData };
+}
+
+export function useDriverIncidentMutations(driverId) {
+  const { mutate, loading, error } = useMutation();
+  const create = useCallback((data) => mutate(() => readinessApi.createDriverIncident(driverId, data)), [mutate, driverId]);
+  const update = useCallback((incidentId, patch) => mutate(() => readinessApi.updateDriverIncident(driverId, incidentId, patch)), [mutate, driverId]);
+  const remove = useCallback((incidentId) => mutate(() => readinessApi.deleteDriverIncident(driverId, incidentId)), [mutate, driverId]);
+  return { create, update, remove, loading, error };
+}
+
 /** Phase 4: synchronously evaluate a (load, driver) pair without persisting an assignment. */
 export function useAssignmentEvaluation() {
   const { mutate, loading, error, clearError } = useMutation();
@@ -110,15 +132,46 @@ export function useAssignmentEvaluation() {
   return { evaluate, loading, error, clearError };
 }
 
-// --- Phase 5: evaluation lifecycle + config publish ---
+// --- Phase 5 + 7: evaluation lifecycle (pagination-aware) ---
 
+/**
+ * Pagination-aware evaluations list. Backend returns
+ * {items, total, limit, offset, has_more}. The hook normalizes that into
+ * `evaluations`, `total`, and a `loadMore` callback that appends.
+ */
 export function useEvaluationsList(initialFilters = {}) {
   const { data, loading, error, fetch, setData } = useApiState(
     (filters) => readinessApi.listEvaluations(filters),
-    { initialData: [] }
+    { initialData: { items: [], total: 0, limit: 50, offset: 0, has_more: false } }
   );
-  const fetchEvaluations = useCallback((filters = initialFilters) => fetch(filters), [fetch, initialFilters]);
-  return { evaluations: data || [], loading, error, fetchEvaluations, setEvaluations: setData };
+
+  const fetchEvaluations = useCallback(
+    (filters = initialFilters) => fetch(filters),
+    [fetch, initialFilters]
+  );
+
+  const loadMore = useCallback(async (filters = initialFilters) => {
+    const offset = (data?.items?.length) || 0;
+    const next = await readinessApi.listEvaluations({ ...filters, offset });
+    setData(prev => ({
+      ...next,
+      items: [...((prev && prev.items) || []), ...((next && next.items) || [])]
+    }));
+    return next;
+  }, [data, initialFilters, setData]);
+
+  // Normalize for legacy consumers that expect `evaluations` to be the array.
+  const evaluations = Array.isArray(data) ? data : (data?.items || []);
+  return {
+    evaluations,
+    total: data?.total ?? evaluations.length,
+    hasMore: data?.has_more ?? false,
+    loading,
+    error,
+    fetchEvaluations,
+    loadMore,
+    setEvaluations: setData
+  };
 }
 
 export function useEvaluationActions() {

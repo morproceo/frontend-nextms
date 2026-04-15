@@ -57,6 +57,28 @@ export const recomputeAllDriverReadiness = async () => {
   return response.data;
 };
 
+// --- Phase 7: driver incidents ---
+
+export const listDriverIncidents = async (driverId) => {
+  const response = await api.get(`/v1/drivers/${driverId}/incidents`);
+  return response.data;
+};
+
+export const createDriverIncident = async (driverId, data) => {
+  const response = await api.post(`/v1/drivers/${driverId}/incidents`, data);
+  return response.data;
+};
+
+export const updateDriverIncident = async (driverId, incidentId, patch) => {
+  const response = await api.patch(`/v1/drivers/${driverId}/incidents/${incidentId}`, patch);
+  return response.data;
+};
+
+export const deleteDriverIncident = async (driverId, incidentId) => {
+  const response = await api.delete(`/v1/drivers/${driverId}/incidents/${incidentId}`);
+  return response.data;
+};
+
 // --- Dispatch evaluate (Phase 4) ---
 
 export const evaluateAssignment = async (loadId, driverId) => {
@@ -67,7 +89,7 @@ export const evaluateAssignment = async (loadId, driverId) => {
   return response.data;
 };
 
-// --- Evaluation lifecycle (Phase 5) ---
+// --- Evaluation lifecycle (Phase 5; Phase 7 adds pagination) ---
 
 export const listEvaluations = async (filters = {}) => {
   const params = new URLSearchParams();
@@ -76,8 +98,11 @@ export const listEvaluations = async (filters = {}) => {
   if (filters.driver_id) params.append('driver_id', filters.driver_id);
   if (filters.load_id) params.append('load_id', filters.load_id);
   if (filters.limit) params.append('limit', String(filters.limit));
+  if (filters.offset) params.append('offset', String(filters.offset));
   const qs = params.toString();
   const response = await api.get(qs ? `/v1/dispatch/evaluations?${qs}` : '/v1/dispatch/evaluations');
+  // Phase 7: backend now returns {items, total, limit, offset, has_more}.
+  // Older callers that expected a bare array still get one through legacyArray getter.
   return response.data;
 };
 
@@ -141,5 +166,9 @@ export default {
   publishScoringConfig,
   getScoringConfigHistory,
   getReadinessFeatureFlag,
-  updateReadinessFeatureFlag
+  updateReadinessFeatureFlag,
+  listDriverIncidents,
+  createDriverIncident,
+  updateDriverIncident,
+  deleteDriverIncident
 };
