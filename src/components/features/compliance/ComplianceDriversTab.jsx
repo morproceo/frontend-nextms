@@ -49,7 +49,8 @@ export function ComplianceDriversTab({ drivers, loading }) {
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
   const tierByDriver = useMemo(() => {
     const m = new Map();
-    for (const r of summary) m.set(r.driver_id, r.readiness_tier);
+    const arr = Array.isArray(summary) ? summary : [];
+    for (const r of arr) m.set(r.driver_id, r.readiness_tier);
     return m;
   }, [summary]);
 

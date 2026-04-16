@@ -24,11 +24,12 @@ export function ReadinessSummaryCard({ totalDrivers }) {
 
   const counts = useMemo(() => {
     const c = { D0: 0, D1: 0, D2: 0, D3: 0, D4: 0 };
-    for (const r of summary) if (c[r.readiness_tier] != null) c[r.readiness_tier] += 1;
+    const arr = Array.isArray(summary) ? summary : [];
+    for (const r of arr) if (c[r.readiness_tier] != null) c[r.readiness_tier] += 1;
     return c;
   }, [summary]);
 
-  const computed = summary.length;
+  const computed = Array.isArray(summary) ? summary.length : 0;
   const uncomputed = typeof totalDrivers === 'number' ? Math.max(0, totalDrivers - computed) : null;
   const max = Math.max(1, ...Object.values(counts), uncomputed ?? 0);
 

@@ -54,21 +54,25 @@ export function ComplianceReadinessTab() {
 
   const summaryByDriver = useMemo(() => {
     const m = new Map();
-    for (const r of summary) m.set(r.driver_id, r);
+    const arr = Array.isArray(summary) ? summary : [];
+    for (const r of arr) m.set(r.driver_id, r);
     return m;
   }, [summary]);
 
-  const enriched = useMemo(() => drivers.map(d => {
-    const snap = summaryByDriver.get(d.id);
-    return {
-      ...d,
-      tier: snap?.readiness_tier || null,
-      score: snap?.readiness_score != null ? Number(snap.readiness_score) : null,
-      high_impact_eligible: snap?.high_impact_eligible || false,
-      dedicated_eligible: snap?.dedicated_eligible || false,
-      computed_at: snap?.computed_at || null
-    };
-  }), [drivers, summaryByDriver]);
+  const enriched = useMemo(() => {
+    const arr = Array.isArray(drivers) ? drivers : [];
+    return arr.map(d => {
+      const snap = summaryByDriver.get(d.id);
+      return {
+        ...d,
+        tier: snap?.readiness_tier || null,
+        score: snap?.readiness_score != null ? Number(snap.readiness_score) : null,
+        high_impact_eligible: snap?.high_impact_eligible || false,
+        dedicated_eligible: snap?.dedicated_eligible || false,
+        computed_at: snap?.computed_at || null
+      };
+    });
+  }, [drivers, summaryByDriver]);
 
   const filtered = useMemo(() => {
     if (activeFilters.size === 0) return enriched;
