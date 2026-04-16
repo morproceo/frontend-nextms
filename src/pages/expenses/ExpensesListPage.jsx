@@ -38,7 +38,8 @@ import {
   Camera,
   FileText,
   Sparkles,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 
 export function ExpensesListPage() {
@@ -81,9 +82,11 @@ export function ExpensesListPage() {
     refetch,
     approveExpense,
     rejectExpense,
+    deleteExpense,
     exportExpenses,
     exporting,
-    workflowLoading
+    workflowLoading,
+    mutating
   } = useExpenses();
 
   // Format helpers
@@ -134,6 +137,21 @@ export function ExpensesListPage() {
     }
   };
 
+  const handleDelete = async (e, expense) => {
+    e.stopPropagation();
+    const warning = expense.status === 'paid' || expense.status === 'approved' || expense.status === 'reimbursed'
+      ? `This expense (${expense.status}) counted toward your P&L. Deleting will remove it from totals and cannot be undone from the UI. Continue?`
+      : 'Delete this expense? This cannot be undone from the UI.';
+    if (!window.confirm(warning)) return;
+    try {
+      await deleteExpense(expense.id);
+      await refetch();
+    } catch (err) {
+      console.error('Failed to delete:', err);
+      window.alert(err?.response?.data?.error?.message || err?.message || 'Failed to delete expense');
+    }
+  };
+
   // Sort header component
   const SortHeader = ({ field, children }) => (
     <th
@@ -159,6 +177,8 @@ export function ExpensesListPage() {
   }
 
   const canApprove = hasPermission?.('expenses:approve');
+  const canDelete = hasPermission?.('expenses:delete');
+  const showActionsColumn = canApprove || canDelete;
 
   return (
     <div className="space-y-4">
@@ -334,23 +354,39 @@ export function ExpensesListPage() {
                     {statusConfig.label}
                   </Badge>
 
-                  {/* Approval Actions */}
-                  {canApprove && expense.status === 'pending_approval' && (
+                  {/* Row Actions (approval + delete) */}
+                  {(canApprove || canDelete) && (
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleApprove(e, expense.id)}
-                        className="p-2 bg-success/10 rounded-lg text-success"
-                        disabled={workflowLoading}
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => handleReject(e, expense.id)}
-                        className="p-2 bg-error/10 rounded-lg text-error"
-                        disabled={workflowLoading}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      {canApprove && expense.status === 'pending_approval' && (
+                        <>
+                          <button
+                            onClick={(e) => handleApprove(e, expense.id)}
+                            className="p-2 bg-success/10 rounded-lg text-success"
+                            disabled={workflowLoading}
+                            title="Approve"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => handleReject(e, expense.id)}
+                            className="p-2 bg-error/10 rounded-lg text-error"
+                            disabled={workflowLoading}
+                            title="Reject"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={(e) => handleDelete(e, expense)}
+                          className="p-2 bg-error/10 rounded-lg text-error"
+                          disabled={mutating}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -374,7 +410,7 @@ export function ExpensesListPage() {
                 <SortHeader field="status">Status</SortHeader>
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Submitted By</th>
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Receipt</th>
-                {canApprove && (
+                {showActionsColumn && (
                   <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Actions</th>
                 )}
               </tr>
@@ -382,7 +418,7 @@ export function ExpensesListPage() {
             <tbody className="divide-y divide-surface-tertiary">
               {expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={canApprove ? 9 : 8} className="px-3 py-12 text-center text-text-secondary">
+                  <td colSpan={showActionsColumn ? 9 : 8} className="px-3 py-12 text-center text-text-secondary">
                     {allExpenses.length === 0 ? 'No expenses yet. Create your first expense.' : 'No expenses match your filters.'}
                   </td>
                 </tr>
@@ -442,28 +478,40 @@ export function ExpensesListPage() {
                           <Receipt className="w-4 h-4 text-accent" />
                         )}
                       </td>
-                      {canApprove && (
+                      {showActionsColumn && (
                         <td className="px-3 py-3">
-                          {expense.status === 'pending_approval' && (
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {canApprove && expense.status === 'pending_approval' && (
+                              <>
+                                <button
+                                  onClick={(e) => handleApprove(e, expense.id)}
+                                  className="p-1 hover:bg-success/10 rounded text-success"
+                                  title="Approve"
+                                  disabled={workflowLoading}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleReject(e, expense.id)}
+                                  className="p-1 hover:bg-error/10 rounded text-error"
+                                  title="Reject"
+                                  disabled={workflowLoading}
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            {canDelete && (
                               <button
-                                onClick={(e) => handleApprove(e, expense.id)}
-                                className="p-1 hover:bg-success/10 rounded text-success"
-                                title="Approve"
-                                disabled={workflowLoading}
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => handleReject(e, expense.id)}
+                                onClick={(e) => handleDelete(e, expense)}
                                 className="p-1 hover:bg-error/10 rounded text-error"
-                                title="Reject"
-                                disabled={workflowLoading}
+                                title="Delete"
+                                disabled={mutating}
                               >
-                                <X className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>

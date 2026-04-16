@@ -217,7 +217,8 @@ export function ExpenseDetailPage() {
   const EntityIcon = entityTypeIcons[expense.entity_type] || Building2;
   const canApprove = hasPermission?.('expenses:approve');
   const canEdit = expense.status !== 'paid';
-  const canDelete = expense.status === 'draft' || expense.status === 'rejected';
+  const canDelete = hasPermission?.('expenses:delete');
+  const affectsPnl = ['approved', 'paid', 'reimbursed'].includes(expense.status);
   const displayError = localError || error;
 
   return (
@@ -586,6 +587,11 @@ export function ExpenseDetailPage() {
                     <p className="text-body-sm text-text-primary">
                       Are you sure you want to delete this expense?
                     </p>
+                    {affectsPnl && (
+                      <p className="text-body-sm text-warning bg-warning/10 border border-warning/20 rounded p-2">
+                        This expense is {expense.status} and currently counts toward your P&amp;L. Deleting will remove it from totals. The action is recorded in the audit log.
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         variant="secondary"
