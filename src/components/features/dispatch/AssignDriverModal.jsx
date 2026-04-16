@@ -93,12 +93,14 @@ export function AssignDriverModal({ isOpen, onClose, load, onAssigned }) {
 
   const tierByDriver = useMemo(() => {
     const map = new Map();
-    for (const r of readinessSummary) map.set(r.driver_id, r.readiness_tier);
+    const arr = Array.isArray(readinessSummary) ? readinessSummary : [];
+    for (const r of arr) map.set(r.driver_id, r.readiness_tier);
     return map;
   }, [readinessSummary]);
 
   const driverOptions = useMemo(() => {
-    const opts = drivers.map(d => {
+    const arr = Array.isArray(drivers) ? drivers : [];
+    const opts = arr.map(d => {
       const tier = tierByDriver.get(d.id);
       return { id: d.id, label: `${d.first_name} ${d.last_name}`, sublabel: d.phone, tier };
     });
