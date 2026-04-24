@@ -1,5 +1,11 @@
 import axios from 'axios';
 import { getOrgSlug } from '../lib/utils';
+import {
+  MIGRATION_BLOCKED_EVENT,
+  getMigrationState,
+  isMutationMethod,
+  shouldAllowFrontendMutation
+} from '../config/migration';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -43,6 +49,41 @@ export const TokenManager = {
  */
 client.interceptors.request.use(
   (config) => {
+    const migration = getMigrationState();
+
+    if (
+      migration.isFrozen &&
+      isMutationMethod(config.method) &&
+      !shouldAllowFrontendMutation(config.url, config.method)
+    ) {
+      const payload = {
+        success: false,
+        error: {
+          message: 'Create and update operations are temporarily unavailable while data migration is in progress.',
+          code: 'MIGRATION_FREEZE_ACTIVE'
+        },
+        migration
+      };
+
+      window.dispatchEvent(new CustomEvent(MIGRATION_BLOCKED_EVENT, {
+        detail: {
+          title: migration.dryRun === 'freeze'
+            ? 'Dry run: updates would be blocked'
+            : 'Updates are temporarily unavailable',
+          description: `Read-only mode is active until ${migration.redirectLabel}.`
+        }
+      }));
+
+      const error = new Error(payload.error.message);
+      error.code = payload.error.code;
+      error.response = {
+        status: 423,
+        data: payload
+      };
+
+      return Promise.reject(error);
+    }
+
     const token = TokenManager.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
