@@ -1,10 +1,8 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useOrg } from './contexts/OrgContext';
 import { LoadingScreen } from './components/ui/Spinner';
 import { AppShell } from './components/layout/AppShell';
-import { useMigrationState } from './hooks/useMigrationState';
 
 // Marketing Pages
 import HomePage from './pages/marketing/HomePage';
@@ -270,42 +268,9 @@ function PlaceholderPage({ title }) {
   );
 }
 
-function MigrationRedirectGate() {
-  const location = useLocation();
-  const migration = useMigrationState(location.search);
-
-  useEffect(() => {
-    if (migration.shouldRedirect) {
-      window.location.replace(migration.targetUrl);
-    }
-  }, [migration.shouldRedirect, migration.targetUrl]);
-
-  if (!migration.shouldRedirect) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-secondary px-6">
-      <div className="max-w-md text-center">
-        <h1 className="text-title text-text-primary">Redirecting to MorPro Next</h1>
-        <p className="text-body-sm text-text-secondary mt-3">
-          This site has been migrated. If you are not redirected automatically, continue to the new login.
-        </p>
-        <a
-          href={migration.targetUrl}
-          className="inline-flex mt-6 text-accent hover:underline"
-        >
-          Go to MorPro Next login
-        </a>
-      </div>
-    </div>
-  );
-}
-
 export function Router() {
   return (
     <BrowserRouter>
-      <MigrationRedirectGate />
       <Routes>
         {/* Public routes (redirect if authenticated) */}
         <Route element={<PublicRoute />}>
