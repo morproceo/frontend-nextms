@@ -99,6 +99,14 @@ export function FuelTransactionsPage() {
     return '$' + Number(val).toFixed(4);
   };
 
+  const getNetPPG = (txn) => {
+    const gallons = Number(txn.gallons) || 0;
+    if (gallons <= 0) return null;
+    const fuelAmount = Number(txn.fuel_amount) || 0;
+    const discount = Number(txn.discount_amount) || 0;
+    return (fuelAmount - discount) / gallons;
+  };
+
   // Selection handlers
   const allSelected = transactions.length > 0 && transactions.every(t => selectedIds.includes(t.id));
 
@@ -381,7 +389,9 @@ export function FuelTransactionsPage() {
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">City/State</th>
                 <SortHeader field="fuel_type">Fuel Type</SortHeader>
                 <SortHeader field="gallons">Gallons</SortHeader>
-                <th className="px-3 py-3 text-right text-small font-medium text-text-secondary uppercase tracking-wider">PPG</th>
+                <th className="px-3 py-3 text-right text-small font-medium text-text-secondary uppercase tracking-wider">Retail PPG</th>
+                <th className="px-3 py-3 text-right text-small font-medium text-text-secondary uppercase tracking-wider">Discount</th>
+                <th className="px-3 py-3 text-right text-small font-medium text-text-secondary uppercase tracking-wider">Net PPG</th>
                 <SortHeader field="total_amount">Total</SortHeader>
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Driver</th>
                 <th className="px-3 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">Truck</th>
@@ -391,7 +401,7 @@ export function FuelTransactionsPage() {
             <tbody className="divide-y divide-surface-tertiary">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-3 py-12 text-center text-text-secondary">
+                  <td colSpan={13} className="px-3 py-12 text-center text-text-secondary">
                     {total === 0 ? 'No fuel transactions yet. Add your first transaction.' : 'No transactions match your filters.'}
                   </td>
                 </tr>
@@ -424,6 +434,12 @@ export function FuelTransactionsPage() {
                     </td>
                     <td className="px-3 py-3 text-body-sm text-text-secondary text-right tabular-nums">
                       {formatPPG(txn.price_per_gallon)}
+                    </td>
+                    <td className="px-3 py-3 text-body-sm text-success text-right tabular-nums">
+                      {txn.discount_amount ? `-${formatCurrency(txn.discount_amount)}` : '-'}
+                    </td>
+                    <td className="px-3 py-3 text-body-sm font-medium text-text-primary text-right tabular-nums">
+                      {formatPPG(getNetPPG(txn))}
                     </td>
                     <td className="px-3 py-3 text-body-sm font-medium text-text-primary text-right tabular-nums">
                       {formatCurrency(txn.total_amount)}
