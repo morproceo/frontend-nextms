@@ -116,7 +116,7 @@ export function VerifyPage() {
             navigate('/investor');
           } else {
             const firstOrg = result.data.organizations[0];
-            navigate(`/o/${firstOrg.slug}/dashboard`);
+            navigate(`/o/${firstOrg.slug}/launcher`);
           }
         } else if (result.data.user.is_driver) {
           navigate('/driver');

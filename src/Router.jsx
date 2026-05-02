@@ -30,6 +30,18 @@ import InviteAcceptPage from './pages/auth/InviteAcceptPage';
 import { DriverShell } from './components/layout/DriverShell';
 import { InvestorShell } from './components/layout/InvestorShell';
 
+// Ecosystem Launcher
+import { LauncherShell } from './components/launcher/LauncherShell';
+import LauncherPage from './pages/launcher/LauncherPage';
+
+// Spotty (in-ecosystem app)
+import SpottyShell from './components/spotty/SpottyShell';
+import SpottyDashboardPage from './pages/spotty/SpottyDashboardPage';
+import SpottyBookingsPage from './pages/spotty/SpottyBookingsPage';
+import SpottyPaymentsPage from './pages/spotty/SpottyPaymentsPage';
+import SpottyBrowsePage from './pages/spotty/SpottyBrowsePage';
+import SpottyListingDetailPage from './pages/spotty/SpottyListingDetailPage';
+
 // Investor Portal
 import InvestorDashboard from './pages/investor/InvestorDashboard';
 import InvestorLoadsPage from './pages/investor/InvestorLoadsPage';
@@ -167,7 +179,7 @@ function PublicRoute({ children }) {
     }
     // Redirect to first org or create-org
     if (organizations.length > 0) {
-      return <Navigate to={`/o/${organizations[0].slug}/dashboard`} replace />;
+      return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
     }
     return <Navigate to="/create-org" replace />;
   }
@@ -197,7 +209,7 @@ function OrgRoute({ children }) {
       return <Navigate to="/create-org" replace />;
     }
     // Redirect to first org
-    return <Navigate to={`/o/${organizations[0].slug}/dashboard`} replace />;
+    return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
   }
 
   return children || <Outlet />;
@@ -242,9 +254,9 @@ function HomeRoute() {
     if (isInvestorOnly) {
       return <Navigate to="/investor" replace />;
     }
-    // Admin users go to their org dashboard
+    // Admin users go to the ecosystem launcher
     if (organizations.length > 0) {
-      return <Navigate to={`/o/${organizations[0].slug}/dashboard`} replace />;
+      return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
     }
     return <Navigate to="/create-org" replace />;
   }
@@ -323,9 +335,14 @@ export function Router() {
           {/* Create org (admin only - drivers can't create orgs) */}
           <Route path="/create-org" element={<AdminOnlyRoute><CreateOrgPage /></AdminOnlyRoute>} />
 
+          {/* Ecosystem launcher (org-scoped, slim chrome — separate from AppShell) */}
+          <Route path="/o/:orgSlug/launcher" element={<OrgRoute><LauncherShell /></OrgRoute>}>
+            <Route index element={<LauncherPage />} />
+          </Route>
+
           {/* Org-scoped routes */}
           <Route path="/o/:orgSlug" element={<OrgRoute><AppShell /></OrgRoute>}>
-            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route index element={<Navigate to="launcher" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="loads" element={<LoadsListPage />} />
             <Route path="loads/new" element={<LoadFormPage />} />
@@ -389,6 +406,18 @@ export function Router() {
             <Route path="tools/fueliq/trip" element={<FuelIQTripPlannerPage />} />
             <Route path="tools/fueliq/trip/:loadId" element={<FuelIQTripPlannerPage />} />
             <Route path="tools/fueliq/surcharge" element={<FuelIQSurchargePage />} />
+
+          </Route>
+
+          {/* Spotty — in-ecosystem app with its own slim shell + sidebar.
+              Sits outside AppShell (different chrome), but inside the
+              org-scoped tree so OrgRoute still validates org access. */}
+          <Route path="/o/:orgSlug/spotty" element={<OrgRoute><SpottyShell /></OrgRoute>}>
+            <Route index element={<SpottyDashboardPage />} />
+            <Route path="browse" element={<SpottyBrowsePage />} />
+            <Route path="listings/:id" element={<SpottyListingDetailPage />} />
+            <Route path="bookings" element={<SpottyBookingsPage />} />
+            <Route path="payments" element={<SpottyPaymentsPage />} />
           </Route>
         </Route>
 

@@ -37,6 +37,7 @@ import { useOrg } from '../../contexts/OrgContext';
 import { OrgSwitcher } from './OrgSwitcher';
 import { TrialBanner } from '../features/billing/TrialBanner';
 import { SubscriptionBlocker } from '../features/billing/SubscriptionBlocker';
+import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
 import { cn, getInitials } from '../../lib/utils';
 
 const navigation = [
@@ -195,6 +196,8 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-surface-secondary">
+      <EcosystemHeader appName="NextMS" appId="nextms" />
+
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -203,28 +206,22 @@ export function AppShell() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — starts below the EcosystemHeader (h-14) */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-[#1a1f36] to-[#0f1225] shadow-card flex flex-col',
+          'fixed top-14 left-0 bottom-0 z-40 bg-gradient-to-b from-[#1a1f36] to-[#0f1225] shadow-card flex flex-col',
           'transform transition-all duration-300 ease-in-out',
           'lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
           sidebarCollapsed ? 'w-[72px]' : 'w-64'
         )}
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
-          <Link to={basePath || '/dashboard'} className="flex items-center overflow-hidden">
-            {sidebarCollapsed ? (
-              <img src="/app-icon.svg" alt="Next TMS" className="w-10 h-10 flex-shrink-0" />
-            ) : (
-              <img src="/next_logo_white.png" alt="Next TMS" className="w-40 h-auto" />
-            )}
-          </Link>
+        {/* Mobile-only close button — desktop branding lives in EcosystemHeader */}
+        <div className="h-12 flex items-center justify-end px-3 lg:hidden flex-shrink-0">
           <button
-            className="lg:hidden p-2 rounded-chip hover:bg-white/10"
+            className="p-2 rounded-chip hover:bg-white/10"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation"
           >
             <X className="w-5 h-5 text-white/70" />
           </button>
@@ -401,71 +398,16 @@ export function AppShell() {
         {/* Trial Banner */}
         <TrialBanner />
 
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
-          <div className="h-full px-4 flex items-center justify-between">
-            {/* Mobile menu button */}
+        {/* Mobile-only menu trigger (org switcher + avatar live in EcosystemHeader) */}
+        <header className="sticky top-14 z-20 h-12 lg:hidden bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
+          <div className="h-full px-4 flex items-center">
             <button
-              className="lg:hidden p-2 rounded-chip hover:bg-white/10"
+              className="p-2 rounded-chip hover:bg-white/10"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
             >
               <Menu className="w-5 h-5 text-white/70" />
             </button>
-
-            {/* Spacer */}
-            <div className="flex-1" />
-
-            {/* Right side controls */}
-            <div className="flex items-center gap-2">
-              {/* Organization Switcher */}
-              <OrgSwitcher />
-
-              {/* User menu */}
-              <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className="flex items-center gap-2 p-2 rounded-button hover:bg-white/10">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-small font-semibold text-white">
-                      {getInitials(user?.first_name || user?.email)}
-                    </span>
-                  </div>
-                </button>
-              </DropdownMenu.Trigger>
-
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="min-w-[200px] bg-white rounded-card shadow-elevated p-2 z-50 animate-fade-in"
-                  sideOffset={8}
-                  align="end"
-                >
-                  <div className="px-2 py-2 border-b border-surface-tertiary mb-2">
-                    <div className="text-body-sm font-medium text-text-primary">
-                      {user?.first_name || 'User'}
-                    </div>
-                    <div className="text-small text-text-tertiary truncate">
-                      {user?.email}
-                    </div>
-                  </div>
-
-                  <DropdownMenu.Item
-                    className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm"
-                    onSelect={() => window.location.href = '/profile'}
-                  >
-                    <User className="w-4 h-4" />
-                    Profile
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Item
-                    className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-error"
-                    onSelect={logout}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign out
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-            </div>
           </div>
         </header>
 
