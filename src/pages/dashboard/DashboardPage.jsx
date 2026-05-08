@@ -24,7 +24,8 @@ import {
   TrendingDown,
   ArrowDownRight,
   BarChart3,
-  Receipt
+  Receipt,
+  Info
 } from 'lucide-react';
 
 // ── Formatters ──────────────────────────────────────────────
@@ -170,56 +171,72 @@ export function DashboardPage() {
   } = useDashboard();
 
   // Build KPI card definitions
-  const kpiCards = useMemo(() => [
-    {
-      name: 'Total Loads',
-      value: loading ? '—' : (metrics.totalLoads || 0).toString(),
-      subtitle: `${activeLoadCount} active`,
-      icon: Package,
-      iconBg: 'bg-accent/10',
-      iconColor: 'text-accent'
-    },
-    {
-      name: 'Revenue',
-      value: loading ? '—' : formatCurrency(metrics.totalRevenue),
-      subtitle: `${(metrics.totalMiles || 0).toLocaleString()} miles`,
-      icon: DollarSign,
-      iconBg: 'bg-accent/10',
-      iconColor: 'text-accent'
-    },
-    {
-      name: 'Rate/Mile',
-      value: loading ? '—' : formatRate(metrics.revenuePerMile),
-      subtitle: 'Revenue per mile',
-      icon: TrendingUp,
-      iconBg: metrics.revenuePerMile > metrics.costPerMile ? 'bg-green-500/10' : 'bg-warning/10',
-      iconColor: metrics.revenuePerMile > metrics.costPerMile ? 'text-green-500' : 'text-warning'
-    },
-    {
-      name: 'Cost/Mile',
-      value: loading ? '—' : formatRate(metrics.costPerMile),
-      subtitle: metrics.costPerMileSource === 'settings' ? 'From Settings' : 'From P&L',
-      icon: ArrowDownRight,
-      iconBg: 'bg-blue-500/10',
-      iconColor: 'text-blue-500'
-    },
-    {
-      name: 'Net Profit/Mile',
-      value: loading ? '—' : formatRate(metrics.netProfitPerMile),
-      subtitle: metrics.netProfitPerMile >= 0 ? 'Profitable' : 'Below cost',
-      icon: metrics.netProfitPerMile >= 0 ? TrendingUp : TrendingDown,
-      iconBg: metrics.netProfitPerMile >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
-      iconColor: metrics.netProfitPerMile >= 0 ? 'text-green-500' : 'text-red-500'
-    },
-    {
-      name: 'Operating Margin',
-      value: loading ? '—' : formatPercent(metrics.operatingMargin),
-      subtitle: 'Net / Revenue',
-      icon: BarChart3,
-      iconBg: metrics.operatingMargin >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
-      iconColor: metrics.operatingMargin >= 0 ? 'text-green-500' : 'text-red-500'
-    }
-  ], [metrics, loading, activeLoadCount]);
+  const kpiCards = useMemo(() => {
+    const marginExtreme = metrics.marginDisplay?.extreme;
+
+    const loadsSubtitle = metrics.deliveredLoads != null && metrics.inFlightLoads != null
+      ? `${metrics.deliveredLoads} delivered · ${metrics.inFlightLoads} in transit`
+      : `${activeLoadCount} active`;
+
+    const revenueSubtitle = metrics.bookedRevenue
+      ? `${formatCurrency(metrics.bookedRevenue)} booked · ${(metrics.totalMiles || 0).toLocaleString()} mi`
+      : `${(metrics.totalMiles || 0).toLocaleString()} miles`;
+
+    return [
+      {
+        name: 'Total Loads',
+        value: loading ? '—' : (metrics.totalLoads || 0).toString(),
+        subtitle: loadsSubtitle,
+        icon: Package,
+        iconBg: 'bg-accent/10',
+        iconColor: 'text-accent'
+      },
+      {
+        name: 'Revenue',
+        value: loading ? '—' : formatCurrency(metrics.totalRevenue),
+        subtitle: revenueSubtitle,
+        icon: DollarSign,
+        iconBg: 'bg-accent/10',
+        iconColor: 'text-accent'
+      },
+      {
+        name: 'Rate/Mile',
+        value: loading ? '—' : formatRate(metrics.revenuePerMile),
+        subtitle: 'Revenue per mile',
+        icon: TrendingUp,
+        iconBg: metrics.revenuePerMile > metrics.costPerMile ? 'bg-green-500/10' : 'bg-warning/10',
+        iconColor: metrics.revenuePerMile > metrics.costPerMile ? 'text-green-500' : 'text-warning'
+      },
+      {
+        name: 'Cost/Mile',
+        value: loading ? '—' : formatRate(metrics.costPerMile),
+        subtitle: metrics.costPerMileSource === 'settings' ? 'From Settings' : 'From actual expenses',
+        icon: ArrowDownRight,
+        iconBg: 'bg-blue-500/10',
+        iconColor: 'text-blue-500'
+      },
+      {
+        name: 'Net Profit/Mile',
+        value: loading ? '—' : formatRate(metrics.netProfitPerMile),
+        subtitle: metrics.netProfitPerMile >= 0 ? 'Profitable' : 'Below cost',
+        icon: metrics.netProfitPerMile >= 0 ? TrendingUp : TrendingDown,
+        iconBg: metrics.netProfitPerMile >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
+        iconColor: metrics.netProfitPerMile >= 0 ? 'text-green-500' : 'text-red-500'
+      },
+      {
+        name: 'Operating Margin',
+        value: loading ? '—' : (marginExtreme ? 'Pending' : formatPercent(metrics.operatingMargin)),
+        subtitle: marginExtreme ? 'Awaiting deliveries' : 'Net / Revenue',
+        icon: BarChart3,
+        iconBg: marginExtreme
+          ? 'bg-blue-500/10'
+          : (metrics.operatingMargin >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'),
+        iconColor: marginExtreme
+          ? 'text-blue-500'
+          : (metrics.operatingMargin >= 0 ? 'text-green-500' : 'text-red-500')
+      }
+    ];
+  }, [metrics, loading, activeLoadCount]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -237,6 +254,29 @@ export function DashboardPage() {
           presets={periodPresets}
         />
       </div>
+
+      {/* Margin banner — shown when recognized revenue is small relative to
+          booked pipeline, so Operating Margin would otherwise render as a
+          giant negative number that's mathematically right but useless. */}
+      {!loading && metrics.marginDisplay?.banner === 'low_recognized_revenue' && (
+        <div className="rounded-card border border-blue-500/20 bg-blue-500/5 p-3 sm:p-4 flex gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+            <Info className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-body-sm font-medium text-text-primary">
+              Most loads in this period are still in transit.
+            </p>
+            <p className="text-small text-text-secondary mt-0.5">
+              Operating margin is computed on{' '}
+              <span className="font-medium text-text-primary">{formatCurrency(metrics.recognizedRevenue)}</span>
+              {' '}of recognized (delivered) revenue. There's an additional{' '}
+              <span className="font-medium text-text-primary">{formatCurrency(metrics.bookedRevenue)}</span>
+              {' '}booked but not yet delivered — margin will stabilize once those close out.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 6 KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">

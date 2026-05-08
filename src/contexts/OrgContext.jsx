@@ -74,8 +74,8 @@ export function OrgProvider({ children }) {
 
   const switchOrg = useCallback((org) => {
     setCurrentOrg(org);
-    // Update URL to reflect org switch
-    const newPath = `/o/${org.slug}/dashboard`;
+    // Update URL to reflect org switch — land on the ecosystem launcher
+    const newPath = `/o/${org.slug}/launcher`;
     window.history.pushState(null, '', newPath);
     loadMembers(org.id);
   }, []);
