@@ -5,7 +5,7 @@ import { Check, ArrowRight } from 'lucide-react';
 
 const plans = [
   {
-    name: 'Owner Op Plan',
+    name: 'Starter',
     description: 'For owner operators getting started',
     monthlyPrice: '49.99',
     features: [
@@ -14,7 +14,7 @@ const plans = [
     ],
   },
   {
-    name: 'Basic Plan',
+    name: 'Standard',
     description: 'For growing small fleets',
     monthlyPrice: '99.99',
     features: [
@@ -24,7 +24,7 @@ const plans = [
     popular: true,
   },
   {
-    name: 'Fleet',
+    name: 'Advanced',
     description: 'For larger fleet operations',
     monthlyPrice: '299',
     features: [
