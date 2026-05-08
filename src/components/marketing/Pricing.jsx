@@ -1,65 +1,46 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Check, ArrowRight } from 'lucide-react';
 
 const plans = [
   {
-    name: 'Starter',
-    description: 'For small fleets getting started',
-    monthlyPrice: 99,
-    annualPrice: 79,
+    name: 'Owner Op Plan',
+    description: 'For owner operators getting started',
+    monthlyPrice: '49.99',
     features: [
-      'Up to 5 trucks',
-      '3 team members',
-      'Load management',
-      'Basic invoicing',
-      'Driver app',
-      'Email support',
+      '1-2 trucks',
+      '1 seat',
     ],
   },
   {
-    name: 'Standard',
-    description: 'For growing fleets',
-    monthlyPrice: 199,
-    annualPrice: 159,
+    name: 'Basic Plan',
+    description: 'For growing small fleets',
+    monthlyPrice: '99.99',
     features: [
-      'Up to 25 trucks',
-      '10 team members',
-      'Everything in Starter',
-      'Advanced analytics',
-      'QuickBooks sync',
-      'IFTA reporting',
-      'Priority support',
+      'Up to 5 trucks',
+      '2 seats',
     ],
     popular: true,
   },
   {
-    name: 'Enterprise',
-    description: 'For large operations',
-    monthlyPrice: null,
-    annualPrice: null,
+    name: 'Fleet',
+    description: 'For larger fleet operations',
+    monthlyPrice: '299',
     features: [
-      'Unlimited trucks',
-      'Unlimited users',
-      'Everything in Standard',
-      'Custom integrations',
-      'Dedicated manager',
-      'SLA guarantee',
-      'API access',
+      'Up to 20 trucks',
+      '5 seats',
     ],
   },
 ];
 
 export function Pricing() {
-  const [annual, setAnnual] = useState(false);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
     <section id="pricing" className="py-32">
       <div className="container">
-        {/* Header */}
         <motion.div
           ref={ref}
           initial={{ opacity: 0, y: 30 }}
@@ -74,34 +55,10 @@ export function Pricing() {
             Simple pricing
           </h2>
           <p className="text-body-lg text-white/50 mb-10">
-            Start free. Upgrade when ready.
+            Straightforward plans for fleets at every stage.
           </p>
-
-          {/* Toggle */}
-          <div className="inline-flex items-center gap-4 bg-white/5 rounded-full p-1">
-            <button
-              onClick={() => setAnnual(false)}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
-                !annual ? 'bg-white text-black' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnnual(true)}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                annual ? 'bg-white text-black' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Annual
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#0066FF] text-white">
-                -20%
-              </span>
-            </button>
-          </div>
         </motion.div>
 
-        {/* Plans */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div
@@ -129,16 +86,8 @@ export function Pricing() {
               </div>
 
               <div className="mb-8">
-                {plan.monthlyPrice ? (
-                  <>
-                    <span className="text-4xl font-bold text-white">
-                      ${annual ? plan.annualPrice : plan.monthlyPrice}
-                    </span>
-                    <span className="text-white/50">/mo</span>
-                  </>
-                ) : (
-                  <span className="text-2xl font-bold text-white">Custom</span>
-                )}
+                <span className="text-4xl font-bold text-white">${plan.monthlyPrice}</span>
+                <span className="text-white/50">/m</span>
               </div>
 
               <ul className="space-y-3 mb-8">
@@ -151,21 +100,59 @@ export function Pricing() {
               </ul>
 
               <Link
-                to={plan.monthlyPrice ? '/signup' : '/contact'}
+                to="/signup"
                 className={`flex items-center justify-center gap-2 w-full h-12 rounded-xl font-medium transition-all ${
                   plan.popular
                     ? 'bg-[#0066FF] hover:bg-[#3385FF] text-white'
                     : 'bg-white/10 hover:bg-white/15 text-white'
                 }`}
               >
-                {plan.monthlyPrice ? 'Start free trial' : 'Contact sales'}
+                Start free trial
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </motion.div>
           ))}
         </div>
 
-        {/* Trust */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.35 }}
+          className="max-w-5xl mx-auto mt-8 grid gap-6 md:grid-cols-[1.3fr_0.7fr]"
+        >
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <p className="text-sm font-medium uppercase tracking-wide text-[#0066FF] mb-4">
+              Add Ons
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-white font-medium">Seats</p>
+                <p className="text-sm text-white/60">$20/m</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-white font-medium">Trucks</p>
+                <p className="text-sm text-white/60">$10/m</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#0066FF]/30 bg-[#0066FF]/10 p-6">
+            <p className="text-sm font-medium uppercase tracking-wide text-[#7FB0FF] mb-3">
+              Enterprise
+            </p>
+            <p className="text-sm text-white/70 mb-5">
+              Contact sales for more information.
+            </p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#B8D4FF] transition-colors"
+            >
+              Contact sales
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
