@@ -2,12 +2,6 @@ import { motion } from 'framer-motion';
 import { cn, getInitials } from '../../lib/utils';
 import { RoleLabels } from '@/enums';
 
-// Local-dev placeholder avatar. The Facebook CDN URL has signed query
-// params that expire periodically — when it 403s we fall back to initials
-// via onError. Replace with a stable URL or wire up real avatar upload.
-const DEV_DEFAULT_AVATAR =
-  'https://scontent-lax3-2.xx.fbcdn.net/v/t39.30808-6/481133970_10232004350204199_5593546398013922937_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=53a332&_nc_ohc=DnNasq_3YCwQ7kNvwHu3gvH&_nc_oc=Adp2Yy8viuhN-l3DQ8tOJENdaL33a4c0_k1mgbqXEyP6yCH8qqdjTvoQEgLJJRfLuDg&_nc_zt=23&_nc_ht=scontent-lax3-2.xx&_nc_gid=T2oyBr7I1ZHsIpoevtOU3g&_nc_ss=7b2a8&oh=00_Af5sX86jEuKOl42ZNqHR7MkA_eW1m0PVPjNSZh7mrGPaUQ&oe=6A02C343';
-
 export function ProfileCard({ user, currentOrg, currentRole }) {
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email;
   const initials = getInitials(fullName) || (user?.email?.[0] || '?').toUpperCase();
@@ -15,30 +9,26 @@ export function ProfileCard({ user, currentOrg, currentRole }) {
     ? currentOrg.subscription_plan.charAt(0).toUpperCase() + currentOrg.subscription_plan.slice(1)
     : null;
 
-  // Avatar element shared between layouts.
+  // Avatar element shared between layouts. Real avatar when uploaded,
+  // initials block otherwise — avatar upload UX is a follow-up.
   const Avatar = ({ size }) => (
     <div className={cn(
       'rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 p-1 flex-shrink-0',
       size === 'sm' ? 'w-14 h-14' : 'w-32 h-32'
     )}>
-      <img
-        src={user?.avatar_url || DEV_DEFAULT_AVATAR}
-        alt={fullName}
-        className="w-full h-full rounded-full object-cover"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none';
-          const next = e.currentTarget.nextElementSibling;
-          if (next) next.style.display = 'flex';
-        }}
-      />
-      <div
-        style={{ display: 'none' }}
-        className="w-full h-full rounded-full bg-[#0a0e1a] items-center justify-center"
-      >
-        <span className={cn('font-semibold text-white', size === 'sm' ? 'text-base' : 'text-3xl')}>
-          {initials}
-        </span>
-      </div>
+      {user?.avatar_url ? (
+        <img
+          src={user.avatar_url}
+          alt={fullName}
+          className="w-full h-full rounded-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center">
+          <span className={cn('font-semibold text-white', size === 'sm' ? 'text-base' : 'text-3xl')}>
+            {initials}
+          </span>
+        </div>
+      )}
     </div>
   );
 
