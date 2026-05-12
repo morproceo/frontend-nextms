@@ -4,6 +4,7 @@ import '../../styles/marketing.css';
 // Components
 import { Navbar } from '../../components/marketing/Navbar';
 import { Hero } from '../../components/marketing/Hero';
+import { AppShowcase } from '../../components/marketing/AppShowcase';
 import { Features } from '../../components/marketing/Features';
 import { Pricing } from '../../components/marketing/Pricing';
 import { Testimonials } from '../../components/marketing/Testimonials';
@@ -24,6 +25,7 @@ export function HomePage() {
     <div className="marketing-page">
       <Navbar />
       <Hero />
+      <AppShowcase />
       <Features />
       <Pricing />
       <Testimonials />

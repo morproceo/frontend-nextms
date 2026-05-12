@@ -19,6 +19,7 @@ import { FinancialStrip } from '../../components/features/loads/FinancialStrip';
 import { RouteOverviewCard } from '../../components/features/loads/RouteOverviewCard';
 import { RouteSlideOver } from '../../components/features/loads/RouteSlideOver';
 import { LoadImpactCard } from '../../components/features/readiness/LoadImpactCard';
+import NetworkOriginBanner from '../../components/features/loads/NetworkOriginBanner';
 import { LoadSensitivityEditor } from '../../components/features/loads/LoadSensitivityEditor';
 import { EvaluationsList } from '../../components/features/readiness/EvaluationsList';
 import uploadsApi from '../../api/uploads.api';
@@ -490,6 +491,10 @@ export function LoadDetailPage() {
       {/* Main Content - Full Width */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-5 pb-24 lg:pb-6">
+
+          {/* Phase 3: surface "this load came from MorPro Direct" if linked.
+              Component renders nothing if there's no network linkage. */}
+          {load?.id && <NetworkOriginBanner loadId={load.id} loadStatus={load.status} />}
 
           {/* Financial Strip */}
           <FinancialStrip

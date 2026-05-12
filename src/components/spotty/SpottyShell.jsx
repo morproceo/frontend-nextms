@@ -58,7 +58,7 @@ function ShellLayout() {
       <EcosystemHeader appName="Spotty" appId="spotty" />
 
       {/* Mobile-only sub-bar with hamburger trigger (lg:hidden) */}
-      <div className="lg:hidden h-12 bg-[#0a0e1a] border-b border-white/[0.08] flex items-center px-3 flex-shrink-0">
+      <div className="lg:hidden h-12 bg-[#05080f] border-b border-white/[0.08] flex items-center px-3 flex-shrink-0">
         <button
           onClick={() => setSidebarOpen(true)}
           className="p-2 rounded-chip text-white/70 hover:bg-white/[0.08]"
@@ -80,7 +80,7 @@ function ShellLayout() {
         {/* Sidebar — drawer on mobile, persistent on lg+ */}
         <aside
           className={cn(
-            'bg-[#0a0e1a] text-white flex-shrink-0 flex flex-col',
+            'bg-[#05080f] text-white flex-shrink-0 flex flex-col',
             // Mobile: fixed drawer that slides from the left
             'fixed top-14 left-0 bottom-0 w-64 z-50',
             'transform transition-transform duration-300 ease-in-out',

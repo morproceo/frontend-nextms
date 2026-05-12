@@ -1,23 +1,24 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import spottyApi from '../api/spotty.api';
+import { useOrg } from './OrgContext';
 
 const SpottyContext = createContext(null);
 
 /**
  * SpottyProvider
  *
- * Wraps the in-ecosystem Spotty app. On mount it ensures the current
- * NextMS user is auto-linked to Spotty (server-to-server SSO), then
- * exposes the Spotty profile to children. Pages further down can use
- * useSpotty() to know the role (renter / host) and surface host-only nav.
+ * Wraps the in-ecosystem Spotty app. On mount (and every time the active
+ * org changes) it links/refreshes the per-(user, org) Spotty profile, so
+ * switching orgs gives the user a fresh Spotty world matching the rest of
+ * the ecosystem.
  */
 export function SpottyProvider({ children }) {
+  const { currentOrg } = useOrg();
   const [state, setState] = useState({
     loading: true,
     error: null,
     profile: null
   });
-  const linked = useRef(false);
 
   const link = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: null }));
@@ -33,11 +34,12 @@ export function SpottyProvider({ children }) {
     }
   }, []);
 
+  // Re-link any time the active org changes — Spotty identity is
+  // per-(user, org) so switching orgs must refetch the profile.
   useEffect(() => {
-    if (linked.current) return;
-    linked.current = true;
+    if (!currentOrg?.id) return;
     link();
-  }, [link]);
+  }, [currentOrg?.id, link]);
 
   return (
     <SpottyContext.Provider value={{ ...state, relink: link }}>

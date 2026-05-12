@@ -8,21 +8,20 @@ export function AppGrid({ apps, orgSlug }) {
         {apps.map((app) => (
           <AppTile key={app.id} app={app} orgSlug={orgSlug} />
         ))}
-        <ComingSoonTile />
+        <AddMoreTile />
       </div>
     </div>
   );
 }
 
-function ComingSoonTile() {
+function AddMoreTile() {
   return (
-    <div className="flex flex-col items-center gap-3 p-2 opacity-50">
+    <div className="flex flex-col items-center gap-3 p-2 opacity-60">
       <div className="w-20 h-20 rounded-[22px] border-2 border-dashed border-white/15 flex items-center justify-center">
         <Plus className="w-7 h-7 text-white/30" strokeWidth={1.5} />
       </div>
       <div className="text-center">
-        <div className="text-body-sm font-medium text-white/40">More apps</div>
-        <div className="text-small text-white/30 mt-0.5">Coming soon</div>
+        <div className="text-body-sm font-medium text-white/40">More soon</div>
       </div>
     </div>
   );

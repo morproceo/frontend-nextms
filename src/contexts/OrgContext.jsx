@@ -147,6 +147,16 @@ export function OrgProvider({ children }) {
     return rolePermissions.includes(permission);
   }, [currentRole]);
 
+  // Re-pull this org's app grants from the auth state. Called by AppTile
+  // after a successful activation so the launcher tiles re-render with the
+  // new grant status.
+  const refreshAppGrants = useCallback(async () => {
+    await refreshOrganizations();
+    // The OrgContext's `currentOrg` is wired through `organizations` via the
+    // resolveOrgFromUrl effect — refreshing organizations triggers a re-render
+    // that picks up new `app_grants` per org.
+  }, [refreshOrganizations]);
+
   const value = {
     currentOrg,
     organization: currentOrg, // Alias for convenience
@@ -161,6 +171,7 @@ export function OrgProvider({ children }) {
     inviteMember,
     refreshMembers: () => currentOrg && loadMembers(currentOrg.id),
     refreshOrganization,
+    refreshAppGrants,
     orgUrl
   };
 

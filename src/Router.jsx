@@ -34,8 +34,43 @@ import { InvestorShell } from './components/layout/InvestorShell';
 import { LauncherShell } from './components/launcher/LauncherShell';
 import LauncherPage from './pages/launcher/LauncherPage';
 
+// MorPro Direct (in-ecosystem app, Phase 1 + Phase 2)
+import DirectShell from './components/direct/DirectShell';
+import DirectDashboardPage from './pages/direct/DashboardPage';
+import DirectMyProfilePage from './pages/direct/MyProfilePage';
+import DirectCarriersPage from './pages/direct/CarriersPage';
+import DirectCarrierDetailPage from './pages/direct/CarrierDetailPage';
+import DirectVerificationsPage from './pages/direct/admin/VerificationsPage';
+import DirectVerificationDetailPage from './pages/direct/admin/VerificationDetailPage';
+// Phase 2 — load posting + bidding
+import DirectPostLoadPage from './pages/direct/loads/PostLoadPage';
+import DirectMyLoadsPage from './pages/direct/loads/MyLoadsPage';
+import DirectMyLoadDetailPage from './pages/direct/loads/MyLoadDetailPage';
+import DirectCarrierLoadDetailPage from './pages/direct/loads/CarrierLoadDetailPage';
+import DirectMyBidsPage from './pages/direct/bids/MyBidsPage';
+// Phase 3 — direct requests
+import DirectRequestsPage from './pages/direct/requests/RequestsPage';
+import DirectRequestDetailPage from './pages/direct/requests/RequestDetailPage';
+// Phase 4 — shared command center
+import DirectCommandCenterPage from './pages/direct/cc/CommandCenterPage';
+// Phase 5 — payments + onboarding + disputes
+import DirectOnboardingPage from './pages/direct/onboarding/OnboardingPage';
+import DirectVerifyPage from './pages/direct/verify/VerifyPage';
+import DirectCarrierVerificationsPage from './pages/direct/admin/CarrierVerificationsPage';
+import DirectCarrierVerificationDetailPage from './pages/direct/admin/CarrierVerificationDetailPage';
+import DirectPaymentsSetupPage from './pages/direct/payments/PaymentsSetupPage';
+import DirectPayoutsPage from './pages/direct/payments/PayoutsPage';
+import DirectDisputesPage from './pages/direct/admin/DisputesPage';
+
 // Spotty (in-ecosystem app)
 import SpottyShell from './components/spotty/SpottyShell';
+import WrenchShell from './components/wrench/WrenchShell';
+import WrenchCommandCenterPage from './pages/wrench/CommandCenterPage';
+import WrenchTrucksPage from './pages/wrench/TrucksPage';
+import WrenchTruckDetailPage from './pages/wrench/TruckDetailPage';
+import WrenchMaintenancePage from './pages/wrench/MaintenancePage';
+import WrenchConnectionsPage from './pages/wrench/ConnectionsPage';
+import WrenchStubPage from './pages/wrench/StubPage';
 import SpottyDashboardPage from './pages/spotty/SpottyDashboardPage';
 import SpottyBookingsPage from './pages/spotty/SpottyBookingsPage';
 import SpottyPaymentsPage from './pages/spotty/SpottyPaymentsPage';
@@ -409,6 +444,42 @@ export function Router() {
 
           </Route>
 
+          {/* MorPro Direct — Phase 1. Tile is gated by the per-org feature
+              flag in apps.js. Same chrome pattern as Spotty (slim shell,
+              outside AppShell), with role-aware sidebar that shows the
+              "Verifications" item only when the current org is morpro_super_admin. */}
+          <Route path="/o/:orgSlug/direct" element={<OrgRoute><DirectShell /></OrgRoute>}>
+            <Route index element={<DirectDashboardPage />} />
+            <Route path="me/profile" element={<DirectMyProfilePage />} />
+            <Route path="carriers" element={<DirectCarriersPage />} />
+            <Route path="carriers/:carrierSlug" element={<DirectCarrierDetailPage />} />
+            <Route path="admin/verifications" element={<DirectVerificationsPage />} />
+            <Route path="admin/verifications/:orgId" element={<DirectVerificationDetailPage />} />
+            {/* Phase 2 — load posting + bidding */}
+            <Route path="loads" element={<DirectMyLoadsPage />} />
+            <Route path="loads/new" element={<DirectPostLoadPage />} />
+            <Route path="loads/:id" element={<DirectMyLoadDetailPage />} />
+            <Route path="loads/:id/view" element={<DirectCarrierLoadDetailPage />} />
+            <Route path="bids" element={<DirectMyBidsPage />} />
+            {/* Phase 3 — direct requests */}
+            <Route path="requests" element={<DirectRequestsPage />} />
+            <Route path="requests/:id" element={<DirectRequestDetailPage />} />
+            {/* Phase 4 — shared command center */}
+            <Route path="cc/:loadId" element={<DirectCommandCenterPage />} />
+            {/* Phase 5 — payments + onboarding + disputes */}
+            <Route path="onboarding" element={<DirectOnboardingPage />} />
+            {/* Carrier verification wizard. DirectShell renders without sidebar
+                on this route + redirects unverified carriers here. */}
+            <Route path="verify" element={<DirectVerifyPage />} />
+            <Route path="payments/setup" element={<DirectPaymentsSetupPage />} />
+            <Route path="payments/payouts" element={<DirectPayoutsPage />} />
+            <Route path="admin/disputes" element={<DirectDisputesPage />} />
+            {/* Carrier-onboarding admin queue (separate from the older
+                profile-based verification admin pages above) */}
+            <Route path="admin/carrier-verifications" element={<DirectCarrierVerificationsPage />} />
+            <Route path="admin/carrier-verifications/:orgId" element={<DirectCarrierVerificationDetailPage />} />
+          </Route>
+
           {/* Spotty — in-ecosystem app with its own slim shell + sidebar.
               Sits outside AppShell (different chrome), but inside the
               org-scoped tree so OrgRoute still validates org access. */}
@@ -418,6 +489,21 @@ export function Router() {
             <Route path="listings/:id" element={<SpottyListingDetailPage />} />
             <Route path="bookings" element={<SpottyBookingsPage />} />
             <Route path="payments" element={<SpottyPaymentsPage />} />
+          </Route>
+
+          {/* MorPro Wrench — AI fleet mechanic. Same slim-shell pattern as
+              Direct/Spotty. Phase A ships only the shell + a placeholder
+              command center; Phases B-F fill in trucks, diagnoses,
+              maintenance, connections, and the sync worker. */}
+          <Route path="/o/:orgSlug/wrench" element={<OrgRoute><WrenchShell /></OrgRoute>}>
+            <Route index element={<WrenchCommandCenterPage />} />
+            <Route path="trucks" element={<WrenchTrucksPage />} />
+            <Route path="trucks/:id" element={<WrenchTruckDetailPage />} />
+            <Route path="diagnoses" element={<WrenchStubPage title="Fault codes" subtitle="Active and recent fault codes across the fleet." />} />
+            <Route path="maintenance" element={<WrenchMaintenancePage />} />
+            <Route path="insights" element={<WrenchStubPage title="Insights" subtitle="Recurring faults, maintenance due, and other patterns." />} />
+            <Route path="connections" element={<WrenchConnectionsPage />} />
+            <Route path="settings" element={<WrenchStubPage title="Settings" />} />
           </Route>
         </Route>
 
