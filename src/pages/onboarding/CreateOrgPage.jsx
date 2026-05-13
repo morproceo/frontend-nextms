@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
 import organizationsApi from '../../api/organizations.api';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card';
-import { Check, X, Building2 } from 'lucide-react';
+import { Check, X, Building2, Truck, Package, ArrowLeft } from 'lucide-react';
 import { debounce } from '../../lib/utils';
 
 export function CreateOrgPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createOrg } = useOrg();
+  const [params] = useSearchParams();
+  // role is 'carrier' | 'shipper'. Defaults to 'carrier' for back-compat —
+  // legacy /create-org links from older flows behave the same as before.
+  const role = params.get('role') === 'shipper' ? 'shipper' : 'carrier';
+  const isShipper = role === 'shipper';
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -69,12 +74,15 @@ export function CreateOrgPage() {
       const org = await createOrg({
         name,
         slug,
-        dot_number: dotNumber || undefined,
-        mc_number: mcNumber || undefined
+        network_role: role,
+        // DOT/MC are carrier-only fields. For shippers we never submit them
+        // even if state somehow has values.
+        dot_number: isShipper ? undefined : (dotNumber || undefined),
+        mc_number: isShipper ? undefined : (mcNumber || undefined)
       });
 
-      // Navigate to new org dashboard
-      navigate(`/o/${org.slug}/dashboard`);
+      // Navigate to launcher so the user sees their full ecosystem.
+      navigate(`/o/${org.slug}/launcher`);
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to create organization');
     } finally {
@@ -88,11 +96,17 @@ export function CreateOrgPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-accent" />
+            {isShipper
+              ? <Package className="w-8 h-8 text-accent" />
+              : <Truck className="w-8 h-8 text-accent" />}
           </div>
-          <h1 className="text-headline text-text-primary">Create your organization</h1>
+          <h1 className="text-headline text-text-primary">
+            {isShipper ? 'Set up your shipping company' : 'Set up your trucking company'}
+          </h1>
           <p className="text-body text-text-secondary mt-2">
-            Set up your company to start managing loads, drivers, and dispatch.
+            {isShipper
+              ? 'A few quick details so carriers can find you on the network.'
+              : "Set up your company to start managing loads, drivers, and dispatch."}
           </p>
         </div>
 
@@ -154,7 +168,9 @@ export function CreateOrgPage() {
                 )}
               </div>
 
-              {/* DOT / MC Numbers (Optional) */}
+              {/* DOT / MC Numbers — carrier-only fields. Shippers don't have
+                  motor-carrier authority, so we hide these entirely. */}
+              {!isShipper && (
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="DOT Number"
@@ -171,6 +187,7 @@ export function CreateOrgPage() {
                   hint="Optional"
                 />
               </div>
+              )}
 
               {error && (
                 <p className="text-body-sm text-error bg-error/10 px-4 py-3 rounded-input">
@@ -192,9 +209,17 @@ export function CreateOrgPage() {
           </form>
         </Card>
 
-        <p className="mt-6 text-center text-small text-text-tertiary">
-          You can add more details and invite team members after setup.
-        </p>
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-small text-text-tertiary">
+            You can add more details and invite team members after setup.
+          </p>
+          <Link
+            to={`/onboarding/path?role=${role}`}
+            className="inline-flex items-center gap-1.5 text-body-sm text-text-secondary hover:text-text-primary"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
+          </Link>
+        </div>
       </div>
     </div>
   );

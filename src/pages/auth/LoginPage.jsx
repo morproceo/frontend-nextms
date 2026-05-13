@@ -11,7 +11,9 @@ import {
   ShieldCheck,
   Truck,
   MapPin,
-  Zap
+  Zap,
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import '../../styles/marketing.css';
 
@@ -19,6 +21,11 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { requestOTP, loginWithPassword, error, clearError } = useAuth();
+
+  // Branch on path so /signup and /login share the component but read
+  // visibly different. Signup: one purpose (create account), no password
+  // tab, step indicator, journey-flavored copy + right rail.
+  const isSignup = location.pathname.startsWith('/signup');
 
   const params = new URLSearchParams(location.search);
   const redirect = params.get('redirect');
@@ -60,7 +67,8 @@ export function LoginPage() {
         } else if (response.data.user.is_driver) {
           navigate('/driver');
         } else {
-          navigate('/create-org');
+          // No orgs and not a driver → step into the role picker.
+          navigate('/onboarding/role');
         }
       }
     } catch (err) {
@@ -91,14 +99,25 @@ export function LoginPage() {
                 draggable={false}
               />
             </Link>
-            <Link
-              to="/signup"
-              className="hidden sm:inline-flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
-            >
-              New here?
-              <span className="text-white">Start free trial</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {isSignup ? (
+              <Link
+                to="/login"
+                className="hidden sm:inline-flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
+              >
+                Already have an account?
+                <span className="text-white">Sign in</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ) : (
+              <Link
+                to="/signup"
+                className="hidden sm:inline-flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
+              >
+                New here?
+                <span className="text-white">Start free trial</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
 
           {/* Form card */}
@@ -109,42 +128,56 @@ export function LoginPage() {
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="w-full max-w-md mx-auto lg:mx-0"
             >
+              {/* Step indicator — signup only, to telegraph the journey */}
+              {isSignup && (
+                <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0A7BFF]/10 border border-[#0A7BFF]/25">
+                  <Sparkles className="w-3.5 h-3.5 text-[#3385FF]" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#3385FF]">
+                    Step 1 of 3 — Verify your email
+                  </span>
+                </div>
+              )}
+
               <div className="mb-10">
                 <h1 className="text-[40px] sm:text-[52px] leading-[1] font-semibold tracking-tight">
-                  Welcome back.
+                  {isSignup ? "Let's get you started." : 'Welcome back.'}
                 </h1>
                 <p className="mt-3 text-[15px] text-white/50">
-                  Sign in to your morpro account.
+                  {isSignup
+                    ? "Enter your email and we'll send a 6-digit code to verify it's you."
+                    : 'Sign in to your morpro account.'}
                 </p>
               </div>
 
-              {/* Method tabs */}
-              <div className="flex p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-5">
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod('email'); clearError(); }}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 h-10 text-sm font-medium rounded-lg transition-all ${
-                    loginMethod === 'email'
-                      ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.08)]'
-                      : 'text-white/55 hover:text-white/85'
-                  }`}
-                >
-                  <Mail className="w-4 h-4" />
-                  Email code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod('password'); clearError(); }}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 h-10 text-sm font-medium rounded-lg transition-all ${
-                    loginMethod === 'password'
-                      ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.08)]'
-                      : 'text-white/55 hover:text-white/85'
-                  }`}
-                >
-                  <Lock className="w-4 h-4" />
-                  Password
-                </button>
-              </div>
+              {/* Method tabs — login only; signup is always email-code */}
+              {!isSignup && (
+                <div className="flex p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-5">
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod('email'); clearError(); }}
+                    className={`flex-1 inline-flex items-center justify-center gap-2 h-10 text-sm font-medium rounded-lg transition-all ${
+                      loginMethod === 'email'
+                        ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.08)]'
+                        : 'text-white/55 hover:text-white/85'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod('password'); clearError(); }}
+                    className={`flex-1 inline-flex items-center justify-center gap-2 h-10 text-sm font-medium rounded-lg transition-all ${
+                      loginMethod === 'password'
+                        ? 'bg-white text-black shadow-[0_2px_10px_rgba(255,255,255,0.08)]'
+                        : 'text-white/55 hover:text-white/85'
+                    }`}
+                  >
+                    <Lock className="w-4 h-4" />
+                    Password
+                  </button>
+                </div>
+              )}
 
               <AnimatePresence>
                 {error && (
@@ -159,10 +192,10 @@ export function LoginPage() {
                 )}
               </AnimatePresence>
 
-              {loginMethod === 'email' ? (
+              {isSignup || loginMethod === 'email' ? (
                 <form onSubmit={handleEmailSubmit} className="space-y-4">
                   <Field
-                    label="Email"
+                    label={isSignup ? 'Your work email' : 'Email'}
                     type="email"
                     placeholder="name@company.com"
                     value={email}
@@ -171,10 +204,12 @@ export function LoginPage() {
                     required
                   />
                   <PrimaryButton disabled={!email || loading} loading={loading}>
-                    Send login code
+                    {isSignup ? 'Create my account' : 'Send login code'}
                   </PrimaryButton>
                   <p className="text-center text-xs text-white/40">
-                    We'll send a one-time code to that inbox.
+                    {isSignup
+                      ? 'No password to remember — we use a one-time code.'
+                      : "We'll send a one-time code to that inbox."}
                   </p>
                 </form>
               ) : (
@@ -229,12 +264,21 @@ export function LoginPage() {
 
               {/* Footer links */}
               <div className="mt-8 pt-6 border-t border-white/[0.06] text-sm text-white/45 space-y-1.5">
-                <p>
-                  Don't have an account?{' '}
-                  <Link to="/signup" className="text-white hover:text-[#3385FF] transition-colors font-medium">
-                    Start free trial
-                  </Link>
-                </p>
+                {isSignup ? (
+                  <p>
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-white hover:text-[#3385FF] transition-colors font-medium">
+                      Sign in
+                    </Link>
+                  </p>
+                ) : (
+                  <p>
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-white hover:text-[#3385FF] transition-colors font-medium">
+                      Start free trial
+                    </Link>
+                  </p>
+                )}
                 <p>
                   Driving?{' '}
                   <Link to="/driver-signup" className="text-white hover:text-[#3385FF] transition-colors font-medium">
@@ -258,8 +302,9 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* RIGHT — marketing panel (desktop only) */}
-        <MarketingPanel />
+        {/* RIGHT — marketing panel (desktop only). Different copy + content
+            for signup vs login so the page reads as two different surfaces. */}
+        <MarketingPanel isSignup={isSignup} />
       </div>
     </div>
   );
@@ -307,11 +352,15 @@ function PrimaryButton({ children, disabled, loading }) {
   );
 }
 
-function MarketingPanel() {
+function MarketingPanel({ isSignup }) {
   return (
     <div className="hidden lg:flex relative overflow-hidden bg-[#06070b] border-l border-white/[0.06]">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 right-0 w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.16)_0%,transparent_60%)]" />
+        <div
+          className={`absolute -top-32 right-0 w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle_at_center,${
+            isSignup ? 'rgba(139,92,246,0.18)' : 'rgba(0,102,255,0.16)'
+          }_0%,transparent_60%)]`}
+        />
       </div>
 
       <div className="relative z-10 flex flex-col justify-center w-full px-12 xl:px-20 py-16">
@@ -321,9 +370,19 @@ function MarketingPanel() {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           className="text-[48px] xl:text-[64px] leading-[1] font-semibold tracking-tight max-w-2xl"
         >
-          The trucking industry,
-          <br />
-          <span className="text-white/55">reimagined.</span>
+          {isSignup ? (
+            <>
+              Welcome to
+              <br />
+              <span className="text-white/55">morpro.</span>
+            </>
+          ) : (
+            <>
+              The trucking industry,
+              <br />
+              <span className="text-white/55">reimagined.</span>
+            </>
+          )}
         </motion.h2>
 
         <motion.p
@@ -332,7 +391,9 @@ function MarketingPanel() {
           transition={{ duration: 0.7, delay: 0.25 }}
           className="mt-6 text-[17px] leading-relaxed text-white/50 max-w-md"
         >
-          One account, every app. The network that moves freight.
+          {isSignup
+            ? "You're about to join thousands of carriers and shippers moving freight on one platform."
+            : 'One account, every app. The network that moves freight.'}
         </motion.p>
 
         <motion.div
@@ -341,8 +402,51 @@ function MarketingPanel() {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="mt-14 max-w-md"
         >
-          <LiveActivityCard />
+          {isSignup ? <SignupRoadmapCard /> : <LiveActivityCard />}
         </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function SignupRoadmapCard() {
+  const steps = [
+    { num: 1, title: 'Verify your email',     sub: "We'll send a 6-digit code", state: 'current' },
+    { num: 2, title: 'Choose your role',      sub: 'Carrier, shipper, or driver', state: 'next' },
+    { num: 3, title: "You're in",             sub: 'Activate apps & invite your team', state: 'next' }
+  ];
+  return (
+    <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/[0.05]">
+        <Sparkles className="w-3.5 h-3.5 text-[#3385FF]" />
+        <span className="text-[11px] font-medium text-white/55 uppercase tracking-wider">
+          What's next
+        </span>
+      </div>
+      <div className="px-2 py-2">
+        {steps.map((s) => (
+          <div key={s.num} className="flex items-start gap-3 px-3 py-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              s.state === 'current'
+                ? 'bg-[#0A7BFF]/15 ring-1 ring-[#0A7BFF]/40'
+                : 'bg-white/[0.04]'
+            }`}>
+              <span className={`text-[12px] font-semibold ${
+                s.state === 'current' ? 'text-[#3385FF]' : 'text-white/45'
+              }`}>{s.num}</span>
+            </div>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <p className={`text-[13px] font-medium ${
+                s.state === 'current' ? 'text-white' : 'text-white/55'
+              }`}>{s.title}</p>
+              <p className="text-[11px] text-white/35 mt-0.5">{s.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-white/[0.05] px-5 py-3 flex items-center gap-2 text-[11px] text-white/40">
+        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+        Takes 60 seconds. No credit card.
       </div>
     </div>
   );

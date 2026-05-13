@@ -99,6 +99,14 @@ export const authApi = {
   updateProfile: async (data) => {
     const response = await client.patch('/v1/auth/me', data);
     return response.data;
+  },
+
+  /**
+   * Self-service: flip the user to a driver account. One-way.
+   */
+  becomeDriver: async () => {
+    const response = await client.post('/v1/auth/become-driver');
+    return response.data;
   }
 };
 

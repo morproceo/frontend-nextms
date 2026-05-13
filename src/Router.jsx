@@ -15,6 +15,10 @@ import DriverSignupPage from './pages/auth/DriverSignupPage';
 
 // Onboarding
 import CreateOrgPage from './pages/onboarding/CreateOrgPage';
+import RolePickerPage from './pages/onboarding/RolePickerPage';
+import PathPickerPage from './pages/onboarding/PathPickerPage';
+import JoinOrgPage from './pages/onboarding/JoinOrgPage';
+import DriverStandalonePage from './pages/onboarding/DriverStandalonePage';
 
 // App Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -216,7 +220,7 @@ function PublicRoute({ children }) {
     if (organizations.length > 0) {
       return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
     }
-    return <Navigate to="/create-org" replace />;
+    return <Navigate to="/onboarding/role" replace />;
   }
 
   return children || <Outlet />;
@@ -241,7 +245,7 @@ function OrgRoute({ children }) {
 
   if (!hasOrg) {
     if (organizations.length === 0) {
-      return <Navigate to="/create-org" replace />;
+      return <Navigate to="/onboarding/role" replace />;
     }
     // Redirect to first org
     return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
@@ -293,7 +297,7 @@ function HomeRoute() {
     if (organizations.length > 0) {
       return <Navigate to={`/o/${organizations[0].slug}/launcher`} replace />;
     }
-    return <Navigate to="/create-org" replace />;
+    return <Navigate to="/onboarding/role" replace />;
   }
 
   return <HomePage />;
@@ -367,7 +371,16 @@ export function Router() {
 
         {/* Protected routes (require auth) */}
         <Route element={<ProtectedRoute />}>
-          {/* Create org (admin only - drivers can't create orgs) */}
+          {/* Multi-step onboarding for new signups.
+              role → path → (create | join | driver-standalone)
+              VerifyPage routes here when the user has no orgs + isn't a driver. */}
+          <Route path="/onboarding/role" element={<RolePickerPage />} />
+          <Route path="/onboarding/path" element={<PathPickerPage />} />
+          <Route path="/onboarding/join" element={<JoinOrgPage />} />
+          <Route path="/onboarding/driver" element={<DriverStandalonePage />} />
+
+          {/* Create org. Admin-only (drivers can't create orgs). Takes a
+              ?role=carrier|shipper query param when routed from PathPicker. */}
           <Route path="/create-org" element={<AdminOnlyRoute><CreateOrgPage /></AdminOnlyRoute>} />
 
           {/* Ecosystem launcher (org-scoped, slim chrome — separate from AppShell) */}

@@ -83,6 +83,15 @@ export const organizationsApi = {
   },
 
   /**
+   * Request to join an existing org via its org_code. Creates an `invited`
+   * membership; admin must approve before it activates.
+   */
+  joinByCode: async (code) => {
+    const response = await client.post('/v1/organizations/join-request', { code });
+    return response.data;
+  },
+
+  /**
    * Update member
    */
   updateMember: async (orgId, memberId, data) => {

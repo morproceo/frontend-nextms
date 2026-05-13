@@ -100,7 +100,9 @@ export function VerifyPage() {
         } else if (result.data.user.is_driver) {
           navigate('/driver');
         } else {
-          navigate('/create-org');
+          // First sign-in, no orgs yet → step into the role picker so the
+          // user lands somewhere appropriate (carrier/shipper/driver).
+          navigate('/onboarding/role');
         }
       }
     } catch (err) {
