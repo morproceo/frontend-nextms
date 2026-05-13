@@ -72,7 +72,7 @@ export function InvestorShell() {
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
           <Link to="/investor" className="flex items-center">
-            <img src="/next_logo_white.png" alt="neXt TMS" className="w-36 h-auto" />
+            <img src="/morpro-logo-white.png" alt="morpro" className="w-36 h-auto" />
           </Link>
           <button
             className="lg:hidden p-2 rounded-chip hover:bg-white/10"

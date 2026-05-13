@@ -144,7 +144,7 @@ export function VerifyPage() {
       {/* top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-6">
         <Link to="/" className="flex items-center">
-          <img src="/next_logo_white.png" alt="NEXT" className="h-7 sm:h-8 w-auto opacity-95" draggable={false} />
+          <img src="/morpro-logo-white.png" alt="morpro" className="h-7 sm:h-8 w-auto opacity-95" draggable={false} />
         </Link>
         <Link
           to="/login"

@@ -93,8 +93,8 @@ export function LoginPage() {
           <div className="relative z-10 flex items-center justify-between">
             <Link to="/" className="flex items-center">
               <img
-                src="/next_logo_white.png"
-                alt="NEXT"
+                src="/morpro-logo-white.png"
+                alt="morpro"
                 className="h-7 sm:h-8 w-auto opacity-95"
                 draggable={false}
               />

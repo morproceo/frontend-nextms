@@ -49,7 +49,7 @@ export function EcosystemHeader({ appName, appId }) {
             aria-label="morpro home"
           >
             <img
-              src="/next_logo_white.png"
+              src="/morpro-logo-white.png"
               alt="morpro"
               className="h-6 w-auto"
             />
