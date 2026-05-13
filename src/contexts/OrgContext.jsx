@@ -72,11 +72,14 @@ export function OrgProvider({ children }) {
     }
   };
 
+  // OrgProvider sits outside the <BrowserRouter>, so useNavigate() can't
+  // be called here. switchOrg just updates state + loads members; the
+  // caller (OrgSwitcher, which lives inside Router) is responsible for
+  // navigating to the new org's launcher with react-router's navigate().
+  // Previously we used window.history.pushState() — that changes the URL
+  // bar but doesn't trigger React Router to re-evaluate routes.
   const switchOrg = useCallback((org) => {
     setCurrentOrg(org);
-    // Update URL to reflect org switch — land on the ecosystem launcher
-    const newPath = `/o/${org.slug}/launcher`;
-    window.history.pushState(null, '', newPath);
     loadMembers(org.id);
   }, []);
 

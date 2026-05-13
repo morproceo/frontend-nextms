@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDown, Building2, Plus, Check, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,6 +12,15 @@ export function OrgSwitcher({ className }) {
   const { organizations } = useAuth();
   const { currentOrg, switchOrg } = useOrg();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // switchOrg updates state + members; we own the navigation here because
+  // useNavigate() isn't available inside OrgProvider (it lives outside
+  // the BrowserRouter).
+  const handleSwitch = (org) => {
+    switchOrg(org);
+    navigate(`/o/${org.slug}/launcher`);
+  };
 
   if (!currentOrg) return null;
 
@@ -70,7 +80,7 @@ export function OrgSwitcher({ className }) {
                 'hover:bg-surface-secondary outline-none',
                 'transition-colors'
               )}
-              onSelect={() => switchOrg(org)}
+              onSelect={() => handleSwitch(org)}
             >
               <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-small font-semibold text-accent">

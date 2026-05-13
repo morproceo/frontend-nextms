@@ -59,7 +59,8 @@ export function DriverSettingsPage() {
     inviteLoading,
     inviteError,
     inviteSuccess,
-    clearInviteMessages
+    clearInviteMessages,
+    refetch
   } = useDriverPortalSettings();
 
   const { user, updateProfile } = useAuth();
@@ -205,12 +206,16 @@ export function DriverSettingsPage() {
   const [connectionError, setConnectionError] = useState(null);
   const [pendingConnectionRequests, setPendingConnectionRequests] = useState([]);
 
-  // Load pending connection requests
-  useState(() => {
+  // Load pending connection requests on mount. (Previously `useState(() => {})`
+  // — that runs once but is the wrong primitive; useEffect with [] deps is
+  // the correct pattern and works with React Strict Mode dev double-mount.)
+  useEffect(() => {
+    let cancelled = false;
     driverConnectionApi.getMyRequests()
-      .then(res => setPendingConnectionRequests(res.data || []))
+      .then((res) => { if (!cancelled) setPendingConnectionRequests(res.data || []); })
       .catch(() => {});
-  });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSearchOrg = async () => {
     if (!orgCode.trim()) return;
@@ -273,12 +278,19 @@ export function DriverSettingsPage() {
     setProcessingOrgInviteId(inviteId);
     try {
       await driverConnectionApi.acceptOrgInvite(inviteId);
-      window.location.reload();
+      // Drop the accepted invite from the local list + refetch orgs so the
+      // newly-joined org appears in the Connected tab. Previously we ran a
+      // full-page reload which dropped form state and felt jarring.
+      setIncomingOrgInvites((prev) => prev.filter((i) => i.id !== inviteId));
+      if (typeof refetch === 'function') {
+        try { await refetch(); } catch (_) { /* non-fatal */ }
+      }
     } catch (err) {
       console.error('Failed to accept invite:', err);
+    } finally {
       setProcessingOrgInviteId(null);
     }
-  }, []);
+  }, [refetch]);
 
   const handleRejectOrgInvite = useCallback(async (inviteId) => {
     setProcessingOrgInviteId(inviteId);
