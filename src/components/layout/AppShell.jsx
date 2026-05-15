@@ -10,7 +10,6 @@ import {
   FileText,
   DollarSign,
   Settings,
-  Menu,
   X,
   LogOut,
   User,
@@ -199,7 +198,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-surface-secondary">
-      <EcosystemHeader appName="NextMS" appId="nextms" />
+      <EcosystemHeader appName="Operations" appId="nextms" />
 
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -401,27 +400,15 @@ export function AppShell() {
         {/* Trial Banner */}
         <TrialBanner />
 
-        {/* Mobile-only menu trigger (org switcher + avatar live in EcosystemHeader) */}
-        <header className="sticky top-14 z-20 h-12 lg:hidden bg-gradient-to-r from-[#1a1f36] to-[#252b48] border-b border-white/10">
-          <div className="h-full px-4 flex items-center">
-            <button
-              className="p-2 rounded-chip hover:bg-white/10"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open navigation"
-            >
-              <Menu className="w-5 h-5 text-white/70" />
-            </button>
-          </div>
-        </header>
-
-        {/* Page content */}
+        {/* Page content — mobile nav lives in the bottom bar; "More"
+            opens the sidebar drawer (no redundant top hamburger sub-bar) */}
         <main className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
           <Outlet />
         </main>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-surface-tertiary lg:hidden z-40 safe-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#05080f] border-t border-white/[0.06] lg:hidden z-40 safe-bottom">
         <div className="flex items-center justify-around h-16">
           {mobileNavigation.map((item) => {
             if (item.isMore) {
@@ -429,7 +416,7 @@ export function AppShell() {
                 <button
                   key={item.name}
                   onClick={() => setSidebarOpen(true)}
-                  className="flex flex-col items-center justify-center flex-1 h-full text-text-tertiary"
+                  className="flex flex-col items-center justify-center flex-1 h-full text-white/45 hover:text-white/70 transition-colors"
                 >
                   <item.icon className="w-5 h-5 mb-1" />
                   <span className="text-[10px] font-medium">{item.name}</span>
@@ -446,7 +433,7 @@ export function AppShell() {
                 to={href}
                 className={cn(
                   'flex flex-col items-center justify-center flex-1 h-full transition-colors',
-                  isActive ? 'text-accent' : 'text-text-tertiary'
+                  isActive ? 'text-[#34CCFF]' : 'text-white/45 hover:text-white/70'
                 )}
               >
                 <item.icon className={cn('w-5 h-5 mb-1', isActive && 'stroke-[2.5px]')} />

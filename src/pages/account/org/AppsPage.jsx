@@ -151,17 +151,17 @@ function AppRow({ app, busy, onActivate, onDeactivate, onOpen }) {
       )}
     >
       <div
-        className={cn(
-          'relative w-12 h-12 rounded-[14px] shadow overflow-hidden flex-shrink-0',
-          !app.iconUrl && 'bg-gradient-to-br flex items-center justify-center',
-          !app.iconUrl && (app.accent || 'from-slate-600 to-slate-800')
-        )}
+        className="relative w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
+        style={{
+          background: `${app.tint || '#34CCFF'}1f`,
+          border: `1px solid ${app.tint || '#34CCFF'}38`
+        }}
       >
-        {app.iconUrl ? (
-          <img src={app.iconUrl} alt={app.name} className="w-full h-full object-cover" />
-        ) : (
-          <Icon className="w-6 h-6 text-white" strokeWidth={1.75} />
-        )}
+        <Icon
+          className="w-6 h-6"
+          strokeWidth={1.75}
+          style={{ color: app.tint || '#34CCFF' }}
+        />
       </div>
 
       <div className="flex-1 min-w-0">

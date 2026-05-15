@@ -1,21 +1,18 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useParams, Link, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useParams, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
   CreditCard,
   ExternalLink,
   ArrowLeft,
-  MapPin,
   AlertCircle,
   Loader2,
   RefreshCw,
-  Search,
-  Menu,
-  X
+  Search
 } from 'lucide-react';
 import { SpottyProvider, useSpotty } from '../../contexts/SpottyContext';
 import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
+import { MobileTabBar } from '../ecosystem/MobileTabBar';
 import { cn } from '../../lib/utils';
 
 /**
@@ -38,13 +35,6 @@ function ShellLayout() {
   const { orgSlug } = useParams();
   const basePath = `/o/${orgSlug}/spotty`;
   const { loading, error, profile, relink } = useSpotty();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-
-  // Auto-close mobile drawer when route changes
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
 
   const nav = [
     { label: 'Dashboard', to: basePath, icon: LayoutDashboard, end: true },
@@ -53,53 +43,30 @@ function ShellLayout() {
     { label: 'Payments', to: `${basePath}/payments`, icon: CreditCard }
   ];
 
+  const moreLinks = [
+    {
+      label: 'Open in gospotty.com',
+      href: 'https://www.gospotty.com',
+      icon: ExternalLink,
+      external: true
+    },
+    {
+      label: 'Back to launcher',
+      to: `/o/${orgSlug}/launcher`,
+      icon: ArrowLeft
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-surface-secondary flex flex-col">
-      <EcosystemHeader appName="Spotty" appId="spotty" />
-
-      {/* Mobile-only sub-bar with hamburger trigger (lg:hidden) */}
-      <div className="lg:hidden h-12 bg-[#05080f] border-b border-white/[0.08] flex items-center px-3 flex-shrink-0">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-chip text-white/70 hover:bg-white/[0.08]"
-          aria-label="Open Spotty navigation"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <EcosystemHeader appName="Parking" appId="spotty" />
 
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar — drawer on mobile, persistent on lg+ */}
+        {/* Sidebar — desktop only; mobile uses the bottom tab bar */}
         <aside
-          className={cn(
-            'bg-[#05080f] text-white flex-shrink-0 flex flex-col',
-            // Mobile: fixed drawer that slides from the left
-            'fixed top-14 left-0 bottom-0 w-64 z-50',
-            'transform transition-transform duration-300 ease-in-out',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            // Desktop: static, in-flow, narrower
-            'lg:relative lg:top-0 lg:translate-x-0 lg:w-60 lg:z-auto'
-          )}
+          className="hidden lg:flex bg-[#05080f] text-white flex-shrink-0 flex-col lg:w-60"
         >
-          <div className="lg:hidden flex items-center justify-end p-3 border-b border-white/[0.08]">
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-chip text-white/70 hover:bg-white/[0.08]"
-              aria-label="Close navigation"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <nav className="flex-1 p-3 pt-3 lg:pt-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 p-3 pt-4 space-y-1 overflow-y-auto">
             {nav.map(({ label, to, icon: Icon, end }) => (
               <NavLink
                 key={to}
@@ -141,7 +108,7 @@ function ShellLayout() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main className="flex-1 overflow-y-auto min-w-0 pb-20 lg:pb-0">
           {loading ? (
             <CenterPanel>
               <Loader2 className="w-6 h-6 animate-spin text-text-tertiary" />
@@ -162,6 +129,8 @@ function ShellLayout() {
           )}
         </main>
       </div>
+
+      <MobileTabBar items={nav} moreLinks={moreLinks} />
     </div>
   );
 }

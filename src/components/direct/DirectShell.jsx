@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useParams, Link, useLocation, Navigate } from 'react-router-dom';
+import { NavLink, Outlet, useParams, useLocation, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Search,
@@ -12,11 +11,10 @@ import {
   Inbox,
   Wallet,
   CreditCard,
-  ArrowLeft,
-  Menu,
-  X
+  ArrowLeft
 } from 'lucide-react';
 import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
+import { MobileTabBar } from '../ecosystem/MobileTabBar';
 import { useOrg } from '../../contexts/OrgContext';
 import { cn } from '../../lib/utils';
 
@@ -31,12 +29,7 @@ import { cn } from '../../lib/utils';
 export default function DirectShell() {
   const { orgSlug } = useParams();
   const { currentOrg } = useOrg();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
 
   const isSuperAdmin = currentOrg?.slug === 'morpro-super-admin';
   const networkRoles = currentOrg?.network_roles || [];
@@ -103,7 +96,7 @@ export default function DirectShell() {
   if (onVerifyRoute) {
     return (
       <div className="min-h-screen bg-surface-secondary flex flex-col">
-        <EcosystemHeader appName="MorPro Direct" appId="direct" />
+        <EcosystemHeader appName="Load Network" appId="direct" />
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
@@ -111,48 +104,24 @@ export default function DirectShell() {
     );
   }
 
+  const moreLinks = [
+    {
+      label: 'Back to launcher',
+      to: `/o/${orgSlug}/launcher`,
+      icon: ArrowLeft
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-surface-secondary flex flex-col">
-      <EcosystemHeader appName="MorPro Direct" appId="direct" />
-
-      <div className="lg:hidden h-12 bg-[#05080f] border-b border-white/[0.08] flex items-center px-3 flex-shrink-0">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-chip text-white/70 hover:bg-white/[0.08]"
-          aria-label="Open MorPro Direct navigation"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <EcosystemHeader appName="Load Network" appId="direct" />
 
       <div className="flex flex-1 min-h-0">
+        {/* Sidebar — desktop only; mobile uses the bottom tab bar */}
         <aside
-          className={cn(
-            'bg-[#05080f] text-white flex-shrink-0 flex flex-col',
-            'fixed top-14 left-0 bottom-0 w-64 z-50',
-            'transform transition-transform duration-300 ease-in-out',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            'lg:relative lg:top-0 lg:translate-x-0 lg:w-60 lg:z-auto'
-          )}
+          className="hidden lg:flex bg-[#05080f] text-white flex-shrink-0 flex-col lg:w-60"
         >
-          <div className="lg:hidden flex items-center justify-end p-3 border-b border-white/[0.08]">
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-chip text-white/70 hover:bg-white/[0.08]"
-              aria-label="Close navigation"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <nav className="flex-1 p-3 pt-3 lg:pt-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 p-3 pt-4 space-y-1 overflow-y-auto">
             {nav.map(({ label, to, icon: Icon, end, soon }) => (
               <NavLink
                 key={to}
@@ -179,20 +148,22 @@ export default function DirectShell() {
           </nav>
 
           <div className="border-t border-white/[0.08] p-3">
-            <Link
+            <NavLink
               to={`/o/${orgSlug}/launcher`}
               className="flex items-center gap-3 px-3 py-2 rounded-button text-body-sm text-white/50 hover:bg-white/[0.04] hover:text-white transition-colors"
             >
               <ArrowLeft className="w-4 h-4 flex-shrink-0" />
               <span>Back to launcher</span>
-            </Link>
+            </NavLink>
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main className="flex-1 overflow-y-auto min-w-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
       </div>
+
+      <MobileTabBar items={nav} moreLinks={moreLinks} />
     </div>
   );
 }

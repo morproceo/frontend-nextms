@@ -58,7 +58,7 @@ export function AppGridMenu({ currentAppId }) {
         >
           <div className="overflow-y-auto p-3 flex-1">
             <div className="text-small uppercase tracking-wider text-white/40 px-2 pb-2">
-              Apps
+              Modules
             </div>
 
             <div className="grid grid-cols-3 gap-1">
@@ -81,18 +81,17 @@ export function AppGridMenu({ currentAppId }) {
                     )}
                   >
                     <div
-                      className={cn(
-                        'w-12 h-12 rounded-[14px] shadow overflow-hidden',
-                        !app.iconUrl && 'bg-gradient-to-br flex items-center justify-center',
-                        !app.iconUrl && (app.accent || 'from-slate-600 to-slate-800')
-                      )}
+                      className="w-12 h-12 rounded-[14px] flex items-center justify-center"
+                      style={{
+                        background: `${app.tint || '#34CCFF'}1f`,
+                        border: `1px solid ${app.tint || '#34CCFF'}38`
+                      }}
                     >
-                      {app.iconUrl ? (
-                        <img src={app.iconUrl} alt={app.name}
-                          className="w-full h-full object-cover" draggable={false} />
-                      ) : (
-                        <Icon className="w-6 h-6 text-white" strokeWidth={1.75} />
-                      )}
+                      <Icon
+                        className="w-6 h-6"
+                        strokeWidth={1.75}
+                        style={{ color: app.tint || '#34CCFF' }}
+                      />
                     </div>
                     <div className="text-[11px] font-medium leading-tight">
                       {app.name}
@@ -112,7 +111,7 @@ export function AppGridMenu({ currentAppId }) {
                 'text-body-sm text-white/70 hover:bg-white/[0.06] hover:text-white outline-none'
               )}
             >
-              morpro home
+              MorPro Cloud
               <ArrowRight className="w-4 h-4" />
             </DropdownMenu.Item>
           </div>

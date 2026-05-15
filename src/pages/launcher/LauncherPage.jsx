@@ -24,7 +24,7 @@ export function LauncherPage() {
           Welcome back{user?.first_name ? `, ${user.first_name}` : ''}
         </h1>
         <p className="text-body-sm text-white/50 mt-1">
-          Your morpro ecosystem
+          MorPro Cloud · every module, one ecosystem
         </p>
       </motion.div>
 

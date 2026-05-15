@@ -1,45 +1,57 @@
-import { Truck, MapPin, Network, Wrench, Sparkles } from 'lucide-react';
+import { Navigation, ParkingCircle, Waypoints, Wrench, Sparkles } from 'lucide-react';
 
 /**
- * Morpro app registry.
+ * MorPro Cloud module registry.
  *
- * Each app is one tile on the ecosystem launcher. Adding a new app = append
- * one entry. When an app is later extracted to its own deploy, change
- * `href` from a relative route to a full URL.
+ * Each entry is one module tile on the MorPro Cloud launcher. These are
+ * presented as native modules of one ecosystem — NOT separate apps. The
+ * `id` slugs keep the original product names for backend/system continuity
+ * (nextms, spotty, direct, wrench, genie); only the user-facing `name`
+ * and `tagline` use the MorPro Cloud module language.
+ *
+ *   id 'nextms'  → Operations
+ *   id 'spotty'  → Parking
+ *   id 'direct'  → Network
+ *   id 'wrench'  → Fleet Health
+ *   id 'genie'   → Genie Suite
+ *
+ * `tint` is the module's accent (MorPro blue #34CCFF is the primary; a few
+ * modules use a secondary hue where it aids recognition). It drives the
+ * icon color, the soft icon-tile background, the glow, and the arrow.
  *
  * Tile visibility uses three gates (in order):
- *   1. The user's role on this org (must be in the per-app allowlist).
- *   2. The org's network_roles — TMS-flavored apps (NextMS/Spotty) require
- *      'carrier'; MorPro Direct allows any role.
- *   3. The org's per-app entitlement (`org.app_grants[id]`) — the tile is
- *      ACTIVE when status='active'; otherwise it shows an Activate/Subscribe
- *      CTA. The tile is hidden entirely only when role+network gates fail.
+ *   1. The user's role on this org (must be in the per-module allowlist).
+ *   2. The org's network_roles — carrier-flavored modules require 'carrier';
+ *      Network allows any role.
+ *   3. The org's per-module entitlement (`org.app_grants[id]`) — ACTIVE when
+ *      status='active'; otherwise an Activate/Subscribe CTA. The tile is
+ *      hidden only when role+network gates fail.
  */
 const isCarrierOrg = (org) =>
   Array.isArray(org?.network_roles) && org.network_roles.includes('carrier');
 
+// MorPro blue — primary ecosystem accent.
+const MORPRO_BLUE = '#34CCFF';
+
 export const APPS = [
   {
     id: 'nextms',
-    name: 'NextMS',
-    tagline: 'Transportation management',
-    icon: Truck,
-    iconUrl: '/next-app-icon.svg',
-    accent: 'from-blue-500 to-cyan-500',
+    name: 'Operations',
+    tagline: 'Dispatch, loads & routing',
+    icon: Navigation,
+    tint: MORPRO_BLUE,
     pricing: 'paid',
     href: ({ orgSlug }) => `/o/${orgSlug}/dashboard`,
-    // Eligible (tile shown on launcher; may be greyed out if not active).
     eligible: ({ role, org }) =>
       isCarrierOrg(org) &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
   },
   {
     id: 'spotty',
-    name: 'Spotty',
-    tagline: 'Truck parking & bookings',
-    icon: MapPin,
-    iconUrl: '/Spotty-app-icon.svg',
-    accent: 'from-cyan-400 to-blue-600',
+    name: 'Parking',
+    tagline: 'Truck parking & reservations',
+    icon: ParkingCircle,
+    tint: '#34D399', // emerald — parking availability
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/spotty`,
     eligible: ({ role, org }) =>
@@ -48,25 +60,22 @@ export const APPS = [
   },
   {
     id: 'direct',
-    name: 'MorPro Direct',
-    tagline: 'Brokerless freight network',
-    icon: Network,
-    accent: 'from-violet-500 to-fuchsia-500',
+    name: 'Load Network',
+    tagline: 'Carriers, shippers & freight',
+    icon: Waypoints,
+    tint: '#A78BFA', // violet — the freight network
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/direct`,
-    // MorPro Direct is open to any role. The org-level feature flag still
-    // gates it (during the staged rollout); once feature_flags.morproDirect
-    // is true everywhere this becomes a no-op.
     eligible: ({ role, org }) =>
       org?.feature_flags?.morproDirect === true &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
   },
   {
     id: 'wrench',
-    name: 'AiMechanic',
-    tagline: 'AI fleet mechanic',
+    name: 'Fleet Health',
+    tagline: 'Diagnostics, maintenance & safety',
     icon: Wrench,
-    accent: 'from-orange-500 to-amber-600',
+    tint: '#FBBF24', // amber — maintenance alerts
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/wrench`,
     eligible: ({ role, org }) =>
@@ -76,15 +85,11 @@ export const APPS = [
   {
     id: 'genie',
     name: 'Genie Suite',
-    tagline: 'Your six-agent AI team',
+    tagline: 'Your AI team, working for you',
     icon: Sparkles,
-    // Brand gradient matches the Suite mark used everywhere (Genie button,
-    // panel header, team avatars).
-    accent: 'from-violet-500 via-fuchsia-500 to-orange-400',
-    // The tile itself is FREE to open — the Suite shell is always
-    // accessible. Individual agents inside the Suite are hired separately
-    // (per-agent monthly) or via the bundle, handled by the agents_catalog
-    // flow inside the shell, not by org_app_grants.
+    tint: '#E879F9', // fuchsia — the Suite mark
+    // The tile is FREE to open — the Suite shell is always accessible.
+    // Individual agents are hired inside the Suite, not via org_app_grants.
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/genie`,
     eligible: ({ role, org }) =>
@@ -94,8 +99,8 @@ export const APPS = [
 ];
 
 /**
- * Return the apps eligible for this org+role, with each app's grant state
- * attached (or null if no grant row exists yet).
+ * Return the modules eligible for this org+role, with each module's grant
+ * state attached (or null if no grant row exists yet).
  */
 export function eligibleApps({ role, org }) {
   const grants = org?.app_grants || {};
