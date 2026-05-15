@@ -22,7 +22,7 @@ function rgba(hex, a) {
  *                routes to billing (paid)
  *   activating — in-flight (free modules) — disabled + spinner
  */
-export function AppTile({ app, orgSlug }) {
+export function AppTile({ app, orgSlug, onRequestTrialActivation }) {
   const navigate = useNavigate();
   const { currentOrg, refreshAppGrants } = useOrg();
   const [activating, setActivating] = useState(false);
@@ -31,6 +31,7 @@ export function AppTile({ app, orgSlug }) {
 
   const isActive = app.status === 'active';
   const isFree = app.pricing === 'free';
+  const isTrialing = currentOrg?.subscription?.status === 'trialing';
   const tint = app.tint || '#34CCFF';
 
   const onClick = async () => {
@@ -44,7 +45,20 @@ export function AppTile({ app, orgSlug }) {
       }
       return;
     }
-    // Inactive — paid modules go to billing; free modules activate inline.
+    // Load Network (Direct) is invite-only beta — always route a locked
+    // tap to its own explainer/beta-request panel, trial or not.
+    if (app.id === 'direct' && onRequestTrialActivation) {
+      onRequestTrialActivation(app);
+      return;
+    }
+    // First tap on any other locked module while trialing → the activation
+    // panel ("acknowledge & start free trial"), which unlocks everything
+    // and drops them into this module. No card, no billing detour.
+    if (isTrialing && onRequestTrialActivation) {
+      onRequestTrialActivation(app);
+      return;
+    }
+    // Inactive, not trialing — paid modules go to billing; free activate inline.
     if (!isFree) {
       navigate(`/o/${orgSlug}/settings/billing`);
       return;

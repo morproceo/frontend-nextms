@@ -3,9 +3,22 @@ import { useOrg } from '../../../contexts/OrgContext';
 import { Zap, AlertTriangle, X } from 'lucide-react';
 import { useState } from 'react';
 
-export function TrialBanner() {
+export function TrialBanner({ onSubscribe }) {
   const { organization, orgUrl } = useOrg();
   const [dismissed, setDismissed] = useState(false);
+
+  // When the host passes onSubscribe (the launcher), the CTA opens the
+  // trial-activation panel instead of navigating to billing.
+  const Cta = ({ children, className }) =>
+    onSubscribe ? (
+      <button type="button" onClick={onSubscribe} className={className}>
+        {children}
+      </button>
+    ) : (
+      <Link to={orgUrl('/settings/billing')} className={className}>
+        {children}
+      </Link>
+    );
 
   if (!organization || dismissed) return null;
 
@@ -33,12 +46,9 @@ export function TrialBanner() {
         <span className="text-body-sm font-medium">
           Your trial has expired.
         </span>
-        <Link
-          to={orgUrl('/settings/billing')}
-          className="text-body-sm font-semibold underline hover:no-underline"
-        >
+        <Cta className="text-body-sm font-semibold underline hover:no-underline">
           Subscribe now to continue
-        </Link>
+        </Cta>
       </div>
     );
   }
@@ -60,12 +70,9 @@ export function TrialBanner() {
           </>
         )}
       </span>
-      <Link
-        to={orgUrl('/settings/billing')}
-        className="text-body-sm font-semibold underline hover:no-underline"
-      >
+      <Cta className="text-body-sm font-semibold underline hover:no-underline">
         Subscribe now
-      </Link>
+      </Cta>
       {!isUrgent && (
         <button
           onClick={() => setDismissed(true)}

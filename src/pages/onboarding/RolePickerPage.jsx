@@ -1,14 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { Truck, Package, User } from 'lucide-react';
+import { Truck, Package, User, UserCog } from 'lucide-react';
 
 /**
  * Onboarding step 1 — pick how you're going to use morpro.
  *
- * Carrier  → /onboarding/path?role=carrier  (join or create a carrier org)
- * Shipper  → /onboarding/path?role=shipper  (join or create a shipper org)
- * Driver   → /onboarding/driver             (standalone driver account)
+ * Carrier         → /onboarding/path?role=carrier         (carrier org)
+ * Owner-operator  → /onboarding/path?role=owner_operator  (carrier org,
+ *                   tagged owner_operator for ecosystem-wide branching)
+ * Shipper         → /onboarding/path?role=shipper         (shipper org)
+ * Driver          → /onboarding/driver                    (standalone)
  *
- * Owner-op simple: one question, three answers, no jargon.
+ * Owner-operator is functionally a carrier — same flow, same features —
+ * but carries a distinct role name so logic can diverge later.
  */
 export function RolePickerPage() {
   const navigate = useNavigate();
@@ -33,14 +36,22 @@ export function RolePickerPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <RoleCard
             icon={Truck}
             iconBg="bg-blue-500/10"
             iconColor="text-blue-600 dark:text-blue-400"
             title="I'm a carrier"
-            description="I run trucks and haul freight. I need dispatch, drivers, and loads."
+            description="I run a fleet and haul freight. I need dispatch, drivers, and loads."
             onClick={() => pick('carrier')}
+          />
+          <RoleCard
+            icon={UserCog}
+            iconBg="bg-cyan-500/10"
+            iconColor="text-cyan-600 dark:text-cyan-400"
+            title="I'm an owner-operator"
+            description="I own and drive my own truck. Same tools as a carrier, built for one."
+            onClick={() => pick('owner_operator')}
           />
           <RoleCard
             icon={Package}

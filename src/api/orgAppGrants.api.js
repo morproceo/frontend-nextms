@@ -15,4 +15,9 @@ export const deactivateApp = async (orgId, appId) => {
   return res.data?.data ?? res.data;
 };
 
-export default { listAppGrants, activateApp, deactivateApp };
+export const activateAllApps = async (orgId) => {
+  const res = await api.post(`/v1/orgs/${orgId}/app-grants/activate-all`);
+  return res.data?.data ?? res.data;
+};
+
+export default { listAppGrants, activateApp, activateAllApps, deactivateApp };

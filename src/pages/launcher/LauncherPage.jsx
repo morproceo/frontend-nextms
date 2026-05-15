@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
 import { ProfileCard } from '../../components/launcher/ProfileCard';
 import { AppGrid } from '../../components/launcher/AppGrid';
+import { TrialActivationPanel } from '../../components/features/billing/TrialActivationPanel';
+import { DirectBetaPanel } from '../../components/features/billing/DirectBetaPanel';
 import { eligibleApps } from '../../config/apps';
 
 export function LauncherPage() {
   const { user } = useAuth();
   const { currentOrg, currentRole } = useOrg();
+  const [trialApp, setTrialApp] = useState(null);
 
   // Show every eligible tile (active + inactive). Inactive tiles render
   // greyed out with an Activate or Subscribe CTA via AppTile state.
@@ -37,9 +41,26 @@ export function LauncherPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="space-y-6"
         >
-          <AppGrid apps={apps} orgSlug={currentOrg?.slug} />
+          <AppGrid
+            apps={apps}
+            orgSlug={currentOrg?.slug}
+            onRequestTrialActivation={setTrialApp}
+          />
         </motion.div>
       </div>
+
+      {/* Load Network has its own invite-only beta gate; everything else
+          uses the generic trial-activation panel. */}
+      <DirectBetaPanel
+        open={trialApp?.id === 'direct'}
+        app={trialApp}
+        onClose={() => setTrialApp(null)}
+      />
+      <TrialActivationPanel
+        open={!!trialApp && trialApp.id !== 'direct'}
+        app={trialApp}
+        onClose={() => setTrialApp(null)}
+      />
     </div>
   );
 }

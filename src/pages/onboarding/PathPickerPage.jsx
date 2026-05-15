@@ -11,16 +11,20 @@ export function PathPickerPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const role = params.get('role');
+  // Owner-operator follows the exact carrier flow/copy — it's a carrier
+  // with a distinct role name tracked downstream.
+  const isCarrierLike = role === 'carrier' || role === 'owner_operator';
+  const isValidRole = isCarrierLike || role === 'shipper';
 
   useEffect(() => {
-    if (role !== 'carrier' && role !== 'shipper') {
+    if (!isValidRole) {
       navigate('/onboarding/role', { replace: true });
     }
-  }, [role, navigate]);
+  }, [isValidRole, navigate]);
 
-  if (role !== 'carrier' && role !== 'shipper') return null;
+  if (!isValidRole) return null;
 
-  const verbCopy = role === 'carrier'
+  const verbCopy = isCarrierLike
     ? 'Whoever runs your trucks is probably set up already.'
     : 'Whoever ships your freight is probably set up already.';
 
@@ -51,7 +55,7 @@ export function PathPickerPage() {
             iconColor="text-emerald-600 dark:text-emerald-400"
             title="Create new organization"
             description={
-              role === 'carrier'
+              isCarrierLike
                 ? "Set up your trucking company. We'll verify your MC + DOT."
                 : "Set up your shipping company so you can post loads."
             }

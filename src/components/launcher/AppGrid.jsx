@@ -1,12 +1,17 @@
 import { Plus } from 'lucide-react';
 import { AppTile } from './AppTile';
 
-export function AppGrid({ apps, orgSlug }) {
+export function AppGrid({ apps, orgSlug, onRequestTrialActivation }) {
   return (
     <div className="bg-white/[0.04] backdrop-blur-glass border border-white/[0.06] rounded-3xl p-8">
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-6 gap-y-8">
         {apps.map((app) => (
-          <AppTile key={app.id} app={app} orgSlug={orgSlug} />
+          <AppTile
+            key={app.id}
+            app={app}
+            orgSlug={orgSlug}
+            onRequestTrialActivation={onRequestTrialActivation}
+          />
         ))}
         <AddMoreTile />
       </div>

@@ -23,6 +23,18 @@ export const organizationsApi = {
   },
 
   /**
+   * Best-effort FMCSA/SAFER prefill for the create-org form.
+   * Never throws on a miss — returns { found: false } so the UI falls
+   * back to manual entry. NOT verification (that happens later in Direct).
+   */
+  carrierLookup: async (dot) => {
+    const response = await client.get('/v1/onboarding/carrier-lookup', {
+      params: { dot }
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  /**
    * Get organization by ID
    */
   get: async (orgId) => {

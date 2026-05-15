@@ -1,4 +1,4 @@
-import { Navigation, ParkingCircle, Waypoints, Wrench, Sparkles } from 'lucide-react';
+import { Navigation, ParkingCircle, Waypoints, Wrench, Sparkles, ShieldCheck } from 'lucide-react';
 
 /**
  * MorPro Cloud module registry.
@@ -95,6 +95,20 @@ export const APPS = [
     eligible: ({ role, org }) =>
       isCarrierOrg(org) &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
+  },
+  {
+    id: 'admin',
+    name: 'Super Admin',
+    tagline: 'Internal user & approvals console',
+    icon: ShieldCheck,
+    tint: '#F472B6', // pink — internal/staff
+    pricing: 'free',
+    // No org_app_grant — staff tooling is always on for the internal org.
+    alwaysActive: true,
+    href: ({ orgSlug }) => `/o/${orgSlug}/admin`,
+    // Only the morpro-super-admin org sees this tile. Backend independently
+    // enforces requireNetworkAdmin on every /v1/admin call.
+    eligible: ({ org }) => org?.slug === 'morpro-super-admin'
   }
 ];
 
@@ -111,7 +125,8 @@ export function eligibleApps({ role, org }) {
     .map((app) => ({
       ...app,
       grant: grants[app.id] || null,
-      status: grants[app.id]?.status || 'inactive'
+      // alwaysActive modules (internal staff tooling) skip the grant flow.
+      status: app.alwaysActive ? 'active' : (grants[app.id]?.status || 'inactive')
     }));
 }
 

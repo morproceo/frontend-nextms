@@ -50,6 +50,12 @@ import UserSecurityPage from './pages/account/me/SecurityPage';
 import UserNotificationsPage from './pages/account/me/NotificationsPage';
 import UserDriverPage from './pages/account/me/DriverPage';
 
+// Super Admin (launcher-level chrome, morpro-super-admin org only)
+import AdminShell from './components/admin/AdminShell';
+import AdminUsersPage from './pages/admin/UsersPage';
+import AdminUserDetailPage from './pages/admin/UserDetailPage';
+import AdminApprovalsPage from './pages/admin/ApprovalsPage';
+
 // MorPro Direct (in-ecosystem app, Phase 1 + Phase 2)
 import DirectShell from './components/direct/DirectShell';
 import DirectDashboardPage from './pages/direct/DashboardPage';
@@ -418,6 +424,16 @@ export function Router() {
             <Route path="members" element={<OrgMembersPage />} />
             {/* Back-compat: any other /settings/* under AppShell used to live
                 here; redirect to the new General page so old links don't break. */}
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Route>
+
+          {/* Super Admin (launcher-level chrome). UX-gated to the
+              morpro-super-admin org in AdminShell; backend independently
+              enforces requireNetworkAdmin on every /v1/admin call. */}
+          <Route path="/o/:orgSlug/admin" element={<OrgRoute><AdminShell /></OrgRoute>}>
+            <Route index element={<AdminUsersPage />} />
+            <Route path="users/:userId" element={<AdminUserDetailPage />} />
+            <Route path="approvals" element={<AdminApprovalsPage />} />
             <Route path="*" element={<Navigate to="." replace />} />
           </Route>
 
