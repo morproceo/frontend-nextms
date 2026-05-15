@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, AlertCircle, Gift, Check, Power, Trash2, AlertTriangle, X
@@ -292,11 +293,12 @@ export default function AdminOrgDetailPage() {
         </div>
       </section>
 
-      {/* Typed-name confirm modal */}
-      {confirmOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => !dangerBusy && setConfirmOpen(false)} />
-          <div className="relative w-full max-w-md bg-surface-primary rounded-card border border-surface-tertiary p-6">
+      {/* Typed-name confirm modal — portaled to body so it isn't trapped
+          in the admin layout's stacking context. */}
+      {confirmOpen && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !dangerBusy && setConfirmOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-card border border-surface-tertiary shadow-elevated p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2 text-error font-semibold">
                 <AlertTriangle className="w-5 h-5" /> Delete organization
@@ -338,7 +340,8 @@ export default function AdminOrgDetailPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
