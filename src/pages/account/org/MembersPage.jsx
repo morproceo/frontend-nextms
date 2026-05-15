@@ -83,10 +83,10 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-title text-text-primary flex items-center gap-2">
-            <Users className="w-6 h-6" />
+            <Users className="w-6 h-6 flex-shrink-0" />
             Members
           </h1>
           <p className="text-body-sm text-text-secondary mt-1">
@@ -95,7 +95,7 @@ export default function MembersPage() {
         </div>
         <button
           onClick={() => setShowInviteForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-button text-body-sm font-medium transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-button text-body-sm font-medium transition-colors flex-shrink-0 w-full sm:w-auto"
         >
           <UserPlus className="w-4 h-4" />
           Invite Member
@@ -164,16 +164,16 @@ export default function MembersPage() {
           {members.map((member) => (
             <div
               key={member.id}
-              className="p-4 flex items-center justify-between hover:bg-surface-secondary/50"
+              className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-surface-secondary/50"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-accent font-medium text-body-sm">
                     {(member.first_name?.[0] || member.email[0]).toUpperCase()}
                   </span>
                 </div>
-                <div>
-                  <div className="text-body-sm font-medium text-text-primary">
+                <div className="min-w-0">
+                  <div className="text-body-sm font-medium text-text-primary truncate">
                     {member.first_name && member.last_name
                       ? `${member.first_name} ${member.last_name}`
                       : member.email}
@@ -181,11 +181,11 @@ export default function MembersPage() {
                       <span className="ml-2 text-xs text-text-tertiary">(You)</span>
                     )}
                   </div>
-                  <div className="text-small text-text-tertiary flex items-center gap-2">
-                    <Mail className="w-3 h-3" />
-                    {member.email}
+                  <div className="text-small text-text-tertiary flex items-center gap-2 min-w-0">
+                    <Mail className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{member.email}</span>
                     {member.status === 'invited' && (
-                      <span className="px-2 py-0.5 bg-warning/10 text-warning text-xs rounded-full">
+                      <span className="px-2 py-0.5 bg-warning/10 text-warning text-xs rounded-full flex-shrink-0">
                         Pending
                       </span>
                     )}
@@ -193,7 +193,7 @@ export default function MembersPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto pl-[52px] sm:pl-0">
                 {member.role === 'owner' ? (
                   <span className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 text-accent text-body-sm rounded-chip">
                     <Shield className="w-4 h-4" />
@@ -204,7 +204,7 @@ export default function MembersPage() {
                     <select
                       value={member.role}
                       onChange={(e) => handleUpdateRole(member.id, e.target.value)}
-                      className="px-3 py-1.5 bg-surface-secondary border border-surface-tertiary rounded-chip text-body-sm text-text-primary"
+                      className="flex-1 sm:flex-none px-3 py-1.5 bg-surface-secondary border border-surface-tertiary rounded-chip text-body-sm text-text-primary"
                     >
                       {ROLES.filter((r) => r.value !== 'owner').map((role) => (
                         <option key={role.value} value={role.value}>
@@ -214,7 +214,8 @@ export default function MembersPage() {
                     </select>
                     <button
                       onClick={() => handleRemoveMember(member.id)}
-                      className="p-2 text-text-tertiary hover:text-error hover:bg-error/10 rounded-chip transition-colors"
+                      aria-label="Remove member"
+                      className="p-2 text-text-tertiary hover:text-error hover:bg-error/10 rounded-chip transition-colors flex-shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

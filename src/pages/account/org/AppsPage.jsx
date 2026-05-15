@@ -145,11 +145,12 @@ function AppRow({ app, busy, onActivate, onDeactivate, onOpen }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        'p-5 flex items-center gap-4 transition-colors',
+        'p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 transition-colors',
         !isEligible && 'opacity-50',
         isEligible && 'hover:bg-surface-secondary/40'
       )}
     >
+      <div className="flex items-center gap-4 min-w-0 flex-1">
       <div
         className="relative w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0"
         style={{
@@ -187,8 +188,9 @@ function AppRow({ app, busy, onActivate, onDeactivate, onOpen }) {
           </p>
         )}
       </div>
+      </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-end pl-[64px] sm:pl-0">
         {busy && <Loader2 className="w-4 h-4 animate-spin text-text-secondary" />}
 
         {isEligible && isActive && (

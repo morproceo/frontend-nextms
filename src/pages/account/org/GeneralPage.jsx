@@ -338,8 +338,8 @@ export default function GeneralPage() {
             When enabled, your organization appears in the driver directory so drivers can find and connect with you.
           </p>
 
-          <div className="flex items-center justify-between mb-6 p-4 bg-surface-secondary rounded-lg">
-            <div>
+          <div className="flex items-center justify-between gap-4 mb-6 p-4 bg-surface-secondary rounded-lg">
+            <div className="min-w-0">
               <p className="text-body-sm font-medium text-text-primary">Show in Driver Directory</p>
               <p className="text-small text-text-tertiary">
                 Drivers can find your organization when searching the directory
@@ -351,7 +351,7 @@ export default function GeneralPage() {
                 setForm((prev) => ({ ...prev, is_profile_public: !prev.is_profile_public }));
                 setSaved(false);
               }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
                 form.is_profile_public ? 'bg-accent' : 'bg-surface-tertiary'
               }`}
             >

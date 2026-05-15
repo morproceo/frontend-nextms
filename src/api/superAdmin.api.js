@@ -32,10 +32,20 @@ export async function setUserPassword(userId, password) {
 
 // ── Organizations ────────────────────────────────────────────────────
 
-export async function listOrganizations({ search = '', page = 1, limit = 25 } = {}) {
+export async function listOrganizations({ search = '', page = 1, limit = 25, status = 'active' } = {}) {
   const { data } = await api.get('/v1/admin/organizations', {
-    params: { search, page, limit }
+    params: { search, page, limit, status }
   });
+  return data?.data ?? data;
+}
+
+export async function deleteOrganization(orgId) {
+  const { data } = await api.delete(`/v1/admin/organizations/${orgId}`);
+  return data?.data ?? data;
+}
+
+export async function purgeOrganization(orgId) {
+  const { data } = await api.post(`/v1/admin/organizations/${orgId}/purge`);
   return data?.data ?? data;
 }
 
@@ -62,5 +72,6 @@ export async function setOrgFreeAccess(orgId, enabled) {
 export default {
   listUsers, getUser, updateUser, setUserPassword,
   listOrganizations, getOrganization,
-  activateOrgApp, deactivateOrgApp, setOrgFreeAccess
+  activateOrgApp, deactivateOrgApp, setOrgFreeAccess,
+  deleteOrganization, purgeOrganization
 };

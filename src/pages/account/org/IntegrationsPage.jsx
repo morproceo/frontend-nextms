@@ -239,7 +239,8 @@ export default function IntegrationsPage() {
 
 function ConnectionRow({ connection, busy, onRevoke, onTest }) {
   return (
-    <div className="px-5 py-4 flex items-start gap-3">
+    <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-3">
+      <div className="flex items-start gap-3 min-w-0 flex-1">
       <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
         <Check className="w-4 h-4 text-success" />
       </div>
@@ -271,7 +272,8 @@ function ConnectionRow({ connection, busy, onRevoke, onTest }) {
           <div className="text-small text-error mt-1.5">{connection.last_error}</div>
         )}
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0 w-full sm:w-auto justify-end pl-[48px] sm:pl-0">
         <button
           type="button"
           onClick={onTest}
