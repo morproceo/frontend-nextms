@@ -22,6 +22,10 @@ export function TrialBanner({ onSubscribe }) {
 
   if (!organization || dismissed) return null;
 
+  // Admin-comped orgs get full access with no Stripe — suppress the
+  // trial/subscribe nudge entirely.
+  if (organization.feature_flags?.freeAccess === true) return null;
+
   const subscription = organization.subscription || {};
   const status = subscription.status;
 

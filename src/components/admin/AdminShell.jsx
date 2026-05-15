@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useParams, Navigate } from 'react-router-dom';
-import { Users, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Users, ShieldCheck, ArrowLeft, Building2 } from 'lucide-react';
 import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
 import { MobileTabBar } from '../ecosystem/MobileTabBar';
 import { useOrg } from '../../contexts/OrgContext';
@@ -27,6 +27,7 @@ export default function AdminShell() {
 
   const nav = [
     { label: 'Users', to: basePath, icon: Users, end: true },
+    { label: 'Organizations', to: `${basePath}/orgs`, icon: Building2 },
     { label: 'Approvals', to: `${basePath}/approvals`, icon: ShieldCheck }
   ];
 
