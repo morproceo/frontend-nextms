@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUp, Lock, Sparkles, Settings as SettingsIcon, ArrowRight, Mail, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowUp, Lock, Sparkles, Settings as SettingsIcon, ArrowRight, ChevronDown, Mail, AlertCircle } from 'lucide-react';
 import { getAgent, MOCK_ACTIVITY, GENIE_TEAM } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
 import { JobQueuePanel } from '../../components/genie/JobQueuePanel';
@@ -32,6 +32,15 @@ export default function AgentPage() {
   const bundleActive = false;
   const isHired = agent && (bundleActive || hired.has(agent.slug));
 
+  // On mobile the agent profile (tagline + What/Hands cards) pushed the
+  // inbox — the primary surface — entirely below the fold. Collapse it
+  // behind an "About" toggle on phones; keep it open on md+ where there's
+  // room.
+  const [aboutOpen, setAboutOpen] = useState(
+    () => typeof window !== 'undefined' &&
+      window.matchMedia('(min-width: 768px)').matches
+  );
+
   if (!agent) {
     return (
       <div className="max-w-2xl">
@@ -57,62 +66,94 @@ export default function AgentPage() {
       {/* Back */}
       <Link
         to={`/o/${orgSlug}/genie`}
-        className="inline-flex items-center gap-1.5 text-body-sm text-text-tertiary hover:text-text-primary mb-6 transition-colors"
+        className="inline-flex items-center gap-1.5 text-body-sm text-text-tertiary hover:text-text-primary mb-4 md:mb-6 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Team
       </Link>
 
-      {/* Hero */}
-      <div className="flex items-start gap-5 mb-8">
-        <AgentAvatar agent={agent} size="xl" muted={!isHired} />
+      {/* Hero — compact on mobile so the inbox is reachable fast */}
+      <div className="flex items-start gap-4 md:gap-5 mb-4 md:mb-8">
+        <div className="flex-shrink-0">
+          <div className="hidden md:block">
+            <AgentAvatar agent={agent} size="xl" muted={!isHired} />
+          </div>
+          <div className="md:hidden">
+            <AgentAvatar agent={agent} size="lg" muted={!isHired} />
+          </div>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-headline text-text-primary">{agent.name}</h1>
+            <h1 className="text-title md:text-headline text-text-primary">{agent.name}</h1>
             {agent.isCeo && (
               <span className="text-[10px] uppercase tracking-wider text-fuchsia-500 font-semibold mt-1">
                 CEO
               </span>
             )}
           </div>
-          <div className="text-body text-text-secondary">{agent.role}</div>
-          <p className="text-body-sm text-text-secondary mt-3 leading-relaxed">
+          <div className="text-body-sm md:text-body text-text-secondary">{agent.role}</div>
+          <p className="hidden md:block text-body-sm text-text-secondary mt-3 leading-relaxed">
             {agent.tagline}
           </p>
         </div>
       </div>
 
-      {/* Capabilities + Hands */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
-          <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
-            What {agent.name.split(' ')[0]} does
-          </div>
-          <ul className="space-y-2">
-            {agent.capabilities.map((c, i) => (
-              <li key={i} className="flex items-start gap-2 text-body-sm text-text-secondary">
-                <Sparkles className={cn('w-3.5 h-3.5 flex-shrink-0 mt-1', `text-${agent.solidColor}-500`)} />
-                <span>{c}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {/* About toggle — mobile only. Desktop always shows the detail. */}
+      <button
+        type="button"
+        onClick={() => setAboutOpen((v) => !v)}
+        className="md:hidden w-full flex items-center justify-between px-4 py-3 mb-4 rounded-button bg-surface-primary border border-surface-tertiary text-body-sm text-text-secondary"
+      >
+        <span>About {agent.name.split(' ')[0]}</span>
+        <ChevronDown
+          className={cn(
+            'w-4 h-4 transition-transform',
+            aboutOpen && 'rotate-180'
+          )}
+        />
+      </button>
 
-        <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
-          <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
-            Hands on
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {agent.hands.map((h) => (
-              <span
-                key={h}
-                className="px-2.5 py-1 text-body-sm rounded-full bg-surface-secondary text-text-secondary border border-surface-tertiary"
-              >
-                {h}
-              </span>
-            ))}
-          </div>
-        </section>
+      {/* Capabilities + Hands — collapsed on mobile, open on md+ */}
+      <div
+        className={cn(
+          'md:block',
+          aboutOpen ? 'block' : 'hidden'
+        )}
+      >
+        <p className="md:hidden text-body-sm text-text-secondary mb-4 leading-relaxed">
+          {agent.tagline}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 md:mb-8">
+          <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
+            <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
+              What {agent.name.split(' ')[0]} does
+            </div>
+            <ul className="space-y-2">
+              {agent.capabilities.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 text-body-sm text-text-secondary">
+                  <Sparkles className={cn('w-3.5 h-3.5 flex-shrink-0 mt-1', `text-${agent.solidColor}-500`)} />
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
+            <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
+              Hands on
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {agent.hands.map((h) => (
+                <span
+                  key={h}
+                  className="px-2.5 py-1 text-body-sm rounded-full bg-surface-secondary text-text-secondary border border-surface-tertiary"
+                >
+                  {h}
+                </span>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
 
       {/* Capability badges — banner when a task's `requires` (email_send /

@@ -19,7 +19,18 @@ import { cn } from '../../lib/utils';
  *   items     — [{ label, to, icon, end }]  the app's own nav
  *   moreLinks — [{ label, to, href, icon, external }]  footer/ecosystem links
  */
-export function MobileTabBar({ items = [], moreLinks = [] }) {
+/**
+ * Optional `gridItems` renders a tappable avatar grid at the top of the
+ * "More" sheet (used by Genie Suite for its agent roster):
+ *   [{ key, label, to, node }]  — `node` is the avatar element to show.
+ * `gridTitle` is an optional small section label above the grid.
+ */
+export function MobileTabBar({
+  items = [],
+  moreLinks = [],
+  gridItems = [],
+  gridTitle
+}) {
   const location = useLocation();
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -31,6 +42,7 @@ export function MobileTabBar({ items = [], moreLinks = [] }) {
   const primary = items.slice(0, 4);
   const overflow = items.slice(4);
   const sheetItems = [...overflow];
+  const hasGrid = gridItems.length > 0;
 
   return (
     <>
@@ -53,6 +65,49 @@ export function MobileTabBar({ items = [], moreLinks = [] }) {
               </button>
             </div>
             <div className="p-3 max-h-[60vh] overflow-y-auto">
+              {hasGrid && (
+                <>
+                  {gridTitle && (
+                    <div className="px-2 pt-1 pb-3 text-[11px] uppercase tracking-wider text-white/40">
+                      {gridTitle}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-2 pb-1">
+                    {gridItems.map(({ key, label, sublabel, to, node }) => (
+                      <NavLink
+                        key={key}
+                        to={to}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex flex-col items-center gap-2 py-4 px-2 rounded-2xl transition-all',
+                            'active:scale-95',
+                            isActive
+                              ? 'bg-white/[0.10] ring-1 ring-[#34CCFF]/40'
+                              : 'bg-white/[0.04] hover:bg-white/[0.07]'
+                          )
+                        }
+                      >
+                        <div className="w-12 h-12 flex items-center justify-center">
+                          {node}
+                        </div>
+                        <div className="text-center max-w-full">
+                          <div className="text-[12px] font-medium text-white/85 truncate">
+                            {label}
+                          </div>
+                          {sublabel && (
+                            <div className="text-[10px] text-white/45 truncate mt-0.5">
+                              {sublabel}
+                            </div>
+                          )}
+                        </div>
+                      </NavLink>
+                    ))}
+                  </div>
+                  {(sheetItems.length > 0 || moreLinks.length > 0) && (
+                    <div className="my-3 h-px bg-white/[0.08]" />
+                  )}
+                </>
+              )}
               {sheetItems.map(({ label, to, icon: Icon, end }) => (
                 <NavLink
                   key={to}

@@ -52,15 +52,27 @@ export default function GenieShell() {
   ];
 
   // Mobile bottom bar: Team / Activity / Hire / Settings as tabs; the agent
-  // roster + launcher collapse into "More".
-  const mobileItems = [
-    ...topNav,
-    ...managementNav,
-    ...GENIE_TEAM.map((agent) => ({
+  // roster renders as a tappable avatar grid inside "More".
+  const mobileItems = [...topNav, ...managementNav];
+  const agentGrid = GENIE_TEAM.map((agent) => {
+    const isHired = bundleActive || hired.has(agent.slug);
+    return {
+      key: agent.slug,
       label: agent.name,
-      to: `${basePath}/agents/${agent.slug}`
-    }))
-  ];
+      sublabel: agent.role,
+      to: `${basePath}/agents/${agent.slug}`,
+      node: (
+        <div className="relative">
+          <AgentAvatar agent={agent} size="md" muted={!isHired} />
+          {!isHired && (
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#0e1422] border border-white/15 flex items-center justify-center">
+              <Lock className="w-2.5 h-2.5 text-white/50" />
+            </span>
+          )}
+        </div>
+      )
+    };
+  });
   const moreLinks = [
     {
       label: 'Back to launcher',
@@ -183,7 +195,12 @@ export default function GenieShell() {
         </main>
       </div>
 
-      <MobileTabBar items={mobileItems} moreLinks={moreLinks} />
+      <MobileTabBar
+        items={mobileItems}
+        gridItems={agentGrid}
+        gridTitle="Your team"
+        moreLinks={moreLinks}
+      />
     </div>
   );
 }
