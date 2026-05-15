@@ -1,10 +1,13 @@
-import { Link, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { LogOut, User, Building2, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
 import { OrgSwitcher } from '../layout/OrgSwitcher';
 import { AppGridMenu } from './AppGridMenu';
+import { GenieButton } from './GenieButton';
+import { GeniePanel } from './GeniePanel';
 import { cn, getInitials } from '../../lib/utils';
 import { RoleLabels } from '@/enums';
 
@@ -24,7 +27,9 @@ export function EcosystemHeader({ appName, appId }) {
   const { user, logout, organizations } = useAuth();
   const { currentOrg } = useOrg();
   const { orgSlug } = useParams();
+  const navigate = useNavigate();
   const slug = orgSlug || currentOrg?.slug || organizations?.[0]?.slug;
+  const [genieOpen, setGenieOpen] = useState(false);
 
   const fullName =
     [user?.first_name, user?.last_name].filter(Boolean).join(' ') ||
@@ -39,7 +44,7 @@ export function EcosystemHeader({ appName, appId }) {
   };
 
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-glass bg-[#05080f]/85 border-b border-white/[0.06] text-white">
+    <header className="sticky top-0 z-30 bg-[#05080f] border-b border-white/[0.06] text-white">
       <div className="h-14 px-4 sm:px-6 flex items-center justify-between gap-3">
         {/* Brand */}
         <div className="flex items-center min-w-0 gap-3">
@@ -67,6 +72,7 @@ export function EcosystemHeader({ appName, appId }) {
         {/* Right cluster */}
         <div className="flex items-center gap-2">
           <OrgSwitcher />
+          <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
           <AppGridMenu currentAppId={appId} />
 
           <DropdownMenu.Root>
@@ -120,26 +126,20 @@ export function EcosystemHeader({ appName, appId }) {
                   )}
                 </div>
 
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-text-secondary"
+                  onSelect={() => navigate('/me')}
+                >
+                  <User className="w-4 h-4" />
+                  Account
+                </DropdownMenu.Item>
                 {currentOrg && (
                   <DropdownMenu.Item
                     className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-text-secondary"
-                    onSelect={() =>
-                      (window.location.href = `/o/${currentOrg.slug}/settings`)
-                    }
+                    onSelect={() => navigate(`/o/${currentOrg.slug}/settings`)}
                   >
-                    <User className="w-4 h-4" />
-                    Profile
-                  </DropdownMenu.Item>
-                )}
-                {currentOrg && (
-                  <DropdownMenu.Item
-                    className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-text-secondary"
-                    onSelect={() =>
-                      (window.location.href = `/o/${currentOrg.slug}/settings`)
-                    }
-                  >
-                    <Settings className="w-4 h-4" />
-                    Settings
+                    <Building2 className="w-4 h-4" />
+                    Organization settings
                   </DropdownMenu.Item>
                 )}
 
@@ -157,6 +157,8 @@ export function EcosystemHeader({ appName, appId }) {
           </DropdownMenu.Root>
         </div>
       </div>
+
+      <GeniePanel open={genieOpen} onClose={() => setGenieOpen(false)} />
     </header>
   );
 }

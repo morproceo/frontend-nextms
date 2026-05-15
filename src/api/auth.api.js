@@ -107,6 +107,33 @@ export const authApi = {
   becomeDriver: async () => {
     const response = await client.post('/v1/auth/become-driver');
     return response.data;
+  },
+
+  /**
+   * Set a password when the user has none.
+   */
+  setPassword: async (password) => {
+    const response = await client.post('/v1/auth/set-password', { password });
+    return response.data;
+  },
+
+  /**
+   * Change existing password.
+   */
+  changePassword: async (currentPassword, newPassword) => {
+    const response = await client.post('/v1/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    return response.data;
+  },
+
+  /**
+   * Revoke refresh tokens for every device.
+   */
+  logoutAll: async () => {
+    const response = await client.post('/v1/auth/logout-all');
+    return response.data;
   }
 };
 

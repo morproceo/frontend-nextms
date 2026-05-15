@@ -1,4 +1,4 @@
-import { Truck, MapPin, Network, Wrench } from 'lucide-react';
+import { Truck, MapPin, Network, Wrench, Sparkles } from 'lucide-react';
 
 /**
  * Morpro app registry.
@@ -69,6 +69,24 @@ export const APPS = [
     accent: 'from-orange-500 to-amber-600',
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/wrench`,
+    eligible: ({ role, org }) =>
+      isCarrierOrg(org) &&
+      ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
+  },
+  {
+    id: 'genie',
+    name: 'Genie Suite',
+    tagline: 'Your six-agent AI team',
+    icon: Sparkles,
+    // Brand gradient matches the Suite mark used everywhere (Genie button,
+    // panel header, team avatars).
+    accent: 'from-violet-500 via-fuchsia-500 to-orange-400',
+    // The tile itself is FREE to open — the Suite shell is always
+    // accessible. Individual agents inside the Suite are hired separately
+    // (per-agent monthly) or via the bundle, handled by the agents_catalog
+    // flow inside the shell, not by org_app_grants.
+    pricing: 'free',
+    href: ({ orgSlug }) => `/o/${orgSlug}/genie`,
     eligible: ({ role, org }) =>
       isCarrierOrg(org) &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)

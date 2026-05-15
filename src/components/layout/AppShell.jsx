@@ -94,9 +94,12 @@ const navigation = [
     name: 'Settings',
     icon: Settings,
     children: [
-      { name: 'General', href: '/settings', icon: Settings },
+      // Org-level settings + billing now live at the launcher level
+      // (not under NextMS chrome), so these hrefs intentionally point
+      // at /o/:slug/settings which renders OrgSettingsShell.
+      { name: 'Organization', href: '/settings', icon: Settings },
       { name: 'Billing', href: '/settings/billing', icon: CreditCard },
-      { name: 'Scoring Config', href: '/settings/scoring-config', icon: ShieldCheck }
+      { name: 'Scoring Config', href: '/dispatch/scoring-config', icon: ShieldCheck }
     ]
   }
 ];

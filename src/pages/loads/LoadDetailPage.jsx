@@ -496,6 +496,10 @@ export function LoadDetailPage() {
               Component renders nothing if there's no network linkage. */}
           {load?.id && <NetworkOriginBanner loadId={load.id} loadStatus={load.status} />}
 
+          {/* Genie Suite agent activity (Alex's reviews, etc.) is NOT
+              shown here on purpose. The TMS is the dispatcher's
+              workspace. Agent inboxes live inside /o/<slug>/genie. */}
+
           {/* Financial Strip */}
           <FinancialStrip
             revenue={revenue}

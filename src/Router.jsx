@@ -38,6 +38,18 @@ import { InvestorShell } from './components/layout/InvestorShell';
 import { LauncherShell } from './components/launcher/LauncherShell';
 import LauncherPage from './pages/launcher/LauncherPage';
 
+// Account-level chrome (launcher-style settings for org and personal user)
+import OrgSettingsShell from './components/account/OrgSettingsShell';
+import UserSettingsShell from './components/account/UserSettingsShell';
+import OrgGeneralPage from './pages/account/org/GeneralPage';
+import OrgMembersPage from './pages/account/org/MembersPage';
+import OrgAppsPage from './pages/account/org/AppsPage';
+import OrgIntegrationsPage from './pages/account/org/IntegrationsPage';
+import UserProfilePage from './pages/account/me/ProfilePage';
+import UserSecurityPage from './pages/account/me/SecurityPage';
+import UserNotificationsPage from './pages/account/me/NotificationsPage';
+import UserDriverPage from './pages/account/me/DriverPage';
+
 // MorPro Direct (in-ecosystem app, Phase 1 + Phase 2)
 import DirectShell from './components/direct/DirectShell';
 import DirectDashboardPage from './pages/direct/DashboardPage';
@@ -69,6 +81,13 @@ import DirectDisputesPage from './pages/direct/admin/DisputesPage';
 // Spotty (in-ecosystem app)
 import SpottyShell from './components/spotty/SpottyShell';
 import WrenchShell from './components/wrench/WrenchShell';
+// Genie Suite (six-agent AI team — separate ecosystem app)
+import GenieShell from './components/genie/GenieShell';
+import GenieTeamPage from './pages/genie/TeamPage';
+import GenieActivityFeedPage from './pages/genie/ActivityFeedPage';
+import GenieAgentPage from './pages/genie/AgentPage';
+import GenieHirePage from './pages/genie/HirePage';
+import GenieSettingsPage from './pages/genie/SettingsPage';
 import WrenchCommandCenterPage from './pages/wrench/CommandCenterPage';
 import WrenchTrucksPage from './pages/wrench/TrucksPage';
 import WrenchTruckDetailPage from './pages/wrench/TruckDetailPage';
@@ -388,6 +407,29 @@ export function Router() {
             <Route index element={<LauncherPage />} />
           </Route>
 
+          {/* Organization settings (launcher-level chrome, NOT inside NextMS).
+              Subscription is per-org and gates every app, so billing lives
+              here, not under the NextMS app shell. */}
+          <Route path="/o/:orgSlug/settings" element={<OrgRoute><OrgSettingsShell /></OrgRoute>}>
+            <Route index element={<OrgGeneralPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="apps" element={<OrgAppsPage />} />
+            <Route path="integrations" element={<OrgIntegrationsPage />} />
+            <Route path="members" element={<OrgMembersPage />} />
+            {/* Back-compat: any other /settings/* under AppShell used to live
+                here; redirect to the new General page so old links don't break. */}
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Route>
+
+          {/* Personal user settings (launcher-level chrome, no org sidebar). */}
+          <Route path="/me" element={<ProtectedRoute><UserSettingsShell /></ProtectedRoute>}>
+            <Route index element={<UserProfilePage />} />
+            <Route path="security" element={<UserSecurityPage />} />
+            <Route path="notifications" element={<UserNotificationsPage />} />
+            <Route path="driver" element={<UserDriverPage />} />
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Route>
+
           {/* Org-scoped routes */}
           <Route path="/o/:orgSlug" element={<OrgRoute><AppShell /></OrgRoute>}>
             <Route index element={<Navigate to="launcher" replace />} />
@@ -437,9 +479,13 @@ export function Router() {
             <Route path="reporting" element={<ReportingSummaryPage />} />
             <Route path="reporting/performance" element={<ReportingPerformancePage />} />
             <Route path="reporting/financials" element={<ReportingFinancialsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="settings/billing" element={<BillingPage />} />
-            <Route path="settings/scoring-config" element={<ScoringConfigPage />} />
+            {/* Settings + billing moved to launcher-level chrome at
+                /o/:slug/settings (above this AppShell block). The standalone
+                route shadows any /settings/* child here, so we drop them.
+                ScoringConfig was at /settings/scoring-config; it's a NextMS
+                dispatch-tuning tool, not org-level config, so we keep it
+                inside the NextMS chrome but move it out of /settings/. */}
+            <Route path="dispatch/scoring-config" element={<ScoringConfigPage />} />
             <Route path="tools/ava" element={<AvaPage />} />
             <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
             <Route path="tools/find-my-truck" element={<FindMyTruckPage />} />
@@ -517,6 +563,18 @@ export function Router() {
             <Route path="insights" element={<WrenchStubPage title="Insights" subtitle="Recurring faults, maintenance due, and other patterns." />} />
             <Route path="connections" element={<WrenchConnectionsPage />} />
             <Route path="settings" element={<WrenchStubPage title="Settings" />} />
+          </Route>
+
+          {/* Genie Suite — the six-agent AI team. Shell is free to open;
+              individual agents inside are hired via the agent_catalog flow
+              (or via the genie-suite bundle SKU). Team page is the default
+              landing surface — not chat. */}
+          <Route path="/o/:orgSlug/genie" element={<OrgRoute><GenieShell /></OrgRoute>}>
+            <Route index element={<GenieTeamPage />} />
+            <Route path="activity" element={<GenieActivityFeedPage />} />
+            <Route path="hire" element={<GenieHirePage />} />
+            <Route path="settings" element={<GenieSettingsPage />} />
+            <Route path="agents/:agentSlug" element={<GenieAgentPage />} />
           </Route>
         </Route>
 
