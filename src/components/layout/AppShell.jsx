@@ -212,7 +212,7 @@ export function AppShell() {
       {/* Sidebar — starts below the EcosystemHeader (h-14) */}
       <aside
         className={cn(
-          'fixed top-14 left-0 bottom-0 z-40 bg-gradient-to-b from-[#1a1f36] to-[#0f1225] shadow-card flex flex-col',
+          'fixed top-14 left-0 bottom-0 z-40 bg-[#05080f] shadow-card flex flex-col',
           'transform transition-all duration-300 ease-in-out',
           'lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
