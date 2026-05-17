@@ -77,10 +77,92 @@ export const AGENT_POLICY_CONTROLS = {
       help: 'When auto-send is on, only send if we have prior email correspondence with the broker (cross-reference via Gmail). Catches OCR typos and unknown identities.',
       group: 'Broker notifications'
     }
+  },
+  cece: {
+    auto_categorize_enabled: {
+      type: 'boolean',
+      label: 'Auto-categorize new expenses',
+      help: 'When a new draft expense is created, Cece sets its category if she is confident. Reversible — only touches drafts.',
+      group: 'Triggers'
+    },
+    auto_categorize_confidence: {
+      type: 'select',
+      label: 'Auto-categorize confidence',
+      help: 'Only auto-set the category when Cece is at least this confident.',
+      options: [
+        { value: 'high', label: 'High only (strictest)' },
+        { value: 'medium', label: 'Medium and above' }
+      ],
+      group: 'Triggers'
+    },
+    auto_invoice_on_delivery: {
+      type: 'boolean',
+      label: 'Auto-draft invoice on delivery',
+      help: 'When a load is delivered, Cece drafts an invoice from its revenue. Draft only — she never sends it.',
+      group: 'Triggers'
+    },
+    auto_fill_from_receipt: {
+      type: 'boolean',
+      label: 'Fill gaps from the receipt',
+      help: 'Let Cece backfill a missing vendor or date from a confidently-OCR\'d receipt before approval.',
+      group: 'Decision rules'
+    },
+    review_amount_threshold: {
+      type: 'number',
+      label: 'Extra-scrutiny amount ($)',
+      help: 'Expenses at or above this amount get flagged for extra review.',
+      group: 'Decision rules'
+    },
+    auto_approve_enabled: {
+      type: 'boolean',
+      label: 'Auto-approve verified expenses',
+      help: 'When the receipt OCR matches the entry and everything is clean, Cece approves it herself and stamps the timeline.',
+      group: 'Authority'
+    },
+    auto_approve_confidence: {
+      type: 'select',
+      label: 'Auto-approve confidence',
+      help: 'Only auto-approve when the receipt↔entry match is at least this strong.',
+      options: [
+        { value: 'high', label: 'High only (strictest)' },
+        { value: 'medium', label: 'Medium and above' }
+      ],
+      group: 'Authority'
+    },
+    auto_approve_max_amount: {
+      type: 'number',
+      label: 'Auto-approve cap ($)',
+      help: 'Never auto-approve above this amount, no matter how good the match.',
+      group: 'Authority'
+    },
+    require_receipt_for_auto_approve: {
+      type: 'boolean',
+      label: 'Require a receipt to auto-approve',
+      help: 'Keep on — without it Cece could approve receiptless expenses.',
+      group: 'Authority'
+    },
+    audit_frequency: {
+      type: 'select',
+      label: 'Business audit cadence',
+      help: 'How often Cece rechecks the whole business — stuck approvals, receiptless approvals, overdue invoices.',
+      options: [
+        { value: 'off', label: 'Off' },
+        { value: 'daily', label: 'Daily' },
+        { value: 'weekly', label: 'Weekly' },
+        { value: 'monthly', label: 'Monthly' }
+      ],
+      group: 'Audit'
+    },
+    approval_sla_days: {
+      type: 'number',
+      label: 'Approval SLA (days)',
+      help: 'Flag expenses that sit pending approval longer than this.',
+      group: 'Audit'
+    }
   }
-  // ava, alex, cece, mia, sage, genie — add entries here as each agent
-  // ships its task manifest. Empty objects are fine; the renderer
-  // shows "no configurable settings yet" for any agent with no entry.
+  // ava, mia, sage, genie — add entries here as each agent ships its
+  // task manifest. Empty objects are fine; the renderer shows "no
+  // configurable settings yet" for any agent with no entry.
 };
 
 /**
@@ -92,6 +174,7 @@ export const GROUP_ORDER = [
   'Decision rules',
   'Broker notifications',
   'Notifications',
+  'Audit',
   'Other'
 ];
 

@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
-import { useLoad, useDriversList } from '../../hooks';
+import { useLoad, useDriversList, useBrokersList } from '../../hooks';
 import { LoadStatusConfig, BillingStatusConfig } from '../../config/status';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
@@ -18,10 +18,9 @@ import { DocumentUploadModal } from '../../components/features/documents/Documen
 import { FinancialStrip } from '../../components/features/loads/FinancialStrip';
 import { RouteOverviewCard } from '../../components/features/loads/RouteOverviewCard';
 import { RouteSlideOver } from '../../components/features/loads/RouteSlideOver';
-import { LoadImpactCard } from '../../components/features/readiness/LoadImpactCard';
 import NetworkOriginBanner from '../../components/features/loads/NetworkOriginBanner';
-import { LoadSensitivityEditor } from '../../components/features/loads/LoadSensitivityEditor';
-import { EvaluationsList } from '../../components/features/readiness/EvaluationsList';
+import { LoadActivityTimeline } from '../../components/loads/LoadActivityTimeline';
+import { LoadDetailsPanel } from '../../components/loads/LoadDetailsPanel';
 import uploadsApi from '../../api/uploads.api';
 import {
   ArrowLeft,
@@ -41,11 +40,13 @@ import {
   Copy,
   Trash2,
   ExternalLink,
-  Map
+  Map,
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 // Build status flow from centralized config (ordered for UI flow)
-const statusFlowOrder = ['new', 'booked', 'dispatched', 'in_transit', 'delivered', 'invoiced', 'paid'];
+const statusFlowOrder = ['new', 'booked', 'dispatched', 'picked_up', 'in_transit', 'delivered', 'review', 'invoiced', 'completed'];
 
 // Color class mapping - Tailwind needs complete class names at build time
 const statusColorClasses = {
@@ -53,7 +54,10 @@ const statusColorClasses = {
   blue: { bg: 'bg-blue-100', text: 'text-blue-700', ring: 'ring-blue-400' },
   indigo: { bg: 'bg-indigo-100', text: 'text-indigo-700', ring: 'ring-indigo-400' },
   purple: { bg: 'bg-purple-100', text: 'text-purple-700', ring: 'ring-purple-400' },
+  violet: { bg: 'bg-violet-100', text: 'text-violet-700', ring: 'ring-violet-400' },
   orange: { bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-400' },
+  amber: { bg: 'bg-amber-100', text: 'text-amber-700', ring: 'ring-amber-400' },
+  cyan: { bg: 'bg-cyan-100', text: 'text-cyan-700', ring: 'ring-cyan-400' },
   green: { bg: 'bg-green-100', text: 'text-green-700', ring: 'ring-green-400' },
   teal: { bg: 'bg-teal-100', text: 'text-teal-700', ring: 'ring-teal-400' },
   emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-400' },
@@ -139,6 +143,7 @@ export function LoadDetailPage() {
 
   // Drivers for assignment dropdown
   const { drivers, fetchDrivers } = useDriversList();
+  const { brokers, fetchBrokers } = useBrokersList();
 
   // Local UI state
   const [documents, setDocuments] = useState([]);
@@ -150,10 +155,12 @@ export function LoadDetailPage() {
 
   // Local financial state for immediate UI updates from route calculations
   const [localFinancials, setLocalFinancials] = useState(null);
+  const [statusError, setStatusError] = useState(null);
 
   // Fetch drivers and documents on mount
   useEffect(() => {
     fetchDrivers();
+    fetchBrokers();
     fetchDocuments();
   }, [loadId]);
 
@@ -198,7 +205,11 @@ export function LoadDetailPage() {
   const updateStatus = async (newStatus) => {
     try {
       await hookUpdateStatus(newStatus);
+      setStatusError(null);
     } catch (err) {
+      const msg = err?.response?.data?.error?.message
+        || err?.message || 'Failed to update status';
+      setStatusError(msg);
       console.error('Failed to update status:', err);
     }
   };
@@ -297,7 +308,7 @@ export function LoadDetailPage() {
   };
 
   // Collapsible section state for mobile
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'evaluations' (Phase 6)
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
   const [expandedSections, setExpandedSections] = useState({
     broker: true,
     assignment: false,
@@ -449,44 +460,18 @@ export function LoadDetailPage() {
         </div>
       </div>
 
-      {/* Status Flow Bar */}
-      <div className="bg-white border-b border-gray-200 px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 overflow-x-auto scrollbar-hide">
-        <div className="flex items-center gap-1 sm:justify-between sm:max-w-4xl sm:mx-auto min-w-max sm:min-w-0">
-          {statusFlow.map((status, idx) => {
-            const isActive = status.value === load.status;
-            const isPast = idx < currentStatusIndex;
-            const isFuture = idx > currentStatusIndex;
-
-            return (
-              <div key={status.value} className="flex items-center">
-                <button
-                  onClick={() => updateStatus(status.value)}
-                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                    isActive
-                      ? `${status.classes.bg} ${status.classes.text} ring-2 ${status.classes.ring} ring-offset-1 sm:ring-offset-2`
-                      : isPast
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'text-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  {isPast ? (
-                    <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  ) : isActive ? (
-                    <Circle className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
-                  ) : (
-                    <Circle className="w-3 h-3 sm:w-4 sm:h-4" />
-                  )}
-                  <span className="hidden sm:inline">{status.label}</span>
-                  <span className="sm:hidden">{status.label.split(' ')[0]}</span>
-                </button>
-                {idx < statusFlow.length - 1 && (
-                  <ChevronRight className={`w-3 h-3 sm:w-4 sm:h-4 mx-0.5 sm:mx-1 ${isPast ? 'text-green-400' : 'text-gray-300'}`} />
-                )}
-              </div>
-            );
-          })}
+      {/* Completion / transition gate error */}
+      {statusError && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-start gap-2 flex-shrink-0">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700 flex-1">{statusError}</p>
+          <button onClick={() => setStatusError(null)} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* Status now lives in the designed Status card inside the panel. */}
 
       {/* Main Content - Full Width */}
       <div className="flex-1 overflow-y-auto">
@@ -510,23 +495,12 @@ export function LoadDetailPage() {
             onUpdateField={updateField}
           />
 
-          {/* Load Impact (v1.2 Phase 3) */}
-          {load?.id && <LoadImpactCard loadId={load.id} />}
-
-          {/* Sensitivity editor — dispatcher-entered fields that drive impact scoring */}
-          {load?.id && (
-            <LoadSensitivityEditor
-              load={load}
-              onUpdateField={updateField}
-            />
-          )}
-
-          {/* Tab Strip (Phase 6) */}
+          {/* Tab Strip */}
           <div className="border-b border-border">
             <nav className="flex gap-0 -mb-px">
               {[
                 { id: 'details', label: 'Details' },
-                { id: 'evaluations', label: 'Evaluations' }
+                { id: 'activity', label: 'Activity' }
               ].map(t => {
                 const isActive = activeTab === t.id;
                 return (
@@ -546,414 +520,30 @@ export function LoadDetailPage() {
             </nav>
           </div>
 
-          {activeTab === 'evaluations' && load?.id && (
-            <EvaluationsList
-              filter={{ load_id: load.id }}
-              emptyHint="No evaluations recorded for this load yet."
-            />
+          {activeTab === 'activity' && load?.id && (
+            <LoadActivityTimeline loadId={load.id} load={load} />
           )}
 
           {activeTab === 'details' && (
             <>
-          {/* Route Overview Card */}
-          <RouteOverviewCard
+          <LoadDetailsPanel
             load={load}
             stops={stops}
-            onUpdateField={updateField}
+            drivers={drivers}
+            brokers={brokers}
+            documents={documents}
+            billingOptions={billingOptions}
+            updateField={updateField}
+            updateLoadFields={updateLoadFields}
+            EditableField={EditableField}
+            fmt={fmt}
+            revenue={revenue}
+            miles={miles}
+            driverPay={driverPay}
+            onUpload={() => setShowUploadModal(true)}
             onEditRoute={() => setShowMapPanel(true)}
+            onStatusChange={updateStatus}
           />
-
-          {/* Mobile: Accordion Sections */}
-          <div className="space-y-3 lg:hidden">
-            {/* Broker Section */}
-            <Section id="broker" icon={Building2} title="Broker & Customer">
-              <div className="space-y-3 pt-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Company</p>
-                  <EditableField
-                    value={load.broker?.name || load.broker_name}
-                    onSave={(v) => updateField('broker_name', v)}
-                    placeholder="Add broker"
-                    className="font-medium text-gray-900"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">MC #</p>
-                    <EditableField
-                      value={load.broker?.mc || load.broker_mc}
-                      onSave={(v) => updateField('broker_mc', v)}
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">PO #</p>
-                    <EditableField
-                      value={load.customer_load_number}
-                      onSave={(v) => updateField('customer_load_number', v)}
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Section>
-
-            {/* Cargo Section */}
-            <Section id="cargo" icon={Package} title="Cargo">
-              <div className="space-y-3 pt-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Commodity</p>
-                  <EditableField
-                    value={load.cargo?.commodity}
-                    onSave={(v) => updateField('commodity', v)}
-                    placeholder="General freight"
-                    className="text-sm text-gray-700"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Weight</p>
-                    <EditableField
-                      value={load.cargo?.weight_lbs?.toLocaleString()}
-                      onSave={(v) => updateField('weight_lbs', parseInt(v.replace(/,/g, '')))}
-                      suffix=" lbs"
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Pieces</p>
-                    <EditableField
-                      value={load.cargo?.pieces?.toString()}
-                      onSave={(v) => updateField('pieces', parseInt(v))}
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Section>
-
-            {/* Documents Section */}
-            <Section id="documents" icon={FileText} title="Documents" badge={documents.length > 0 && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-2">{documents.length}</span>}>
-              <div className="pt-3">
-                {documents.length > 0 ? (
-                  <div className="space-y-2">
-                    {documents.map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => doc.viewUrl && window.open(doc.viewUrl, '_blank')}
-                        className="flex items-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer text-sm"
-                      >
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        <span className="flex-1 truncate text-gray-700">{doc.file_name}</span>
-                        <ExternalLink className="w-4 h-4 text-gray-400" />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                <button
-                  onClick={() => setShowUploadModal(true)}
-                  className="w-full mt-2 py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Upload documents
-                </button>
-              </div>
-            </Section>
-
-            {/* Assignment Section */}
-            <Section id="assignment" icon={Truck} title="Assignment">
-              <div className="space-y-3 pt-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Driver</p>
-                  <select
-                    value={load.driver_id || ''}
-                    onChange={(e) => updateField('driver_id', e.target.value || null)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50"
-                  >
-                    <option value="">Select driver...</option>
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Truck</p>
-                    <p className="text-sm text-gray-700">{load.truck?.unit_number || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Trailer</p>
-                    <p className="text-sm text-gray-700">{load.trailer?.unit_number || '-'}</p>
-                  </div>
-                </div>
-              </div>
-            </Section>
-
-            {/* Billing Section */}
-            <Section id="billing" icon={DollarSign} title="Billing">
-              <div className="space-y-3 pt-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Status</p>
-                  <select
-                    value={load.billing_status || 'pending'}
-                    onChange={(e) => updateField('billing_status', e.target.value)}
-                    className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50"
-                  >
-                    {billingOptions.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Revenue</p>
-                    <EditableField
-                      value={fmt(revenue)}
-                      onSave={(v) => updateField('revenue', parseFloat(v.replace(/[^0-9.-]/g, '')))}
-                      className="text-sm font-semibold text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Miles</p>
-                    <EditableField
-                      value={miles.toLocaleString()}
-                      onSave={(v) => updateField('miles', parseInt(v.replace(/,/g, '')))}
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                </div>
-              </div>
-            </Section>
-
-            {/* Notes Section */}
-            <Section id="notes" icon={Clock} title="Notes">
-              <div className="pt-3">
-                <textarea
-                  value={load.notes || ''}
-                  onChange={(e) => updateField('notes', e.target.value)}
-                  placeholder="Add notes..."
-                  rows={4}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/50 resize-none"
-                />
-              </div>
-            </Section>
-          </div>
-
-          {/* Desktop: 60/40 Grid Layout */}
-          <div className="hidden lg:grid grid-cols-5 gap-5">
-            {/* Left Column - 60% */}
-            <div className="col-span-3 space-y-5">
-              {/* Broker & Customer */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">Broker & Customer</h3>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Company</p>
-                    <EditableField
-                      value={load.broker?.name || load.broker_name}
-                      onSave={(v) => updateField('broker_name', v)}
-                      placeholder="Add broker"
-                      className="font-medium text-gray-900"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">MC #</p>
-                      <EditableField
-                        value={load.broker?.mc || load.broker_mc}
-                        onSave={(v) => updateField('broker_mc', v)}
-                        className="text-sm text-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">PO #</p>
-                      <EditableField
-                        value={load.customer_load_number}
-                        onSave={(v) => updateField('customer_load_number', v)}
-                        className="text-sm text-gray-700"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cargo */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Package className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">Cargo</h3>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Commodity</p>
-                    <EditableField
-                      value={load.cargo?.commodity}
-                      onSave={(v) => updateField('commodity', v)}
-                      placeholder="General freight"
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Weight</p>
-                      <EditableField
-                        value={load.cargo?.weight_lbs?.toLocaleString()}
-                        onSave={(v) => updateField('weight_lbs', parseInt(v.replace(/,/g, '')))}
-                        suffix=" lbs"
-                        className="text-sm text-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Pieces</p>
-                      <EditableField
-                        value={load.cargo?.pieces?.toString()}
-                        onSave={(v) => updateField('pieces', parseInt(v))}
-                        className="text-sm text-gray-700"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Documents */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-400" />
-                    <h3 className="text-sm font-semibold text-gray-900">Documents</h3>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{documents.length}</span>
-                  </div>
-                  <button
-                    onClick={() => setShowUploadModal(true)}
-                    className="p-1 hover:bg-gray-100 rounded text-blue-600"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {documents.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {documents.map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => doc.viewUrl && window.open(doc.viewUrl, '_blank')}
-                        className="flex items-center gap-2 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer text-sm group"
-                      >
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        <span className="flex-1 truncate text-gray-700">{doc.file_name}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-gray-400 opacity-0 group-hover:opacity-100" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowUploadModal(true)}
-                    className="w-full py-4 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors"
-                  >
-                    Upload documents
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column - 40% */}
-            <div className="col-span-2 space-y-5">
-              {/* Assignment */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Truck className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">Assignment</h3>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Driver</p>
-                    <select
-                      value={load.driver_id || ''}
-                      onChange={(e) => updateField('driver_id', e.target.value || null)}
-                      className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400"
-                    >
-                      <option value="">Select driver...</option>
-                      {drivers.map(d => (
-                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Truck</p>
-                      <p className="text-sm text-gray-700">{load.truck?.unit_number || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Trailer</p>
-                      <p className="text-sm text-gray-700">{load.trailer?.unit_number || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <DollarSign className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">Billing</h3>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Status</p>
-                    <select
-                      value={load.billing_status || 'pending'}
-                      onChange={(e) => updateField('billing_status', e.target.value)}
-                      className="w-full text-sm bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400"
-                    >
-                      {billingOptions.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Revenue</p>
-                      <EditableField
-                        value={fmt(revenue)}
-                        onSave={(v) => updateField('revenue', parseFloat(v.replace(/[^0-9.-]/g, '')))}
-                        className="text-sm font-semibold text-gray-900"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Driver Pay</p>
-                      <EditableField
-                        value={fmt(driverPay)}
-                        onSave={(v) => updateField('driver_pay', parseFloat(v.replace(/[^0-9.-]/g, '')))}
-                        className="text-sm font-semibold text-gray-900"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Miles</p>
-                    <EditableField
-                      value={miles.toLocaleString()}
-                      onSave={(v) => updateField('miles', parseInt(v.replace(/,/g, '')))}
-                      className="text-sm text-gray-700"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
-                </div>
-                <textarea
-                  value={load.notes || ''}
-                  onChange={(e) => updateField('notes', e.target.value)}
-                  placeholder="Add notes..."
-                  rows={4}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 resize-none"
-                  style={{ minHeight: '120px' }}
-                />
-              </div>
-            </div>
-          </div>
             </>
           )}
         </div>

@@ -107,7 +107,10 @@ export const uploadDocument = async (file, options = {}, onProgress) => {
     notes
   });
 
-  return confirmData;
+  // Include the S3 key — callers (e.g. the expense form) need it to
+  // link the stored file (receipt_storage_path). confirmUpload's
+  // response intentionally omits storage_path.
+  return { ...confirmData, key };
 };
 
 /**

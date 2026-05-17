@@ -217,6 +217,22 @@ export const parseReceipt = async (file) => {
   return response.data;
 };
 
+/**
+ * Get a short-lived signed URL for an expense's stored receipt.
+ */
+export const getReceiptUrl = async (expenseId) => {
+  const response = await api.get(`/v1/expenses/${expenseId}/receipt-url`);
+  return response.data;
+};
+
+/**
+ * Chronological activity timeline for an expense (Cece's stamp + edits).
+ */
+export const getExpenseEvents = async (expenseId) => {
+  const response = await api.get(`/v1/expenses/${expenseId}/events`);
+  return response.data;
+};
+
 export default {
   // CRUD
   getExpenses,
@@ -239,5 +255,9 @@ export default {
   updateCategory,
   deleteCategory,
   // AI
-  parseReceipt
+  parseReceipt,
+  // Receipt
+  getReceiptUrl,
+  // Activity
+  getExpenseEvents
 };

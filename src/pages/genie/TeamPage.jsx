@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, Lock, Check, Sparkles } from 'lucide-react';
-import { GENIE_TEAM, GENIE_BUNDLE, MOCK_ACTIVITY } from '../../config/genieTeam';
+import { GENIE_TEAM, GENIE_BUNDLE } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
+import { getActiveAgents, getAgentActivity } from '../../api/agents.api';
 import { cn } from '../../lib/utils';
 
 /**
@@ -19,17 +21,46 @@ export default function GeniePageTeam() {
   const { orgSlug } = useParams();
   const basePath = `/o/${orgSlug}/genie`;
 
-  // MOCK: matches GenieShell.jsx — swap for real hook later.
-  const hired = new Set(['genie', 'sage', 'alex']);
-  const bundleActive = false;
+  // Real hire state from organization_agents. Genie ships free.
+  const [hired, setHired] = useState(new Set(['genie']));
+  const [bundleActive, setBundleActive] = useState(false);
+  const [recentBySlug, setRecentBySlug] = useState({});
+
+  useEffect(() => {
+    let alive = true;
+    getActiveAgents()
+      .then(async (res) => {
+        const active = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const slugs = active.map((r) => r.agent_slug).filter(Boolean);
+        if (!alive) return;
+        setBundleActive(slugs.includes('genie-suite'));
+        setHired(new Set(['genie', ...slugs]));
+
+        const fetchSlugs = [...new Set(['genie', ...slugs])];
+        const pairs = await Promise.all(
+          fetchSlugs.map((slug) =>
+            getAgentActivity(slug, { limit: 2 })
+              .then((r) => {
+                const payload = r?.data ?? r;
+                const list = payload?.actions ?? [];
+                return [slug, Array.isArray(list) ? list.slice(0, 2) : []];
+              })
+              .catch(() => [slug, []])
+          )
+        );
+        if (!alive) return;
+        setRecentBySlug(Object.fromEntries(pairs));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [orgSlug]);
 
   const formatPrice = (cents) => {
     if (!cents) return null;
     return `$${(cents / 100).toFixed(0)}/mo`;
   };
 
-  const recentActionsFor = (slug) =>
-    MOCK_ACTIVITY.filter((a) => a.agentSlug === slug).slice(0, 2);
+  const recentActionsFor = (slug) => recentBySlug[slug] || [];
 
   return (
     <div className="max-w-6xl">
@@ -123,8 +154,12 @@ export default function GeniePageTeam() {
                   </div>
                   {actions.map((a) => (
                     <div key={a.id} className="text-body-sm">
-                      <span className="text-text-primary font-medium">{a.action}</span>
-                      <span className="text-text-secondary"> — {a.summary}</span>
+                      <span className="text-text-primary font-medium capitalize">
+                        {String(a.action_type || 'action').replace(/_/g, ' ')}
+                      </span>
+                      {a.output_data?.summary && (
+                        <span className="text-text-secondary"> — {a.output_data.summary}</span>
+                      )}
                     </div>
                   ))}
                 </div>

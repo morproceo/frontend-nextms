@@ -33,6 +33,14 @@ export const getLoad = async (loadId) => {
 };
 
 /**
+ * Activity timeline for a load (status changes, edits, agent actions).
+ */
+export const getLoadEvents = async (loadId) => {
+  const response = await api.get(`/v1/loads/${loadId}/events`);
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Create a new load
  */
 export const createLoad = async (data) => {

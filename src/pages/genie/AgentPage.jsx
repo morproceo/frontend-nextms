@@ -1,13 +1,14 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUp, Lock, Sparkles, Settings as SettingsIcon, ArrowRight, ChevronDown, Mail, AlertCircle } from 'lucide-react';
-import { getAgent, MOCK_ACTIVITY, GENIE_TEAM } from '../../config/genieTeam';
+import { getAgent, GENIE_TEAM } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
 import { JobQueuePanel } from '../../components/genie/JobQueuePanel';
 import { AlexInbox } from '../../components/genie/AlexInbox';
 import { useOrg } from '../../contexts/OrgContext';
 import agentPoliciesApi from '../../api/agentPolicies.api';
 import orgEmailApi from '../../api/orgEmailConnections.api';
+import { getActiveAgents, getAgentActivity } from '../../api/agents.api';
 import { cn } from '../../lib/utils';
 
 /**
@@ -27,10 +28,46 @@ export default function AgentPage() {
   const navigate = useNavigate();
   const agent = getAgent(agentSlug);
 
-  // MOCK
-  const hired = new Set(['genie', 'sage', 'alex']);
-  const bundleActive = false;
-  const isHired = agent && (bundleActive || hired.has(agent.slug));
+  // Real hire state from organization_agents. Genie ships free.
+  const [hiredSlugs, setHiredSlugs] = useState(['genie']);
+  useEffect(() => {
+    let alive = true;
+    getActiveAgents()
+      .then((res) => {
+        if (!alive) return;
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        setHiredSlugs(['genie', ...rows.map((r) => r.agent_slug).filter(Boolean)]);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [orgSlug]);
+  const bundleActive = hiredSlugs.includes('genie-suite');
+  const isHired = agent && (bundleActive || hiredSlugs.includes(agent.slug));
+
+  // Real recent actions from agent_actions (replaces the old mock).
+  const [actions, setActions] = useState([]);
+  useEffect(() => {
+    if (!agent?.slug || !isHired) { setActions([]); return; }
+    let alive = true;
+    getAgentActivity(agent.slug, { limit: 25 })
+      .then((res) => {
+        if (!alive) return;
+        const payload = res?.data ?? res;
+        const list = payload?.actions ?? payload ?? [];
+        setActions(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setActions([]));
+    return () => { alive = false; };
+  }, [agent?.slug, isHired, orgSlug]);
+
+  const relTime = (d) => {
+    if (!d) return '';
+    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return new Date(d).toLocaleDateString();
+  };
 
   // On mobile the agent profile (tagline + What/Hands cards) pushed the
   // inbox — the primary surface — entirely below the fold. Collapse it
@@ -58,8 +95,6 @@ export default function AgentPage() {
       </div>
     );
   }
-
-  const actions = MOCK_ACTIVITY.filter((a) => a.agentSlug === agent.slug);
 
   return (
     <div className="max-w-3xl">
@@ -223,27 +258,56 @@ export default function AgentPage() {
           </div>
         ) : (
           <div className="divide-y divide-surface-tertiary">
-            {actions.map((a) => (
-              <div key={a.id} className="p-4">
-                <div className="text-body-sm">
-                  <span className="text-text-primary font-medium">{a.action}</span>
-                  <span className="text-text-secondary"> — {a.summary}</span>
-                </div>
-                {a.target && (
-                  <div className="mt-1 inline-block">
-                    <span className="text-[10px] uppercase tracking-wider text-text-tertiary bg-surface-secondary border border-surface-tertiary rounded-full px-2 py-0.5">
-                      {a.target}
+            {actions.map((a) => {
+              const title = String(a.action_type || 'action').replace(/_/g, ' ');
+              const summary = a.output_data?.summary || '';
+              return (
+                <div key={a.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-body-sm min-w-0">
+                      <span className="text-text-primary font-medium capitalize">{title}</span>
+                      {summary && (
+                        <span className="text-text-secondary"> — {summary}</span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-text-tertiary flex-shrink-0 whitespace-nowrap">
+                      {relTime(a.created_at)}
                     </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  {a.target_type && (
+                    <div className="mt-1 inline-block">
+                      <span className="text-[10px] uppercase tracking-wider text-text-tertiary bg-surface-secondary border border-surface-tertiary rounded-full px-2 py-0.5">
+                        {a.target_type}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
 
       {/* Composer OR hire CTA */}
-      {isHired ? (
+      {isHired && agent.slug === 'genie' ? (
+        <Link
+          to={`/o/${orgSlug}/genie/chat`}
+          className="group flex items-center gap-4 bg-surface-primary border border-surface-tertiary rounded-card p-5 hover:border-fuchsia-500/40 transition-colors"
+        >
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="text-body font-semibold text-text-primary">
+              Chat with {agent.name}
+            </div>
+            <div className="text-body-sm text-text-secondary">
+              Ask about loads, expenses, this week, or what the team's been doing.
+            </div>
+          </div>
+          <ArrowUp className="w-5 h-5 text-fuchsia-500 rotate-45 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      ) : isHired ? (
         <div className="bg-surface-primary border border-surface-tertiary rounded-card p-3">
           <div className="text-[10px] uppercase tracking-wider text-text-tertiary px-2 pb-2">
             Talk to {agent.name}

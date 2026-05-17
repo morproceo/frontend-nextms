@@ -96,10 +96,14 @@ const LoadStatusIcons = {
   [LoadStatus.NEW]: Package,
   [LoadStatus.BOOKED]: CheckCircle,
   [LoadStatus.DISPATCHED]: Send,
+  [LoadStatus.PICKED_UP]: Package,
   [LoadStatus.IN_TRANSIT]: Truck,
+  [LoadStatus.DELAYED]: Clock,
   [LoadStatus.DELIVERED]: CheckCircle,
+  [LoadStatus.REVIEW]: Clock,
   [LoadStatus.INVOICED]: DollarSign,
   [LoadStatus.PAID]: CheckCircle,
+  [LoadStatus.COMPLETED]: CheckCircle,
   [LoadStatus.CANCELLED]: AlertTriangle
 };
 
@@ -126,10 +130,12 @@ export const LoadStatusFlow = [
   LoadStatus.NEW,
   LoadStatus.BOOKED,
   LoadStatus.DISPATCHED,
+  LoadStatus.PICKED_UP,
   LoadStatus.IN_TRANSIT,
   LoadStatus.DELIVERED,
+  LoadStatus.REVIEW,
   LoadStatus.INVOICED,
-  LoadStatus.PAID
+  LoadStatus.COMPLETED
 ].map(status => LoadStatusConfig[status]);
 
 /**

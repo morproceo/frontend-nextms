@@ -92,6 +92,7 @@ import WrenchShell from './components/wrench/WrenchShell';
 // Genie Suite (six-agent AI team — separate ecosystem app)
 import GenieShell from './components/genie/GenieShell';
 import GenieTeamPage from './pages/genie/TeamPage';
+import GenieChatPage from './pages/genie/GenieChatPage';
 import GenieActivityFeedPage from './pages/genie/ActivityFeedPage';
 import GenieAgentPage from './pages/genie/AgentPage';
 import GenieHirePage from './pages/genie/HirePage';
@@ -591,6 +592,7 @@ export function Router() {
               landing surface — not chat. */}
           <Route path="/o/:orgSlug/genie" element={<OrgRoute><GenieShell /></OrgRoute>}>
             <Route index element={<GenieTeamPage />} />
+            <Route path="chat" element={<GenieChatPage />} />
             <Route path="activity" element={<GenieActivityFeedPage />} />
             <Route path="hire" element={<GenieHirePage />} />
             <Route path="settings" element={<GenieSettingsPage />} />

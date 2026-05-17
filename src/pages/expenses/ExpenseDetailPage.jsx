@@ -17,6 +17,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import uploadsApi from '../../api/uploads.api';
+import expensesApi from '../../api/expenses.api';
 import {
   ArrowLeft,
   Edit,
@@ -39,7 +40,8 @@ import {
   XCircle,
   AlertTriangle,
   ExternalLink,
-  Upload
+  Upload,
+  Sparkles
 } from 'lucide-react';
 
 // Icon mappings for entity types
@@ -73,6 +75,7 @@ export function ExpenseDetailPage() {
 
   // Local state
   const [receiptUrl, setReceiptUrl] = useState(null);
+  const [events, setEvents] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localError, setLocalError] = useState(null);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
@@ -80,12 +83,22 @@ export function ExpenseDetailPage() {
 
   // Fetch receipt URL when expense loads
   useEffect(() => {
-    if (expense?.has_receipt && expense?.receipt_storage_path) {
-      uploadsApi.getDocumentUrl(expense.id)
+    if (expense?.has_receipt) {
+      expensesApi.getReceiptUrl(expense.id)
         .then(res => setReceiptUrl(res.data?.url))
         .catch(err => console.error('Failed to get receipt URL:', err));
     }
-  }, [expense?.id, expense?.has_receipt, expense?.receipt_storage_path]);
+  }, [expense?.id, expense?.has_receipt]);
+
+  // Activity timeline (Cece's stamp + edits + status changes).
+  useEffect(() => {
+    if (!expense?.id) return;
+    let alive = true;
+    expensesApi.getExpenseEvents(expense.id)
+      .then(res => { if (alive) setEvents(res.data?.events || []); })
+      .catch(() => { if (alive) setEvents([]); });
+    return () => { alive = false; };
+  }, [expense?.id, expense?.status, expense?.updated_at]);
 
   const handleReceiptUpload = async (file) => {
     setUploadingReceipt(true);
@@ -427,27 +440,26 @@ export function ExpenseDetailPage() {
             <CardContent className="space-y-3">
               {/* Existing receipt */}
               {expense.has_receipt && (
-                <div className="flex items-center gap-3 p-3 bg-surface-secondary rounded-lg">
+                <a
+                  href={receiptUrl || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { if (!receiptUrl) e.preventDefault(); }}
+                  className={`flex items-center gap-3 p-3 bg-surface-secondary rounded-lg transition-colors ${
+                    receiptUrl ? 'hover:bg-surface-tertiary cursor-pointer' : 'cursor-default opacity-80'
+                  }`}
+                >
                   <Receipt className="w-5 h-5 text-accent flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-body-sm font-medium text-text-primary truncate">
-                      {expense.receipt_file_name || 'Receipt'}
+                      {expense.receipt?.file_name || 'Receipt'}
                     </p>
                     <p className="text-small text-text-tertiary">
-                      {expense.receipt_mime_type}
+                      {receiptUrl ? (expense.receipt?.mime_type || 'Open file') : 'Loading…'}
                     </p>
                   </div>
-                  {receiptUrl && (
-                    <a
-                      href={receiptUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent hover:text-accent/80 transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
-                </div>
+                  <ExternalLink className="w-4 h-4 text-accent flex-shrink-0" />
+                </a>
               )}
 
               {/* Upload area — always visible */}
@@ -499,12 +511,12 @@ export function ExpenseDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Created */}
+                {/* Created (always first) */}
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center flex-shrink-0">
                     <FileText className="w-4 h-4 text-text-secondary" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-body-sm text-text-primary">Created</p>
                     <p className="text-small text-text-tertiary">
                       {formatDateTime(expense.created_at)}
@@ -517,62 +529,55 @@ export function ExpenseDetailPage() {
                   </div>
                 </div>
 
-                {/* Submitted */}
-                {expense.submitted_at && (
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Send className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-body-sm text-text-primary">Submitted for Approval</p>
-                      <p className="text-small text-text-tertiary">
-                        {formatDateTime(expense.submitted_at)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Approved/Rejected */}
-                {expense.approved_at && (
-                  <div className="flex gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      expense.status === 'rejected' ? 'bg-red-100' : 'bg-green-100'
-                    }`}>
-                      {expense.status === 'rejected' ? (
-                        <XCircle className="w-4 h-4 text-red-600" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-body-sm text-text-primary">
-                        {expense.status === 'rejected' ? 'Rejected' : 'Approved'}
-                      </p>
-                      <p className="text-small text-text-tertiary">
-                        {formatDateTime(expense.approved_at)}
-                      </p>
-                      {expense.approvedBy && (
-                        <p className="text-small text-text-secondary">
-                          by {expense.approvedBy.email}
+                {events.map((ev) => {
+                  const isAgent = ev.actor_type === 'agent';
+                  const isApproval = ev.event_type === 'approval' ||
+                    (ev.field === 'status' && ev.new_value === 'approved');
+                  const Icon = isApproval
+                    ? CheckCircle
+                    : isAgent
+                      ? Sparkles
+                      : ev.event_type === 'receipt'
+                        ? Receipt
+                        : ev.event_type === 'fill' || ev.event_type === 'field_edit'
+                          ? Tag
+                          : ev.event_type === 'status_change'
+                            ? Send
+                            : FileText;
+                  const ring = isApproval
+                    ? 'bg-green-100 text-green-600'
+                    : isAgent
+                      ? 'bg-accent/10 text-accent'
+                      : 'bg-surface-secondary text-text-secondary';
+                  return (
+                    <div key={ev.id} className="flex gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ring}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-body-sm text-text-primary">
+                          {ev.note ||
+                            (ev.field
+                              ? `${ev.field}: ${ev.old_value ?? '—'} → ${ev.new_value ?? '—'}`
+                              : ev.event_type)}
                         </p>
-                      )}
+                        <p className="text-small text-text-tertiary">
+                          {formatDateTime(ev.created_at)}
+                        </p>
+                        {ev.actor_label && (
+                          <p className={`text-small ${isAgent ? 'text-accent font-medium' : 'text-text-secondary'}`}>
+                            {isAgent ? `${ev.actor_label} (AI bookkeeper)` : `by ${ev.actor_label}`}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })}
 
-                {/* Paid */}
-                {expense.status === 'paid' && expense.paid_at && (
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                      <DollarSign className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-body-sm text-text-primary">Marked as Paid</p>
-                      <p className="text-small text-text-tertiary">
-                        {formatDateTime(expense.paid_at)}
-                      </p>
-                    </div>
-                  </div>
+                {events.length === 0 && (
+                  <p className="text-small text-text-tertiary pl-11">
+                    No activity yet. Cece will stamp her review here.
+                  </p>
                 )}
               </div>
             </CardContent>

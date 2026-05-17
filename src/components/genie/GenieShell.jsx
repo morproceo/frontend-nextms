@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useParams } from 'react-router-dom';
 import {
   Users,
   Activity,
+  MessageCircle,
   ShoppingBag,
   Settings as SettingsIcon,
   ArrowLeft,
@@ -11,6 +13,7 @@ import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
 import { MobileTabBar } from '../ecosystem/MobileTabBar';
 import { GENIE_TEAM } from '../../config/genieTeam';
 import { AgentAvatar } from './AgentAvatar';
+import { getActiveAgents } from '../../api/agents.api';
 import { cn } from '../../lib/utils';
 
 /**
@@ -32,16 +35,28 @@ import { cn } from '../../lib/utils';
 export default function GenieShell() {
   const { orgSlug } = useParams();
 
-  // MOCK: in real impl this comes from `GET /v1/agents/active` returning
-  // a Set of agent_slug values, or from the `genie-suite` bundle being
-  // active on this org. Treat 'genie' as always-hired for now since she
-  // ships free.
-  const hired = new Set(['genie', 'sage', 'alex']);
-  const bundleActive = false;
+  // Real hire state from the org's organization_agents rows. Genie
+  // (CEO) ships free so she's always considered hired.
+  const [hired, setHired] = useState(new Set(['genie']));
+  const [bundleActive, setBundleActive] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getActiveAgents()
+      .then((res) => {
+        if (!alive) return;
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const slugs = rows.map((r) => r.agent_slug).filter(Boolean);
+        setBundleActive(slugs.includes('genie-suite'));
+        setHired(new Set(['genie', ...slugs]));
+      })
+      .catch(() => { /* keep default (genie only) on failure */ });
+  }, [orgSlug]);
 
   const basePath = `/o/${orgSlug}/genie`;
 
   const topNav = [
+    { label: 'Chat with Genie', to: `${basePath}/chat`, icon: MessageCircle },
     { label: 'Team', to: basePath, icon: Users, end: true },
     { label: 'Activity feed', to: `${basePath}/activity`, icon: Activity }
   ];

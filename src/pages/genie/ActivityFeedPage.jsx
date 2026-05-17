@@ -1,29 +1,70 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Activity, Filter } from 'lucide-react';
-import { GENIE_TEAM, MOCK_ACTIVITY, getAgent } from '../../config/genieTeam';
+import { GENIE_TEAM, getAgent } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
+import { getActiveAgents, getAgentActivity } from '../../api/agents.api';
 import { cn } from '../../lib/utils';
 
 /**
  * ActivityFeedPage — chronological log of what every agent has done.
  *
  * This is THE primary interaction model for the Suite: not chat, but the
- * timeline of agent actions ("4:42 AM — Ava — Bid accepted on Houston →
- * Atlanta. $2,840 net."). Each row is one agent_actions row.
+ * timeline of agent actions. Each row is one real `agent_actions` row,
+ * merged across every hired agent and sorted newest-first.
  *
- * Filters: chips at top let the user scope the feed to one agent. "All"
- * resets. Future filters: action type, date range.
- *
- * Mock data lives in genieTeam.js; swap for `GET /v1/agents/activity` once
- * the backend route exists.
+ * Filters: chips at top scope the feed to one agent. "All" resets.
  */
 export default function ActivityFeedPage() {
   const [filterSlug, setFilterSlug] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    getActiveAgents()
+      .then(async (res) => {
+        const active = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        const slugs = [
+          'genie',
+          ...active.map((r) => r.agent_slug).filter(Boolean)
+        ];
+        const unique = [...new Set(slugs)];
+        const results = await Promise.all(
+          unique.map((slug) =>
+            getAgentActivity(slug, { limit: 50 })
+              .then((r) => {
+                const payload = r?.data ?? r;
+                const list = payload?.actions ?? [];
+                return Array.isArray(list) ? list : [];
+              })
+              .catch(() => [])
+          )
+        );
+        if (!alive) return;
+        const merged = results
+          .flat()
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        setRows(merged);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setRows([]);
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const items = useMemo(() => {
-    if (!filterSlug) return MOCK_ACTIVITY;
-    return MOCK_ACTIVITY.filter((a) => a.agentSlug === filterSlug);
-  }, [filterSlug]);
+    if (!filterSlug) return rows;
+    return rows.filter((a) => a.agent_slug === filterSlug);
+  }, [filterSlug, rows]);
 
   return (
     <div className="max-w-3xl">
@@ -61,10 +102,14 @@ export default function ActivityFeedPage() {
       </div>
 
       {/* Feed */}
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="bg-surface-primary border border-surface-tertiary rounded-card p-12 text-center">
+          <div className="text-body-sm text-text-tertiary">Loading activity…</div>
+        </div>
+      ) : items.length === 0 ? (
         <div className="bg-surface-primary border border-surface-tertiary rounded-card p-12 text-center">
           <div className="text-body-sm text-text-tertiary">
-            No actions from this agent yet.
+            No actions yet — your team hasn't shipped anything.
           </div>
         </div>
       ) : (
@@ -97,10 +142,10 @@ function FilterChip({ active, onClick, label, agent }) {
 }
 
 function ActivityRow({ item }) {
-  const agent = getAgent(item.agentSlug);
+  const agent = getAgent(item.agent_slug);
   if (!agent) return null;
 
-  const time = new Date(item.at);
+  const time = new Date(item.created_at);
   const relative = formatRelativeTime(time);
   const absolute = time.toLocaleString('en-US', {
     month: 'short',
@@ -108,6 +153,9 @@ function ActivityRow({ item }) {
     hour: 'numeric',
     minute: '2-digit'
   });
+
+  const action = String(item.action_type || 'action').replace(/_/g, ' ');
+  const summary = item.output_data?.summary || '';
 
   return (
     <div className="p-4 flex items-start gap-3 hover:bg-surface-secondary/40 transition-colors">
@@ -127,14 +175,14 @@ function ActivityRow({ item }) {
         </div>
 
         <div className="mt-1 text-body-sm">
-          <span className="text-text-primary font-medium">{item.action}</span>
-          <span className="text-text-secondary"> — {item.summary}</span>
+          <span className="text-text-primary font-medium capitalize">{action}</span>
+          {summary && <span className="text-text-secondary"> — {summary}</span>}
         </div>
 
-        {item.target && (
+        {item.target_type && (
           <div className="mt-1.5 inline-block">
             <span className="text-[10px] uppercase tracking-wider text-text-tertiary bg-surface-secondary border border-surface-tertiary rounded-full px-2 py-0.5">
-              {item.target}
+              {item.target_type}
             </span>
           </div>
         )}
