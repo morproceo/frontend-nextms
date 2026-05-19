@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   LayoutDashboard,
+  LayoutGrid,
   Package,
   FileText,
   DollarSign,
@@ -19,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { cn, getInitials } from '../../lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/driver', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/driver/dashboard', icon: LayoutDashboard },
   { name: 'My Loads', href: '/driver/loads', icon: Package },
   { name: 'Documents', href: '/driver/documents', icon: FileText },
   { name: 'Expenses', href: '/driver/expenses', icon: Receipt },
@@ -30,7 +31,7 @@ const navigation = [
 
 // Mobile bottom navigation - most used for drivers
 const mobileNavigation = [
-  { name: 'Home', href: '/driver', icon: LayoutDashboard, exact: true },
+  { name: 'Home', href: '/driver/dashboard', icon: LayoutDashboard },
   { name: 'Loads', href: '/driver/loads', icon: Package },
   { name: 'FuelIQ', href: '/driver/fueliq', icon: Fuel },
   { name: 'Earnings', href: '/driver/earnings', icon: DollarSign },
@@ -82,6 +83,18 @@ export function DriverShell() {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
+          <Link
+            to="/driver"
+            onClick={() => setSidebarOpen(false)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-button mb-1',
+              'text-body-sm font-medium transition-colors',
+              'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+            )}
+          >
+            <LayoutGrid className="w-5 h-5" />
+            All modules
+          </Link>
           {navigation.map((item) => {
             const isActive = location.pathname === item.href ||
               (item.href !== '/driver' && location.pathname.startsWith(item.href));

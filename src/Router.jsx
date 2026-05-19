@@ -32,6 +32,9 @@ import InviteAcceptPage from './pages/auth/InviteAcceptPage';
 
 // Driver Portal
 import { DriverShell } from './components/layout/DriverShell';
+import { DriverLauncherShell } from './components/layout/DriverLauncherShell';
+import DriverLauncherPage from './pages/driver/DriverLauncherPage';
+import MyTruckPage from './pages/driver/MyTruckPage';
 import { InvestorShell } from './components/layout/InvestorShell';
 
 // Ecosystem Launcher
@@ -61,6 +64,19 @@ import AdminOrgDetailPage from './pages/admin/OrgDetailPage';
 // MorPro Direct (in-ecosystem app, Phase 1 + Phase 2)
 import DirectShell from './components/direct/DirectShell';
 import DirectDashboardPage from './pages/direct/DashboardPage';
+import ConnectShell from './components/connect/ConnectShell';
+import ConnectDashboardPage from './pages/connect/ConnectDashboardPage';
+import ConnectCarrierDashboard from './pages/connect/ConnectCarrierDashboard';
+import CandidatesPage from './pages/connect/CandidatesPage';
+import DriverProfilePage from './pages/connect/DriverProfilePage';
+import OnboardingListPage from './pages/connect/OnboardingListPage';
+import CarrierConnectProfilePage from './pages/connect/CarrierConnectProfilePage';
+import DriverConnectProfilePage from './pages/connect/DriverConnectProfilePage';
+import BrowseDriversPage from './pages/connect/BrowseDriversPage';
+import BrowseCarriersPage from './pages/connect/BrowseCarriersPage';
+import ConnectOnboardingPage from './pages/connect/OnboardingPage';
+import DriverConnectShell from './components/connect/DriverConnectShell';
+import MyTruckShell from './components/driver/MyTruckShell';
 import DirectMyProfilePage from './pages/direct/MyProfilePage';
 import DirectCarriersPage from './pages/direct/CarriersPage';
 import DirectCarrierDetailPage from './pages/direct/CarrierDetailPage';
@@ -365,10 +381,30 @@ export function Router() {
         {/* Driver invite acceptance (public - creates account) */}
         <Route path="/driver-invite/:token" element={<DriverInviteAcceptPage />} />
 
-        {/* Driver Portal (protected, uses DriverShell) */}
+        {/* Driver Portal (protected).
+            /driver = launcher landing in the ecosystem chrome (dark,
+            driver-variant EcosystemHeader). The tool pages keep the
+            working DriverShell; the launcher tiles + brand link return
+            here to switch tools. */}
         <Route element={<ProtectedRoute />}>
+          <Route path="/driver" element={<DriverLauncherShell />}>
+            <Route index element={<DriverLauncherPage />} />
+          </Route>
+          {/* MorPro Connect — its own ecosystem app shell on the driver
+              side, same chrome/color as the carrier ConnectShell. */}
+          <Route path="/driver/connect" element={<DriverConnectShell />}>
+            <Route index element={<ConnectDashboardPage />} />
+            <Route path="carriers" element={<BrowseCarriersPage />} />
+            <Route path="profile" element={<DriverConnectProfilePage />} />
+            <Route path="onboarding/:id" element={<ConnectOnboardingPage />} />
+          </Route>
+          {/* My Truck — own ecosystem app shell (standalone, will be a
+              paid module for org-less drivers). */}
+          <Route path="/driver/my-truck" element={<MyTruckShell />}>
+            <Route index element={<MyTruckPage />} />
+          </Route>
           <Route path="/driver" element={<DriverShell />}>
-            <Route index element={<DriverDashboard />} />
+            <Route path="dashboard" element={<DriverDashboard />} />
             <Route path="loads" element={<DriverLoadsPage />} />
             <Route path="loads/:loadId" element={<DriverLoadDetailPage />} />
             <Route path="documents" element={<DriverDocumentsPage />} />
@@ -569,6 +605,19 @@ export function Router() {
             <Route path="listings/:id" element={<SpottyListingDetailPage />} />
             <Route path="bookings" element={<SpottyBookingsPage />} />
             <Route path="payments" element={<SpottyPaymentsPage />} />
+          </Route>
+
+          {/* MorPro Connect — driver↔carrier hiring network. Phase 1 ships
+              the shell + dashboard (availability + connections). Feature-
+              flag gated tile; additive — does not touch membership/network. */}
+          <Route path="/o/:orgSlug/connect" element={<OrgRoute><ConnectShell /></OrgRoute>}>
+            <Route index element={<ConnectCarrierDashboard />} />
+            <Route path="drivers" element={<BrowseDriversPage />} />
+            <Route path="drivers/:userId" element={<DriverProfilePage />} />
+            <Route path="candidates" element={<CandidatesPage />} />
+            <Route path="profile" element={<CarrierConnectProfilePage />} />
+            <Route path="onboarding" element={<OnboardingListPage />} />
+            <Route path="onboarding/:id" element={<ConnectOnboardingPage />} />
           </Route>
 
           {/* MorPro Wrench — AI fleet mechanic. Same slim-shell pattern as

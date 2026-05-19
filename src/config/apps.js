@@ -1,4 +1,4 @@
-import { Navigation, ParkingCircle, Waypoints, Wrench, Sparkles, ShieldCheck } from 'lucide-react';
+import { Navigation, ParkingCircle, Waypoints, Wrench, Sparkles, ShieldCheck, Network } from 'lucide-react';
 
 /**
  * MorPro Cloud module registry.
@@ -68,6 +68,20 @@ export const APPS = [
     href: ({ orgSlug }) => `/o/${orgSlug}/direct`,
     eligible: ({ role, org }) =>
       org?.feature_flags?.morproDirect === true &&
+      ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
+  },
+  {
+    id: 'connect',
+    name: 'MorPro Connect',
+    tagline: 'Hire & connect verified drivers',
+    icon: Network,
+    tint: '#10B981', // emerald — the people network
+    pricing: 'free',
+    href: ({ orgSlug }) => `/o/${orgSlug}/connect`,
+    // Feature-flag gated, OFF by default — invisible until explicitly
+    // enabled per org (org.feature_flags.morproConnect). Zero blast radius.
+    eligible: ({ role, org }) =>
+      org?.feature_flags?.morproConnect === true &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
   },
   {

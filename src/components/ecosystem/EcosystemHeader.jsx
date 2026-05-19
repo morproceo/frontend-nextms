@@ -23,13 +23,19 @@ import { RoleLabels } from '@/enums';
  * Pass `appName` from inside an app shell to render "morpro · AppName".
  * Omit it on the launcher home where the user IS at the morpro root.
  */
-export function EcosystemHeader({ appName, appId }) {
+export function EcosystemHeader({ appName, appId, variant }) {
   const { user, logout, organizations } = useAuth();
   const { currentOrg } = useOrg();
   const { orgSlug } = useParams();
   const navigate = useNavigate();
   const slug = orgSlug || currentOrg?.slug || organizations?.[0]?.slug;
   const [genieOpen, setGenieOpen] = useState(false);
+
+  // Driver portal has no org context: hide the org switcher, the org
+  // app-grid, and Genie (org-scoped). Brand returns to the driver
+  // launcher instead of an org launcher.
+  const isDriver = variant === 'driver';
+  const brandTo = isDriver ? '/driver' : slug ? `/o/${slug}/launcher` : '/';
 
   const fullName =
     [user?.first_name, user?.last_name].filter(Boolean).join(' ') ||
@@ -49,7 +55,7 @@ export function EcosystemHeader({ appName, appId }) {
         {/* Brand */}
         <div className="flex items-center min-w-0 gap-3">
           <Link
-            to={slug ? `/o/${slug}/launcher` : '/'}
+            to={brandTo}
             className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0"
             aria-label="morpro home"
           >
@@ -71,9 +77,11 @@ export function EcosystemHeader({ appName, appId }) {
 
         {/* Right cluster */}
         <div className="flex items-center gap-2">
-          <OrgSwitcher />
-          <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
-          <AppGridMenu currentAppId={appId} />
+          {!isDriver && <OrgSwitcher />}
+          {!isDriver && (
+            <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
+          )}
+          {!isDriver && <AppGridMenu currentAppId={appId} />}
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
@@ -133,7 +141,7 @@ export function EcosystemHeader({ appName, appId }) {
                   <User className="w-4 h-4" />
                   Account
                 </DropdownMenu.Item>
-                {currentOrg && (
+                {!isDriver && currentOrg && (
                   <DropdownMenu.Item
                     className="flex items-center gap-2 px-2 py-2 rounded-chip cursor-pointer hover:bg-surface-secondary outline-none text-body-sm text-text-secondary"
                     onSelect={() => navigate(`/o/${currentOrg.slug}/settings`)}
@@ -158,7 +166,9 @@ export function EcosystemHeader({ appName, appId }) {
         </div>
       </div>
 
-      <GeniePanel open={genieOpen} onClose={() => setGenieOpen(false)} />
+      {!isDriver && (
+        <GeniePanel open={genieOpen} onClose={() => setGenieOpen(false)} />
+      )}
     </header>
   );
 }
