@@ -127,7 +127,10 @@ export function useFuelCard(cardId, options = {}) {
 
 export function useFuelTransactions(options = {}) {
   const { autoFetch = true } = options;
-  const { transactions, total, loading, error, fetchTransactions } = useFuelTransactionsList();
+  const {
+    transactions, total, page, pageSize, totalPages,
+    loading, error, fetchTransactions, goToPage
+  } = useFuelTransactionsList();
   const mutations = useFuelTransactionMutations();
   const workflow = useFuelWorkflow();
   const { exportTransactions } = useFuelExport();
@@ -224,6 +227,10 @@ export function useFuelTransactions(options = {}) {
   return {
     transactions,
     total,
+    page,
+    pageSize,
+    totalPages,
+    goToPage,
     loading,
     error,
     filters,

@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { Pager } from '../../components/ui/Pager';
 import {
   Plus,
   Upload,
@@ -58,7 +59,11 @@ export function FuelTransactionsPage() {
     bulkVerify,
     bulkConfirm,
     exportTransactions,
-    workflowLoading
+    workflowLoading,
+    page,
+    pageSize,
+    totalPages,
+    goToPage
   } = useFuelTransactions();
 
   const { drivers } = useDriversList();
@@ -66,8 +71,6 @@ export function FuelTransactionsPage() {
 
   // Local state
   const [selectedIds, setSelectedIds] = useState([]);
-  const [page, setPage] = useState(1);
-  const pageSize = 50;
 
   // Format helpers
   const formatDate = (date) => {
@@ -152,9 +155,6 @@ export function FuelTransactionsPage() {
       console.error('Export failed:', err);
     }
   };
-
-  // Pagination
-  const totalPages = Math.ceil((total || transactions.length) / pageSize);
 
   // Sort header component
   const SortHeader = ({ field, children }) => (
@@ -469,32 +469,16 @@ export function FuelTransactionsPage() {
       </Card>
 
       {/* Pagination & Summary */}
-      <div className="flex items-center justify-between text-body-sm text-text-secondary">
-        <span>Showing {transactions.length} of {total || transactions.length} transactions</span>
-        {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-body-sm text-text-primary">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
+      <div className="flex items-center justify-between text-body-sm text-text-secondary flex-wrap gap-3">
+        <span>
+          Showing {(page - 1) * pageSize + 1}–{(page - 1) * pageSize + transactions.length} of {total}
+          {totalPages > 1 && <span className="text-text-tertiary"> · Page {page} of {totalPages}</span>}
+        </span>
       </div>
+
+      {totalPages > 1 && (
+        <Pager page={page} totalPages={totalPages} loading={loading} onChange={goToPage} />
+      )}
     </div>
   );
 }

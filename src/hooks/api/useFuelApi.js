@@ -3,7 +3,7 @@
  * Wraps fuel API calls with loading/error state
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useApiState, useMutation } from './useApiRequest';
 import * as fuelApi from '../../api/fuel.api';
 
@@ -99,22 +99,38 @@ export function useFuelCardAssignments(cardId) {
 // FUEL TRANSACTIONS
 // ============================================
 
+const FUEL_PAGE_SIZE = 50;
+
 export function useFuelTransactionsList() {
+  const [page, setPage] = useState(1);
   const { data, loading, error, fetch, clearError } = useApiState(
-    (filters) => fuelApi.getFuelTransactions(filters),
-    { initialData: { transactions: [], total: 0 } }
+    (filters) => fuelApi.getFuelTransactions({ limit: FUEL_PAGE_SIZE, offset: 0, ...filters }),
+    { initialData: { transactions: [], total: 0, limit: FUEL_PAGE_SIZE, offset: 0 } }
   );
 
-  const fetchTransactions = useCallback((filters = {}) => {
-    return fetch(filters);
+  // Page 1 = offset 0; replaces the list every time.
+  const fetchTransactions = useCallback((filters = {}, targetPage = 1) => {
+    const safePage = Math.max(1, targetPage);
+    setPage(safePage);
+    return fetch({ limit: FUEL_PAGE_SIZE, offset: (safePage - 1) * FUEL_PAGE_SIZE, ...filters });
   }, [fetch]);
+
+  const goToPage = useCallback((targetPage, filters = {}) => {
+    return fetchTransactions(filters, targetPage);
+  }, [fetchTransactions]);
+
+  const total = data?.total || 0;
 
   return {
     transactions: data?.transactions || [],
-    total: data?.total || 0,
+    total,
+    page,
+    pageSize: FUEL_PAGE_SIZE,
+    totalPages: Math.max(1, Math.ceil(total / FUEL_PAGE_SIZE)),
     loading,
     error,
     fetchTransactions,
+    goToPage,
     clearError
   };
 }
