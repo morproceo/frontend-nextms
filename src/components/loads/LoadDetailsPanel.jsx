@@ -11,11 +11,14 @@ import { LoadStatus } from '../../enums/loadStatus';
 
 // Full lifecycle the Status card lets you pick from (ordered), incl. the
 // manual side-states. Draft/paid are appended only if a load is in them.
+// Full status list shown in the panel's status dropdown. Users can pick
+// any value here — forward or backward — including PAID. Backend allows
+// arbitrary transitions; the activity timeline preserves the audit trail.
 const STATUS_ORDER = [
   LoadStatus.NEW, LoadStatus.BOOKED, LoadStatus.DISPATCHED,
   LoadStatus.PICKED_UP, LoadStatus.IN_TRANSIT, LoadStatus.DELAYED,
   LoadStatus.DELIVERED, LoadStatus.REVIEW, LoadStatus.INVOICED,
-  LoadStatus.COMPLETED, LoadStatus.CANCELLED
+  LoadStatus.PAID, LoadStatus.COMPLETED, LoadStatus.CANCELLED
 ];
 
 /**

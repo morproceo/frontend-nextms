@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 
 // Build status flow from centralized config (ordered for UI flow)
-const statusFlowOrder = ['new', 'booked', 'dispatched', 'picked_up', 'in_transit', 'delivered', 'review', 'invoiced', 'completed'];
+const statusFlowOrder = ['new', 'booked', 'dispatched', 'picked_up', 'in_transit', 'delivered', 'review', 'invoiced', 'paid', 'completed'];
 
 // Color class mapping - Tailwind needs complete class names at build time
 const statusColorClasses = {
