@@ -123,6 +123,25 @@ export function ExpenseDetailPage() {
     }
   };
 
+  const handleReceiptRemove = async () => {
+    if (!window.confirm('Remove this receipt? The file will be deleted from storage.')) return;
+    setUploadingReceipt(true);
+    try {
+      await updateExpense({
+        receipt_storage_path: null,
+        receipt_file_name: null,
+        receipt_mime_type: null
+      });
+      setReceiptUrl(null);
+      refetch();
+    } catch (err) {
+      console.error('Failed to remove receipt:', err);
+      setLocalError('Failed to remove receipt: ' + (err.message || 'Unknown error'));
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
   const handleSubmitForApproval = async () => {
     try {
       await submitForApproval();
@@ -440,26 +459,38 @@ export function ExpenseDetailPage() {
             <CardContent className="space-y-3">
               {/* Existing receipt */}
               {expense.has_receipt && (
-                <a
-                  href={receiptUrl || undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => { if (!receiptUrl) e.preventDefault(); }}
-                  className={`flex items-center gap-3 p-3 bg-surface-secondary rounded-lg transition-colors ${
-                    receiptUrl ? 'hover:bg-surface-tertiary cursor-pointer' : 'cursor-default opacity-80'
-                  }`}
-                >
-                  <Receipt className="w-5 h-5 text-accent flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-sm font-medium text-text-primary truncate">
-                      {expense.receipt?.file_name || 'Receipt'}
-                    </p>
-                    <p className="text-small text-text-tertiary">
-                      {receiptUrl ? (expense.receipt?.mime_type || 'Open file') : 'Loading…'}
-                    </p>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-accent flex-shrink-0" />
-                </a>
+                <div className="flex items-center gap-2 p-3 bg-surface-secondary rounded-lg">
+                  <a
+                    href={receiptUrl || undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => { if (!receiptUrl) e.preventDefault(); }}
+                    className={`flex items-center gap-3 flex-1 min-w-0 transition-colors ${
+                      receiptUrl ? 'hover:opacity-80 cursor-pointer' : 'cursor-default opacity-80'
+                    }`}
+                  >
+                    <Receipt className="w-5 h-5 text-accent flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm font-medium text-text-primary truncate">
+                        {expense.receipt?.file_name || 'Receipt'}
+                      </p>
+                      <p className="text-small text-text-tertiary">
+                        {receiptUrl ? (expense.receipt?.mime_type || 'Open file') : 'Loading…'}
+                      </p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-accent flex-shrink-0" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleReceiptRemove}
+                    disabled={uploadingReceipt}
+                    title="Remove receipt"
+                    aria-label="Remove receipt"
+                    className="p-2 rounded-lg text-text-tertiary hover:text-error hover:bg-error/10 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               )}
 
               {/* Upload area — always visible */}
