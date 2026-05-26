@@ -8,10 +8,11 @@
  * - Component focuses on rendering
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useLoads } from '../../hooks';
+import loadsApi from '../../api/loads.api';
 import {
   LoadStatusConfig,
   BillingStatusConfig,
@@ -41,7 +42,10 @@ import {
   DollarSign,
   TrendingUp,
   ArrowUpDown,
-  ListFilter
+  ListFilter,
+  Camera,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 export function LoadsListPage() {
@@ -67,6 +71,30 @@ export function LoadsListPage() {
 
   // Modal state (UI concern, stays in component)
   const [showLoadModal, setShowLoadModal] = useState(false);
+  const [loadPrefill, setLoadPrefill] = useState(null);
+  // Add-load bottom sheet (scan rate-con vs manual)
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState(null);
+  const rateConInputRef = useRef(null);
+
+  const handleScanRateCon = async (file) => {
+    if (!file) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const result = await loadsApi.parseRateCon(file);
+      const extracted = result?.data || result || {};
+      setLoadPrefill(extracted);
+      setShowAddSheet(false);
+      setShowLoadModal(true);
+    } catch (err) {
+      console.error('Rate-con scan failed:', err);
+      setScanError('Could not read that rate confirmation. Try a clearer scan or enter manually.');
+    } finally {
+      setScanning(false);
+    }
+  };
 
   // Event handlers
   const handleLoadClick = (loadId) => {
@@ -190,7 +218,7 @@ export function LoadsListPage() {
           <Badge variant="gray" size="sm" className="hidden sm:inline-flex">{stats.total}</Badge>
         </div>
 
-        <Button onClick={() => setShowLoadModal(true)} className="shrink-0">
+        <Button onClick={() => setShowAddSheet(true)} className="shrink-0">
           <Plus className="w-4 h-4 sm:mr-2" />
           <span className="hidden sm:inline">New Load</span>
         </Button>
@@ -199,8 +227,9 @@ export function LoadsListPage() {
       {/* ── Metrics row — operational view of the load board ─────────────
           4 status-bucket cards + 2 financial KPIs. The status buckets are
           clickable shortcuts into the existing status filter (clicking the
-          same bucket again clears back to "all"). */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          same bucket again clears back to "all"). Horizontal scroll on
+          mobile so they take ~70px instead of half the screen. */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
         {metricBuckets.map((b) => {
           const isActive = activeBucket === b.key;
           const Icon = b.icon;
@@ -208,60 +237,66 @@ export function LoadsListPage() {
             <button
               key={b.key}
               onClick={() => setStatusFilter(isActive ? 'all' : b.statuses[0])}
-              className={`group relative text-left rounded-2xl p-3.5 border transition-all ${
+              className={`group relative rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border transition-all flex flex-col sm:block items-center sm:items-stretch text-center sm:text-left ${
                 isActive
                   ? 'border-transparent shadow-card-hover'
                   : 'bg-white border-surface-tertiary hover:border-surface-tertiary hover:shadow-card'
               }`}
               style={isActive ? { backgroundColor: `${b.tint}10`, borderColor: `${b.tint}40` } : undefined}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between w-full sm:mb-2 mb-1">
                 <span
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: `${b.tint}1a`, color: b.tint }}
                 >
-                  <Icon className="w-4 h-4" strokeWidth={2} />
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
                 </span>
                 {isActive && (
-                  <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: b.tint }}>
+                  <span className="hidden sm:inline text-[10px] uppercase tracking-wider font-semibold" style={{ color: b.tint }}>
                     Filtered
                   </span>
                 )}
               </div>
-              <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums">
+              <div className="text-base sm:text-2xl font-semibold text-text-primary leading-tight sm:leading-none tabular-nums">
                 {b.count}
               </div>
-              <div className="text-[11px] text-text-tertiary mt-1 font-medium">{b.label}</div>
+              <div className="text-[9px] sm:text-[11px] text-text-tertiary mt-0.5 sm:mt-1 font-medium uppercase sm:normal-case tracking-wide sm:tracking-normal truncate w-full">
+                {b.label}
+              </div>
             </button>
           );
         })}
 
         {/* Revenue (filtered view) */}
-        <div className="rounded-2xl p-3.5 border border-surface-tertiary bg-white">
-          <div className="flex items-center justify-between mb-2">
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" strokeWidth={2} />
+        <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-surface-tertiary bg-white flex flex-col sm:block items-center sm:items-stretch text-center sm:text-left">
+          <div className="flex items-center justify-between w-full sm:mb-2 mb-1">
+            <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
             </span>
           </div>
-          <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums truncate" title={formatCurrency(filteredStats.totalRevenue)}>
+          <div className="text-base sm:text-2xl font-semibold text-text-primary leading-tight sm:leading-none tabular-nums truncate w-full" title={formatCurrency(filteredStats.totalRevenue)}>
             {formatCurrency(filteredStats.totalRevenue)}
           </div>
-          <div className="text-[11px] text-text-tertiary mt-1 font-medium">
-            Revenue · {filteredStats.count} {filteredStats.count === 1 ? 'load' : 'loads'}
+          <div className="text-[9px] sm:text-[11px] text-text-tertiary mt-0.5 sm:mt-1 font-medium uppercase sm:normal-case tracking-wide sm:tracking-normal truncate w-full">
+            <span className="sm:hidden">Revenue</span>
+            <span className="hidden sm:inline">Revenue · {filteredStats.count} {filteredStats.count === 1 ? 'load' : 'loads'}</span>
           </div>
         </div>
 
         {/* RPM (whole org, not filtered) */}
-        <div className="rounded-2xl p-3.5 border border-surface-tertiary bg-white">
-          <div className="flex items-center justify-between mb-2">
-            <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" strokeWidth={2} />
+        <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-surface-tertiary bg-white flex flex-col sm:block items-center sm:items-stretch text-center sm:text-left">
+          <div className="flex items-center justify-between w-full sm:mb-2 mb-1">
+            <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={2} />
             </span>
           </div>
-          <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums">
+          <div className="text-base sm:text-2xl font-semibold text-text-primary leading-tight sm:leading-none tabular-nums">
             ${(stats.rpm || 0).toFixed(2)}
           </div>
-          <div className="text-[11px] text-text-tertiary mt-1 font-medium">RPM · all loads</div>
+          <div className="text-[9px] sm:text-[11px] text-text-tertiary mt-0.5 sm:mt-1 font-medium uppercase sm:normal-case tracking-wide sm:tracking-normal truncate w-full">
+            <span className="sm:hidden">RPM</span>
+            <span className="hidden sm:inline">RPM · all loads</span>
+          </div>
         </div>
       </div>
 
@@ -376,7 +411,7 @@ export function LoadsListPage() {
                 </p>
               </div>
               {allLoads.length === 0 && (
-                <Button onClick={() => setShowLoadModal(true)} className="mt-2">
+                <Button onClick={() => setShowAddSheet(true)} className="mt-2">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Load
                 </Button>
@@ -495,7 +530,7 @@ export function LoadsListPage() {
                         </p>
                       </div>
                       {allLoads.length === 0 && (
-                        <Button onClick={() => setShowLoadModal(true)} className="mt-2">
+                        <Button onClick={() => setShowAddSheet(true)} className="mt-2">
                           <Plus className="w-4 h-4 mr-2" />
                           Create Load
                         </Button>
@@ -655,9 +690,97 @@ export function LoadsListPage() {
       {/* New Load Modal */}
       <LoadFormModal
         isOpen={showLoadModal}
-        onClose={() => setShowLoadModal(false)}
+        onClose={() => { setShowLoadModal(false); setLoadPrefill(null); }}
         onSuccess={handleCreateSuccess}
+        prefill={loadPrefill}
       />
+
+      {/* ── New Load bottom sheet — scan rate-con vs manual ───────────── */}
+      {showAddSheet && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => { setShowAddSheet(false); setScanError(null); }}
+          />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+            <div className="p-6">
+              <h2 className="text-lg font-semibold text-text-primary text-center mb-1">New Load</h2>
+              <p className="text-small text-text-tertiary text-center mb-6">How would you like to add it?</p>
+
+              {scanError && (
+                <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg">
+                  <p className="text-small text-error">{scanError}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {/* Scan Rate Confirmation (AI) */}
+                <button
+                  onClick={() => rateConInputRef.current?.click()}
+                  disabled={scanning}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-accent/20 bg-accent/5 hover:bg-accent/10 hover:border-accent/40 transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                    {scanning
+                      ? <Loader2 className="w-6 h-6 text-accent animate-spin" />
+                      : <Camera className="w-6 h-6 text-accent" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-text-primary">{scanning ? 'Scanning...' : 'Scan Rate Confirmation'}</span>
+                      <Sparkles className="w-3.5 h-3.5 text-accent" />
+                    </div>
+                    <p className="text-small text-text-secondary mt-0.5">
+                      {scanning ? 'AI is reading your rate-con' : 'Upload or photograph — AI fills the load form'}
+                    </p>
+                  </div>
+                </button>
+
+                <input
+                  ref={rateConInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  capture="environment"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleScanRateCon(file);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+
+                {/* Manual Entry */}
+                <button
+                  onClick={() => {
+                    setShowAddSheet(false);
+                    setLoadPrefill(null);
+                    setShowLoadModal(true);
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-surface-tertiary hover:border-gray-300 hover:bg-surface-secondary transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-surface-secondary flex items-center justify-center shrink-0">
+                    <FileText className="w-6 h-6 text-text-secondary" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-text-primary">Manual Entry</span>
+                    <p className="text-small text-text-secondary mt-0.5">Fill in load details yourself</p>
+                  </div>
+                </button>
+              </div>
+
+              <button
+                onClick={() => { setShowAddSheet(false); setScanError(null); }}
+                className="w-full mt-4 py-3 text-body-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

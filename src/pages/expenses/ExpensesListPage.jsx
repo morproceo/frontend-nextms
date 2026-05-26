@@ -318,88 +318,90 @@ export function ExpensesListPage() {
             </div>
           </Card>
         ) : (
-          expenses.map((expense) => {
-            const statusConfig = expense.statusConfig || getStatusConfig(ExpenseStatusConfig, expense.status);
-            const categoryConfig = expense.categoryConfig || ExpenseCategoryConfig[expense.category];
+          // QuickBooks-style rows: round category icon on the left, vendor +
+          // category text + date stacked, amount right-aligned in red (debits).
+          // Status pill + actions only appear when contextually relevant.
+          <div className="bg-white rounded-xl border border-surface-tertiary overflow-hidden divide-y divide-surface-tertiary/70">
+            {expenses.map((expense) => {
+              const statusConfig = expense.statusConfig || getStatusConfig(ExpenseStatusConfig, expense.status);
+              const categoryConfig = expense.categoryConfig || ExpenseCategoryConfig[expense.category];
+              const CategoryIcon = categoryConfig?.icon || Receipt;
+              const pendingApproval = canApprove && expense.status === 'pending_approval';
 
-            return (
-              <div
-                key={expense.id}
-                onClick={() => navigate(orgUrl(`/expenses/${expense.id}`))}
-                className="bg-white rounded-xl p-4 border border-surface-tertiary active:scale-[0.98] transition-transform cursor-pointer"
-              >
-                {/* Top Row */}
-                <div className="flex items-start justify-between mb-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-text-primary truncate">{expense.vendor || 'No vendor'}</p>
-                    {expense.description && (
-                      <p className="text-small text-text-tertiary truncate">{expense.description}</p>
-                    )}
+              return (
+                <div
+                  key={expense.id}
+                  onClick={() => navigate(orgUrl(`/expenses/${expense.id}`))}
+                  className="flex items-center gap-3 px-4 py-3.5 active:bg-surface-secondary/60 cursor-pointer"
+                >
+                  {/* Category icon — accent-outlined circle, QuickBooks style */}
+                  <div className="w-11 h-11 rounded-full border-2 border-accent/40 bg-accent/5 flex items-center justify-center shrink-0">
+                    <CategoryIcon className="w-5 h-5 text-accent" />
                   </div>
-                  <span className="font-semibold text-text-primary ml-3">{formatCurrency(expense.amount)}</span>
-                </div>
 
-                {/* Middle Row */}
-                <div className="flex items-center gap-3 mb-3 text-small">
-                  <div className="flex items-center gap-1 text-text-secondary">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>{formatDate(expense.date)}</span>
-                  </div>
-                  <span className="text-text-tertiary">•</span>
-                  <span className="text-text-secondary">{categoryConfig?.label || expense.category}</span>
-                  {expense.has_receipt && (
-                    <>
-                      <span className="text-text-tertiary">•</span>
-                      <Receipt className="w-3.5 h-3.5 text-accent" />
-                    </>
-                  )}
-                </div>
-
-                {/* Bottom Row */}
-                <div className="flex items-center justify-between">
-                  <Badge variant={statusConfig.variant || 'gray'} size="sm">
-                    {statusConfig.label}
-                  </Badge>
-
-                  {/* Row Actions (approval + delete) */}
-                  {(canApprove || canDelete) && (
-                    <div className="flex items-center gap-2">
-                      {canApprove && expense.status === 'pending_approval' && (
+                  {/* Vendor + category + date */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body font-semibold text-text-primary truncate">
+                      {expense.vendor || 'No vendor'}
+                    </p>
+                    <p className="text-small text-accent font-medium truncate">
+                      {categoryConfig?.label || expense.category || 'Uncategorized'}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary mt-0.5">
+                      <span>{formatDate(expense.date)}</span>
+                      {expense.has_receipt && (
                         <>
-                          <button
-                            onClick={(e) => handleApprove(e, expense.id)}
-                            className="p-2 bg-success/10 rounded-lg text-success"
-                            disabled={workflowLoading}
-                            title="Approve"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => handleReject(e, expense.id)}
-                            className="p-2 bg-error/10 rounded-lg text-error"
-                            disabled={workflowLoading}
-                            title="Reject"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <span>·</span>
+                          <span className="flex items-center gap-0.5"><Receipt className="w-3 h-3" /> Receipt</span>
                         </>
                       )}
-                      {canDelete && (
-                        <button
-                          onClick={(e) => handleDelete(e, expense)}
-                          className="p-2 bg-error/10 rounded-lg text-error"
-                          disabled={mutating}
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {statusConfig.label && statusConfig.value !== 'paid' && (
+                        <>
+                          <span>·</span>
+                          <span className={[
+                            statusConfig.variant === 'green' && 'text-emerald-600',
+                            statusConfig.variant === 'amber' && 'text-amber-600',
+                            (statusConfig.variant === 'yellow') && 'text-amber-600',
+                            statusConfig.variant === 'red' && 'text-red-600',
+                            statusConfig.variant === 'blue' && 'text-blue-600'
+                          ].filter(Boolean).join(' ') || 'text-text-tertiary'}>
+                            {statusConfig.label}
+                          </span>
+                        </>
                       )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Amount + inline actions when something needs attention */}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-body font-semibold text-red-600 tabular-nums">
+                      −{formatCurrency(expense.amount).replace(/^-/, '')}
+                    </span>
+                    {pendingApproval && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => handleApprove(e, expense.id)}
+                          className="p-1.5 bg-emerald-50 rounded-md text-emerald-600"
+                          disabled={workflowLoading}
+                          title="Approve"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => handleReject(e, expense.id)}
+                          className="p-1.5 bg-red-50 rounded-md text-red-600"
+                          disabled={workflowLoading}
+                          title="Reject"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -433,6 +435,7 @@ export function ExpensesListPage() {
                 expenses.map((expense) => {
                   const statusConfig = expense.statusConfig || getStatusConfig(ExpenseStatusConfig, expense.status);
                   const categoryConfig = expense.categoryConfig || ExpenseCategoryConfig[expense.category];
+                  const CategoryIcon = categoryConfig?.icon || Receipt;
                   const entityConfig = expense.entityTypeConfig || EntityTypeConfig[expense.entity_type];
 
                   return (
@@ -445,14 +448,22 @@ export function ExpensesListPage() {
                         {formatDate(expense.date)}
                       </td>
                       <td className="px-3 py-3">
-                        <span className="text-text-primary font-medium">
-                          {expense.vendor || '-'}
-                        </span>
-                        {expense.description && (
-                          <p className="text-small text-text-tertiary truncate max-w-[200px]">
-                            {expense.description}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Category icon — same accent-outlined circle as mobile */}
+                          <div className="w-9 h-9 rounded-full border-2 border-accent/40 bg-accent/5 flex items-center justify-center shrink-0">
+                            <CategoryIcon className="w-4 h-4 text-accent" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-text-primary font-medium truncate">
+                              {expense.vendor || '-'}
+                            </span>
+                            {expense.description && (
+                              <p className="text-small text-text-tertiary truncate max-w-[280px]">
+                                {expense.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-body-sm text-text-secondary">
                         {categoryConfig?.label || expense.category}
