@@ -3,7 +3,7 @@
  * Supports List view and Calendar view toggle
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrg } from '../../../contexts/OrgContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/Card';
@@ -235,6 +235,466 @@ const STATUS_PILL = {
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// ───────────────────────────────────────────────────────────────
+// Gantt-style schedule: driver rows × time columns. Each load is
+// a horizontal bar spanning from pickup_date → delivery_date in
+// the assigned driver's row. Bars are color-coded by status and
+// clickable. Loads without a driver land in an "Unassigned" row
+// at the top so dispatchers can see at a glance what needs cover.
+// ───────────────────────────────────────────────────────────────
+
+const STATUS_BAR = {
+  booked:     { bg: 'bg-purple-100',  border: 'border-purple-300',  label: 'text-purple-800',  pill: 'bg-purple-200/70 text-purple-900' },
+  dispatched: { bg: 'bg-violet-100',  border: 'border-violet-300',  label: 'text-violet-800',  pill: 'bg-violet-200/70 text-violet-900' },
+  in_transit: { bg: 'bg-sky-100',     border: 'border-sky-300',     label: 'text-sky-800',     pill: 'bg-sky-200/70 text-sky-900' },
+  picked_up:  { bg: 'bg-sky-100',     border: 'border-sky-300',     label: 'text-sky-800',     pill: 'bg-sky-200/70 text-sky-900' },
+  delayed:    { bg: 'bg-amber-100',   border: 'border-amber-300',   label: 'text-amber-800',   pill: 'bg-amber-200/70 text-amber-900' },
+  delivered:  { bg: 'bg-emerald-100', border: 'border-emerald-300', label: 'text-emerald-800', pill: 'bg-emerald-200/70 text-emerald-900' },
+  completed:  { bg: 'bg-emerald-100', border: 'border-emerald-300', label: 'text-emerald-800', pill: 'bg-emerald-200/70 text-emerald-900' }
+};
+const DEFAULT_BAR = { bg: 'bg-slate-100', border: 'border-slate-300', label: 'text-slate-700', pill: 'bg-slate-200/70 text-slate-800' };
+
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const daysBetween = (a, b) => Math.round((startOfDay(b) - startOfDay(a)) / 86400000);
+const parseLoadDate = (s) => {
+  if (!s) return null;
+  // DATEONLY columns come back as 'YYYY-MM-DD'. Pin noon to dodge TZ drift.
+  return new Date(typeof s === 'string' && s.length === 10 ? s + 'T12:00:00' : s);
+};
+const initials = (name) => (name || '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+
+function GanttView({ timeline, drivers = [], onLoadClick }) {
+  // Visible window — 14 days by default. Dispatchers can flip span
+  // (7/14/28) + page forward/back week-by-week. `rangeStart` re-anchors
+  // when the timeline first arrives (see effect below) so the user
+  // doesn't open the page to an empty grid when all loads are in the past.
+  const [rangeStart, setRangeStart] = useState(() => {
+    const d = startOfDay(new Date());
+    d.setDate(d.getDate() - d.getDay()); // back to Sunday
+    return d;
+  });
+  const [span, setSpan] = useState(14);
+  // User-driven nav (←/→ /This week) should NOT be overridden by the
+  // auto-anchor effect below — flip this once the user touches the toolbar.
+  const [userPositioned, setUserPositioned] = useState(false);
+
+  // Auto-anchor: if the data has no loads in the default "this week"
+  // window but DOES have loads elsewhere, jump to the week of the
+  // earliest pickup_date so we paint something. Only fires once per
+  // timeline arrival, before the user navigates manually.
+  useEffect(() => {
+    if (userPositioned || !timeline || timeline.length === 0) return;
+    const today = startOfDay(new Date());
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay());
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 13); // 2-week default span
+    const dates = timeline
+      .flatMap((l) => [parseLoadDate(l.pickup_date), parseLoadDate(l.delivery_date)])
+      .filter(Boolean);
+    if (dates.length === 0) return;
+    const anyInWindow = dates.some((d) => d >= thisWeekStart && d <= thisWeekEnd);
+    if (anyInWindow) return; // current window has data; leave it
+    // Pivot to the week of the earliest visible date
+    const earliest = dates.reduce((a, b) => (a < b ? a : b));
+    const anchor = new Date(earliest);
+    anchor.setDate(earliest.getDate() - earliest.getDay()); // back to Sunday
+    setRangeStart(startOfDay(anchor));
+  }, [timeline, userPositioned]);
+
+  const days = useMemo(() => {
+    const out = [];
+    for (let i = 0; i < span; i++) {
+      const d = new Date(rangeStart);
+      d.setDate(d.getDate() + i);
+      out.push(d);
+    }
+    return out;
+  }, [rangeStart, span]);
+
+  const rangeEnd = days[days.length - 1];
+
+  // Build driver rows from BOTH the driver roster AND the loads timeline:
+  // every active driver gets a row (even with zero loads — dispatchers
+  // want to see availability), and unassigned loads bubble to a row at
+  // the top. Loads outside the visible window are still filtered.
+  const driverRows = useMemo(() => {
+    const byDriver = new Map();
+    // Seed with every active driver so empty rows show
+    (drivers || []).forEach((d) => {
+      const id = d.id;
+      const name = [d.first_name, d.last_name].filter(Boolean).join(' ') || d.name || d.email || 'Driver';
+      if (id && !byDriver.has(id)) byDriver.set(id, { id, name, loads: [] });
+    });
+    // Add unassigned bucket as a candidate (only kept if it actually gets loads)
+    const unassignedSeed = { id: '__unassigned', name: 'Unassigned', loads: [] };
+    let sawUnassigned = false;
+
+    (timeline || []).forEach((load) => {
+      const start = parseLoadDate(load.pickup_date);
+      const end = parseLoadDate(load.delivery_date) || start;
+      if (!start && !end) return;
+      // Honest rendering for dirty data: if delivery is BEFORE pickup,
+      // collapse the bar to a single-day stub at pickup_date and flag it
+      // — silent-swap would draw a bar going backwards in time and lie.
+      let barStart = start || end;
+      let barEnd = end || start;
+      let datesInvalid = false;
+      if (barEnd < barStart) {
+        datesInvalid = true;
+        barEnd = barStart;
+      }
+      if (barStart > rangeEnd) return;
+      if (barEnd < rangeStart) return;
+      const drvId = load.driver?.id || '__unassigned';
+      if (drvId === '__unassigned') {
+        sawUnassigned = true;
+        unassignedSeed.loads.push({ load, start: barStart, end: barEnd, datesInvalid });
+        return;
+      }
+      // If a load arrives for a driver not in the active roster (e.g. inactive
+      // or just missing from the cache), still create a row for them.
+      if (!byDriver.has(drvId)) {
+        byDriver.set(drvId, { id: drvId, name: load.driver?.name || 'Driver', loads: [] });
+      }
+      byDriver.get(drvId).loads.push({ load, start: barStart, end: barEnd, datesInvalid });
+    });
+
+    const rows = Array.from(byDriver.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const allRows = sawUnassigned ? [unassignedSeed, ...rows] : rows;
+
+    // Lane allocation per driver: greedy first-fit. Sort each driver's
+    // loads by start, then drop each load into the first lane whose last
+    // bar ends before this one begins (otherwise open a new lane). This
+    // mirrors how schedulers stack overlapping intervals (e.g. trailer
+    // drop vs. freight load running concurrently for the same driver).
+    return allRows.map((row) => {
+      const sorted = [...row.loads].sort((a, b) => a.start - b.start);
+      const lanes = []; // lanes[i] = end-of-last-bar in that lane
+      const placed = sorted.map((item) => {
+        let laneIdx = lanes.findIndex((endOfLane) => endOfLane < item.start);
+        if (laneIdx === -1) {
+          laneIdx = lanes.length;
+          lanes.push(item.end);
+        } else {
+          lanes[laneIdx] = item.end;
+        }
+        return { ...item, laneIdx };
+      });
+      return { ...row, loads: placed, laneCount: Math.max(1, lanes.length) };
+    });
+  }, [timeline, drivers, rangeStart, rangeEnd]);
+
+  // Layout: driver column is a fixed px width on the left; the rest of the
+  // grid sizes by percent so day cells always FILL the available width.
+  // `cellPct` is how much of the right-side container each day takes.
+  // `minCellPx` keeps long ranges (28 days) from crushing cells to nothing
+  // — when the panel is narrower than that, the grid scrolls horizontally.
+  // Multi-lane stacking: when a driver has overlapping loads (e.g. trailer
+  // drop + freight on the same day), each load gets its own lane within
+  // the driver's row so bars never overlap visually.
+  const laneH = 36;
+  const laneGap = 4;
+  const rowPad = 8;
+  const rowHeightFor = (lanes) => rowPad * 2 + lanes * laneH + (lanes - 1) * laneGap;
+  const driverColW = 200;
+  const cellPct = 100 / span;
+  const minCellPx = 40;
+  const minGridPx = span * minCellPx;
+
+  const today = startOfDay(new Date());
+
+  const shiftDays = (delta) => {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + delta);
+    setRangeStart(d);
+    setUserPositioned(true);
+  };
+  const goThisWeek = () => {
+    const d = startOfDay(new Date());
+    d.setDate(d.getDate() - d.getDay());
+    setRangeStart(d);
+    setUserPositioned(true);
+  };
+
+  // Week-header grouping: span the day cells under each week label.
+  const weekGroups = useMemo(() => {
+    const groups = [];
+    let curStart = days[0];
+    let curCount = 0;
+    days.forEach((d) => {
+      if (curStart && d.getDay() === 0 && curCount > 0) {
+        groups.push({ start: curStart, count: curCount });
+        curStart = d;
+        curCount = 1;
+      } else {
+        curCount++;
+      }
+    });
+    if (curCount > 0) groups.push({ start: curStart, count: curCount });
+    return groups;
+  }, [days]);
+
+  const formatWeekLabel = (start, count) => {
+    const end = new Date(start);
+    end.setDate(end.getDate() + count - 1);
+    const sameMonth = start.getMonth() === end.getMonth();
+    const m = (d) => d.toLocaleDateString('en-US', { month: 'short' });
+    return sameMonth
+      ? `${m(start)} ${start.getDate()}–${end.getDate()}`
+      : `${m(start)} ${start.getDate()} – ${m(end)} ${end.getDate()}`;
+  };
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => shiftDays(-7)}
+            className="p-1.5 rounded-lg hover:bg-surface-secondary transition-colors"
+            aria-label="Previous week"
+          >
+            <ChevronLeft className="w-4 h-4 text-text-secondary" />
+          </button>
+          <button
+            onClick={goThisWeek}
+            className="text-[11px] font-medium text-accent hover:text-accent/80 px-2.5 py-1 rounded-md bg-accent/5 hover:bg-accent/10 transition-colors"
+          >
+            This week
+          </button>
+          <button
+            onClick={() => shiftDays(7)}
+            className="p-1.5 rounded-lg hover:bg-surface-secondary transition-colors"
+            aria-label="Next week"
+          >
+            <ChevronRight className="w-4 h-4 text-text-secondary" />
+          </button>
+          <span className="text-body-sm font-semibold text-text-primary ml-2">
+            {rangeStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 bg-surface-secondary p-1 rounded-lg">
+          {[
+            { v: 7, l: '1w' },
+            { v: 14, l: '2w' },
+            { v: 28, l: '4w' }
+          ].map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setSpan(opt.v)}
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                span === opt.v ? 'bg-white text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              {opt.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="border border-surface-tertiary/70 rounded-xl overflow-hidden bg-white">
+        <div className="flex">
+          {/* Left rail: driver names (sticky) */}
+          <div className="shrink-0 border-r border-surface-tertiary/70" style={{ width: driverColW }}>
+            {/* Header spacer — must match the two right-side header rows
+                (week label + day numbers) so the driver rows below align
+                pixel-perfect with the timeline bars. */}
+            <div className="h-[72px] border-b border-surface-tertiary/70 bg-surface-secondary/30 flex items-end px-4 pb-2">
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-text-tertiary">
+                Driver
+              </span>
+            </div>
+            {driverRows.length === 0 ? (
+              <div className="px-4 py-6 text-body-sm text-text-tertiary">No loads in range</div>
+            ) : (
+              driverRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="border-b border-surface-tertiary/70 px-3 flex items-center gap-2.5"
+                  style={{ height: rowHeightFor(row.laneCount) }}
+                >
+                  <span
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 ${
+                      row.id === '__unassigned'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-accent/10 text-accent'
+                    }`}
+                  >
+                    {row.id === '__unassigned' ? '?' : initials(row.name)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-body-sm font-medium text-text-primary truncate">{row.name}</div>
+                    <div className="text-[10px] text-text-tertiary">
+                      {row.loads.length} {row.loads.length === 1 ? 'load' : 'loads'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Right side: grid fills the available width; scrolls horizontally
+              only when the span × min-cell would overflow the container. */}
+          <div className="overflow-x-auto flex-1">
+            <div style={{ minWidth: `${minGridPx}px` }}>
+              {/* Week label row — fixed h-9 (36px) so left-rail header
+                  alignment (h-[72px] = 2× this) stays exact. */}
+              <div className="flex h-9 border-b border-surface-tertiary/70 bg-surface-secondary/30">
+                {weekGroups.map((g, i) => (
+                  <div
+                    key={i}
+                    className="text-[11px] font-medium text-text-tertiary uppercase tracking-wider px-2 border-r border-surface-tertiary/70 last:border-r-0 truncate flex items-center"
+                    style={{ width: `${(g.count / span) * 100}%` }}
+                  >
+                    {formatWeekLabel(g.start, g.count)}
+                  </div>
+                ))}
+              </div>
+              {/* Day-number row — same h-9. */}
+              <div className="flex h-9 border-b border-surface-tertiary/70 bg-surface-secondary/10">
+                {days.map((d) => {
+                  const isToday = dayKey(d) === dayKey(today);
+                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                  return (
+                    <div
+                      key={dayKey(d)}
+                      className={`text-center text-[11px] font-medium border-r border-surface-tertiary/70 flex items-center justify-center ${
+                        isWeekend ? 'bg-surface-secondary/30' : ''
+                      } ${isToday ? 'text-accent' : 'text-text-tertiary'}`}
+                      style={{ width: `${cellPct}%` }}
+                    >
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${
+                        isToday ? 'bg-accent text-white' : ''
+                      }`}>
+                        {d.getDate()}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Driver rows — height grows with lane count so stacked
+                  overlapping loads each get their own track. */}
+              {driverRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="relative border-b border-surface-tertiary/70"
+                  style={{ height: rowHeightFor(row.laneCount) }}
+                >
+                  {/* Day grid lines + weekend tint + today highlight */}
+                  <div className="absolute inset-0 flex">
+                    {days.map((d) => {
+                      const isToday = dayKey(d) === dayKey(today);
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      return (
+                        <div
+                          key={dayKey(d)}
+                          className={`border-r border-surface-tertiary/40 ${
+                            isWeekend ? 'bg-surface-secondary/20' : ''
+                          } ${isToday ? 'bg-accent/[0.04]' : ''}`}
+                          style={{ width: `${cellPct}%` }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Load bars positioned absolutely over the grid — percent
+                      anchors so they always line up with the day cells no
+                      matter the container width. `laneIdx` stacks
+                      overlapping loads vertically within the same row. */}
+                  {row.loads.map(({ load, start, end, datesInvalid, laneIdx }) => {
+                    const startIdx = Math.max(0, daysBetween(rangeStart, start));
+                    // +1 so a same-day load occupies its single cell
+                    const endIdx = Math.min(span, daysBetween(rangeStart, end) + 1);
+                    const spanCells = endIdx - startIdx;
+                    if (spanCells <= 0) return null;
+                    const leftPct = (startIdx / span) * 100;
+                    const widthPct = (spanCells / span) * 100;
+                    const config = STATUS_BAR[load.status?.toLowerCase()] || DEFAULT_BAR;
+                    const statusLabel = LoadStatusConfig[load.status]?.label || load.status;
+                    return (
+                      <button
+                        key={load.id}
+                        type="button"
+                        onClick={() => onLoadClick(load)}
+                        title={`${load.reference_number} · ${load.lane || ''} · ${statusLabel}${datesInvalid ? '\n⚠ delivery_date is before pickup_date — fix the load to render the full span' : ''}`}
+                        className={`absolute group rounded-lg border ${config.bg} ${config.border} hover:shadow-md hover:scale-[1.01] transition-all overflow-hidden text-left`}
+                        style={{
+                          left: `calc(${leftPct}% + 4px)`,
+                          width: `calc(${widthPct}% - 8px)`,
+                          top: rowPad + laneIdx * (laneH + laneGap),
+                          height: laneH
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-1.5 px-2 h-full">
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-[11px] font-semibold ${config.label} truncate`}>
+                              {load.reference_number}
+                            </div>
+                            <div className="text-[10px] text-text-tertiary truncate">
+                              {load.lane || '—'}
+                            </div>
+                          </div>
+                          {/* "TR" badge for trailer-rental moves (broker-
+                              owned trailer drop/pickup at a flat fee, not
+                              a per-mile freight load). Distinguishes the
+                              trailer leg from the freight leg when both
+                              land in the same row. */}
+                          {load.load_type === 'trailer_rental' && (
+                            <span
+                              className="shrink-0 text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 border border-amber-500/30"
+                              title="Trailer rental move"
+                            >
+                              TR
+                            </span>
+                          )}
+                          {/* Show the status pill when the bar is long enough
+                              to host it comfortably (≥ 2 days OR ≥ 12% of
+                              the grid). Avoids overflow on stub bars. */}
+                          {(spanCells >= 2 && widthPct >= 12) && (
+                            <span className={`shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded ${config.pill}`}>
+                              {statusLabel}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 mt-3 px-1 flex-wrap">
+        {[
+          { k: 'booked', l: 'Booked' },
+          { k: 'dispatched', l: 'Dispatched' },
+          { k: 'in_transit', l: 'In Transit' },
+          { k: 'delivered', l: 'Delivered' }
+        ].map(({ k, l }) => {
+          const c = STATUS_BAR[k];
+          return (
+            <div key={k} className="flex items-center gap-1.5">
+              <span className={`w-3 h-3 rounded ${c.bg} ${c.border} border`} />
+              <span className="text-[11px] text-text-tertiary">{l}</span>
+            </div>
+          );
+        })}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="w-3 h-3 rounded bg-accent/[0.08] border border-accent/30" />
+          <span className="text-[11px] text-text-tertiary">Today</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CalendarView({ timeline, onLoadClick }) {
   const [viewDate, setViewDate] = useState(() => new Date());
 
@@ -396,10 +856,10 @@ function CalendarView({ timeline, onLoadClick }) {
   );
 }
 
-export function LoadTimeline({ timeline, loading, days, onDaysChange }) {
+export function LoadTimeline({ timeline, loading, days, onDaysChange, drivers = [] }) {
   const navigate = useNavigate();
   const { orgUrl } = useOrg();
-  const [view, setView] = useState('list'); // 'list' | 'calendar'
+  const [view, setView] = useState('calendar'); // 'list' | 'calendar'
 
   const handleLoadClick = (load) => navigate(orgUrl(`/loads/${load.id}`));
 
@@ -482,8 +942,9 @@ export function LoadTimeline({ timeline, loading, days, onDaysChange }) {
             ))}
           </div>
         ) : (
-          <CalendarView
+          <GanttView
             timeline={timeline}
+            drivers={drivers}
             onLoadClick={handleLoadClick}
           />
         )}

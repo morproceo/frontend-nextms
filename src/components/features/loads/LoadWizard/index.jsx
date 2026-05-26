@@ -81,6 +81,7 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
     consignee_state: '',
     consignee_zip: '',
     // Details
+    pickup_number: '',
     pickup_date: '',
     delivery_date: '',
     commodity: '',
@@ -136,6 +137,7 @@ export function LoadWizard({ loadId = null, isModal = false, onClose = null, onS
             consignee_city: load.consignee?.city || '',
             consignee_state: load.consignee?.state || '',
             consignee_zip: load.consignee?.zip || '',
+            pickup_number: load.schedule?.pickup_number || load.pickup_number || '',
             pickup_date: load.schedule?.pickup_date || '',
             delivery_date: load.schedule?.delivery_date || '',
             commodity: load.cargo?.commodity || '',

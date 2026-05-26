@@ -298,6 +298,18 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
                 </button>
               </div>
             )}
+
+            {/* Pickup # — the reference the shipper asks for at the dock.
+                Distinct from `reference_number` (our id) + `customer_load_number`
+                (broker's PO). Drivers need it; carriers paste it from rate cons. */}
+            <input
+              type="text"
+              name="pickup_number"
+              value={formData.pickup_number || ''}
+              onChange={handleChange}
+              placeholder="Pickup # (PU#)"
+              className="w-full px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+            />
           </div>
 
           {/* Delivery */}

@@ -17,6 +17,8 @@ import {
   Truck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { GenieButton } from '../ecosystem/GenieButton';
+import { GeniePanel } from '../ecosystem/GeniePanel';
 import { cn, getInitials } from '../../lib/utils';
 
 const navigation = [
@@ -42,6 +44,7 @@ export function DriverShell() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [genieOpen, setGenieOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-surface-secondary">
@@ -165,6 +168,9 @@ export function DriverShell() {
             {/* Spacer */}
             <div className="hidden lg:block flex-1" />
 
+            {/* Genie — context-aware to this driver (their loads + truck) */}
+            <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
+
             {/* User menu */}
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
@@ -243,6 +249,12 @@ export function DriverShell() {
           })}
         </div>
       </nav>
+
+      <GeniePanel
+        open={genieOpen}
+        onClose={() => setGenieOpen(false)}
+        apiVariant="driver"
+      />
     </div>
   );
 }

@@ -34,7 +34,14 @@ import {
   MapPin,
   ArrowRight,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  X,
+  Truck,
+  Receipt,
+  DollarSign,
+  TrendingUp,
+  ArrowUpDown,
+  ListFilter
 } from 'lucide-react';
 
 export function LoadsListPage() {
@@ -130,6 +137,50 @@ export function LoadsListPage() {
     );
   }
 
+  // Operational status buckets — what dispatchers actually scan for.
+  // "Active" = anything between booked and delivered; "Ready to bill" =
+  // delivered but no invoice yet (or in finance review); "Invoiced" =
+  // invoiced or paid; "New" = newly created, not yet booked.
+  const byS = stats.byStatus || {};
+  const sumOf = (...keys) => keys.reduce((a, k) => a + (byS[k] || 0), 0);
+  const metricBuckets = [
+    {
+      key: 'active',
+      label: 'Active',
+      icon: Truck,
+      tint: '#34CCFF',
+      count: sumOf('booked', 'dispatched', 'picked_up', 'in_transit', 'delayed'),
+      statuses: ['booked', 'dispatched', 'picked_up', 'in_transit', 'delayed']
+    },
+    {
+      key: 'ready',
+      label: 'Ready to bill',
+      icon: Receipt,
+      tint: '#F59E0B',
+      count: sumOf('delivered', 'review'),
+      statuses: ['delivered', 'review']
+    },
+    {
+      key: 'invoiced',
+      label: 'Invoiced',
+      icon: FileText,
+      tint: '#8B5CF6',
+      count: sumOf('invoiced', 'paid', 'completed'),
+      statuses: ['invoiced', 'paid', 'completed']
+    },
+    {
+      key: 'new',
+      label: 'New',
+      icon: Plus,
+      tint: '#10B981',
+      count: sumOf('new', 'draft'),
+      statuses: ['new', 'draft']
+    }
+  ];
+  // First filter status the bucket maps to (the chip list expects a single
+  // value, so we use the head of each bucket as the canonical pick).
+  const activeBucket = metricBuckets.find((b) => b.statuses.includes(filters.status))?.key;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -145,29 +196,136 @@ export function LoadsListPage() {
         </Button>
       </div>
 
-      {/* Search - Mobile First */}
-      <div className="relative lg:hidden">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-        <input
-          type="text"
-          placeholder="Search loads..."
-          value={filters.search}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-3 py-3 bg-white border border-surface-tertiary rounded-xl text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
+      {/* ── Metrics row — operational view of the load board ─────────────
+          4 status-bucket cards + 2 financial KPIs. The status buckets are
+          clickable shortcuts into the existing status filter (clicking the
+          same bucket again clears back to "all"). */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        {metricBuckets.map((b) => {
+          const isActive = activeBucket === b.key;
+          const Icon = b.icon;
+          return (
+            <button
+              key={b.key}
+              onClick={() => setStatusFilter(isActive ? 'all' : b.statuses[0])}
+              className={`group relative text-left rounded-2xl p-3.5 border transition-all ${
+                isActive
+                  ? 'border-transparent shadow-card-hover'
+                  : 'bg-white border-surface-tertiary hover:border-surface-tertiary hover:shadow-card'
+              }`}
+              style={isActive ? { backgroundColor: `${b.tint}10`, borderColor: `${b.tint}40` } : undefined}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${b.tint}1a`, color: b.tint }}
+                >
+                  <Icon className="w-4 h-4" strokeWidth={2} />
+                </span>
+                {isActive && (
+                  <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: b.tint }}>
+                    Filtered
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums">
+                {b.count}
+              </div>
+              <div className="text-[11px] text-text-tertiary mt-1 font-medium">{b.label}</div>
+            </button>
+          );
+        })}
+
+        {/* Revenue (filtered view) */}
+        <div className="rounded-2xl p-3.5 border border-surface-tertiary bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-4 h-4" strokeWidth={2} />
+            </span>
+          </div>
+          <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums truncate" title={formatCurrency(filteredStats.totalRevenue)}>
+            {formatCurrency(filteredStats.totalRevenue)}
+          </div>
+          <div className="text-[11px] text-text-tertiary mt-1 font-medium">
+            Revenue · {filteredStats.count} {filteredStats.count === 1 ? 'load' : 'loads'}
+          </div>
+        </div>
+
+        {/* RPM (whole org, not filtered) */}
+        <div className="rounded-2xl p-3.5 border border-surface-tertiary bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <span className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" strokeWidth={2} />
+            </span>
+          </div>
+          <div className="text-2xl font-semibold text-text-primary leading-none tabular-nums">
+            ${(stats.rpm || 0).toFixed(2)}
+          </div>
+          <div className="text-[11px] text-text-tertiary mt-1 font-medium">RPM · all loads</div>
+        </div>
       </div>
 
-      {/* Quick Stats - Horizontal Scroll on Mobile */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+      {/* ── Smart search bar ────────────────────────────────────────────
+          Wider, pill-style, with inline clear-X and a sort dropdown right
+          next to it. Searches load #, customer PO, broker, shipper/consignee
+          names — same fields useLoads already filters by client-side. */}
+      <div className="flex items-stretch gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <input
+            type="text"
+            placeholder="Search load #, PO, broker, shipper or consignee…"
+            value={filters.search}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 bg-white border border-surface-tertiary rounded-xl text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+          />
+          {filters.search && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-text-tertiary hover:bg-surface-secondary"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="relative">
+          <select
+            value={`${filters.sort.field}:${filters.sort.direction}`}
+            onChange={(e) => {
+              const [field, direction] = e.target.value.split(':');
+              setSort(field, direction);
+            }}
+            className="appearance-none pl-9 pr-8 py-3 bg-white border border-surface-tertiary rounded-xl text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 cursor-pointer"
+          >
+            <option value="created_at:desc">Newest first</option>
+            <option value="created_at:asc">Oldest first</option>
+            <option value="pickup_date:asc">Pickup soonest</option>
+            <option value="pickup_date:desc">Pickup latest</option>
+            <option value="revenue:desc">Revenue ↓</option>
+            <option value="revenue:asc">Revenue ↑</option>
+            <option value="miles:desc">Miles ↓</option>
+            <option value="status:asc">Status</option>
+          </select>
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+        </div>
+      </div>
+
+      {/* Status chips (kept — second-tier exact-status filter) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <ListFilter className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
         <button
           onClick={() => setStatusFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
             filters.status === 'all'
-              ? 'bg-accent text-white'
+              ? 'bg-text-primary text-white'
               : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
           }`}
         >
-          All ({stats.total})
+          All · {stats.total}
         </button>
 
         {quickFilters.map(({ status, count }) => {
@@ -176,42 +334,16 @@ export function LoadsListPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
                 filters.status === status
-                  ? 'bg-accent text-white'
+                  ? 'bg-text-primary text-white'
                   : 'bg-surface-secondary text-text-secondary hover:bg-surface-tertiary'
               }`}
             >
-              {config.label} ({count})
+              {config.label} · {count}
             </button>
           );
         })}
-
-        {/* Search & Total - Desktop */}
-        <div className="hidden lg:flex flex-1 items-center justify-end gap-4">
-          <div className="text-sm">
-            <span className="text-text-tertiary">Revenue: </span>
-            <span className="font-semibold text-text-primary">
-              {formatCurrency(filteredStats.totalRevenue)}
-            </span>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-            <input
-              type="text"
-              placeholder="Search loads..."
-              value={filters.search}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-56 pl-9 pr-3 py-2 bg-surface-secondary border-0 rounded-lg text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Revenue Summary */}
-      <div className="flex items-center justify-between text-sm lg:hidden bg-white rounded-lg px-4 py-3 border border-surface-tertiary">
-        <span className="text-text-tertiary">Total Revenue</span>
-        <span className="font-semibold text-text-primary">{formatCurrency(filteredStats.totalRevenue)}</span>
       </div>
 
       {/* Error State */}

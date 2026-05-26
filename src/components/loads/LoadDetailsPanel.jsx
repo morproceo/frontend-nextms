@@ -174,8 +174,8 @@ const whenLine = (d, a, b) => {
   return [d, win].filter(Boolean).join(' · ');
 };
 
-function NodeContent({ node, horizontal, onEdit }) {
-  const { tint, eyebrow, title, sub, when, editable } = node;
+function NodeContent({ node, horizontal, onEdit, EditableField, updateField }) {
+  const { tint, eyebrow, title, sub, when, editable, ref: refField } = node;
   return (
     <div className={horizontal ? 'text-center px-2' : 'min-w-0'}>
       <div className="flex items-center gap-1.5" style={horizontal ? { justifyContent: 'center' } : undefined}>
@@ -189,6 +189,17 @@ function NodeContent({ node, horizontal, onEdit }) {
       <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
       {sub && <div className="text-xs text-gray-500 truncate">{sub}</div>}
       {when && <div className="text-xs text-gray-400 mt-0.5">{when}</div>}
+      {refField && EditableField && updateField && (
+        <div className={`mt-1 text-xs text-gray-500 ${horizontal ? '' : 'truncate'}`}>
+          <span className="text-gray-400 mr-1">{refField.label}</span>
+          <EditableField
+            value={refField.value}
+            onSave={(v) => updateField(refField.field, v)}
+            placeholder="—"
+            className="font-mono text-gray-700"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -372,6 +383,10 @@ export function LoadDetailsPanel({
               <EditableField value={load.customer_load_number}
                 onSave={(v) => updateField('customer_load_number', v)} placeholder="—" className="text-sm text-gray-700" />
             </Field>
+            <Field label="Pickup #">
+              <EditableField value={load.schedule?.pickup_number || load.pickup_number}
+                onSave={(v) => updateField('pickup_number', v)} placeholder="—" className="text-sm text-gray-700" />
+            </Field>
           </div>
         </Card>
       </div>
@@ -392,7 +407,9 @@ export function LoadDetailsPanel({
               <div key={n.key} className="relative pl-9">
                 <span className="absolute left-0 top-0.5"><Dot node={n} /></span>
                 <NodeContent node={n} horizontal={false}
-                  onEdit={() => setEditing(n.key === 'pickup' ? 'shipper' : 'consignee')} />
+                  onEdit={() => setEditing(n.key === 'pickup' ? 'shipper' : 'consignee')}
+                  EditableField={EditableField}
+                  updateField={updateField} />
               </div>
             ))}
           </div>
@@ -403,7 +420,9 @@ export function LoadDetailsPanel({
               {i > 0 && <span className="absolute top-[13px] right-1/2 w-full h-0.5" style={{ background: '#e5e7eb' }} aria-hidden />}
               <div className="relative z-10 mb-3"><Dot node={n} /></div>
               <NodeContent node={n} horizontal
-                onEdit={() => setEditing(n.key === 'pickup' ? 'shipper' : 'consignee')} />
+                onEdit={() => setEditing(n.key === 'pickup' ? 'shipper' : 'consignee')}
+                EditableField={EditableField}
+                updateField={updateField} />
             </div>
           ))}
         </div>

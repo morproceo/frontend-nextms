@@ -88,11 +88,12 @@ export function DriverLauncherPage() {
 
 function DriverTile({ app }) {
   const Icon = app.icon;
-  return (
-    <Link
-      to={app.to}
-      className="group flex flex-col items-center gap-3 p-2 text-center"
-    >
+  // Action-style tiles (e.g. Genie) don't navigate — they dispatch a
+  // window event the EcosystemHeader listens for. Renders as a <button>
+  // instead of a <Link> so a11y + tap targets stay correct.
+  const isAction = !!app.action;
+  const inner = (
+    <>
       <div
         className="relative w-20 h-20 rounded-[22px] flex items-center justify-center transition-transform group-hover:scale-105"
         style={{
@@ -112,6 +113,26 @@ function DriverTile({ app }) {
         <div className="text-body-sm font-medium text-white">{app.name}</div>
         <div className="text-[11px] text-white/45 mt-0.5">{app.tagline}</div>
       </div>
+    </>
+  );
+
+  if (isAction) {
+    return (
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent(app.action))}
+        className="group flex flex-col items-center gap-3 p-2 text-center outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-2xl"
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <Link
+      to={app.to}
+      className="group flex flex-col items-center gap-3 p-2 text-center"
+    >
+      {inner}
     </Link>
   );
 }

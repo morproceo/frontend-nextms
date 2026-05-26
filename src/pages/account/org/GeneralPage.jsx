@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import VerificationWizard from '../../../components/verification/VerificationWizard';
 import { useOrg } from '../../../contexts/OrgContext';
 import {
   Building2,
@@ -15,8 +17,13 @@ import {
   Loader2,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  BadgeCheck,
+  ShieldCheck,
+  ArrowRight,
+  Lock
 } from 'lucide-react';
+import { getMyVerification } from '../../../api/networkVerification.api';
 
 const TIMEZONES = [
   'America/New_York',
@@ -29,10 +36,35 @@ const TIMEZONES = [
 ];
 
 export default function GeneralPage() {
+  const { orgSlug } = useParams();
   const { organization, updateOrg } = useOrg();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [verif, setVerif] = useState(null);
+  const [verifLoading, setVerifLoading] = useState(true);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+
+  const refetchVerification = () => {
+    return getMyVerification()
+      .then((r) => setVerif(r?.verification || null))
+      .catch(() => {});
+  };
+
+  // Pull the shared MorPro Verification state (used by both Direct + Connect).
+  // The endpoint returns { verification, settings }; we only need the
+  // verification row here.
+  useEffect(() => {
+    getMyVerification()
+      .then((r) => setVerif(r?.verification || null))
+      .catch(() => setVerif(null))
+      .finally(() => setVerifLoading(false));
+  }, []);
+
+  // Note: once verification completes, the org row gets backfilled from
+  // LINQ on the backend. The form below picks up the new values on the
+  // next org-context refresh (re-mount or org switch). Manual reload is
+  // a fallback if the user wants to see the LINQ-populated fields now.
 
   const [form, setForm] = useState({
     name: '',
@@ -51,8 +83,7 @@ export default function GeneralPage() {
     website: '',
     public_phone: '',
     public_email: '',
-    fleet_size: '',
-    is_profile_public: false
+    fleet_size: ''
   });
 
   useEffect(() => {
@@ -74,8 +105,7 @@ export default function GeneralPage() {
         website: organization.website || '',
         public_phone: organization.public_phone || '',
         public_email: organization.public_email || '',
-        fleet_size: organization.fleet_size || '',
-        is_profile_public: organization.is_profile_public || false
+        fleet_size: organization.fleet_size || ''
       });
     }
   }, [organization]);
@@ -128,7 +158,28 @@ export default function GeneralPage() {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-8">
+      {/* MorPro Verification — shared trust check used by Direct + Connect.
+          Single source of truth: when complete, LINQ auto-populates the
+          DOT/MC/legal name/address fields below and locks them. */}
+      <VerificationCard
+        verif={verif}
+        loading={verifLoading}
+        orgSlug={orgSlug}
+        isVerifiedBadge={!!organization?.is_morpro_verified}
+        onStart={() => setShowVerifyModal(true)}
+      />
+
+      {/* Verification modal — runs the SAME stepper /direct/verify uses,
+          just embedded inline so the carrier never leaves settings. */}
+      {showVerifyModal && (
+        <VerifyModal
+          orgSlug={orgSlug}
+          onClose={() => { setShowVerifyModal(false); refetchVerification(); }}
+          onApproved={() => { setShowVerifyModal(false); refetchVerification(); }}
+        />
+      )}
+
+      <form onSubmit={handleSave} className="space-y-8 mt-8">
         <div className="bg-surface-primary rounded-card border border-surface-tertiary p-6">
           <h2 className="text-title-sm text-text-primary mb-6 flex items-center gap-2">
             <Building2 className="w-5 h-5" />
@@ -169,31 +220,53 @@ export default function GeneralPage() {
             </div>
 
             <div>
-              <label className="block text-body-sm font-medium text-text-primary mb-2">
+              <label className="block text-body-sm font-medium text-text-primary mb-2 flex items-center gap-1.5">
                 DOT Number
+                {organization?.is_morpro_verified && (
+                  <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <Lock className="w-2.5 h-2.5" /> Verified
+                  </span>
+                )}
               </label>
               <input
                 type="text"
                 name="dot_number"
                 value={form.dot_number}
                 onChange={handleChange}
+                readOnly={organization?.is_morpro_verified}
                 placeholder="e.g., 1234567"
-                className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className={`w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent ${organization?.is_morpro_verified ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
+              {organization?.is_morpro_verified && (
+                <p className="text-[11px] text-text-tertiary mt-1">
+                  Locked — sourced from MorPro LINQ verification.
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-body-sm font-medium text-text-primary mb-2">
+              <label className="block text-body-sm font-medium text-text-primary mb-2 flex items-center gap-1.5">
                 MC Number
+                {organization?.is_morpro_verified && (
+                  <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <Lock className="w-2.5 h-2.5" /> Verified
+                  </span>
+                )}
               </label>
               <input
                 type="text"
                 name="mc_number"
                 value={form.mc_number}
                 onChange={handleChange}
+                readOnly={organization?.is_morpro_verified}
                 placeholder="e.g., MC-123456"
-                className="w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                className={`w-full px-4 py-3 bg-surface-secondary border border-surface-tertiary rounded-input text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent ${organization?.is_morpro_verified ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
+              {organization?.is_morpro_verified && (
+                <p className="text-[11px] text-text-tertiary mt-1">
+                  Locked — sourced from MorPro LINQ verification.
+                </p>
+              )}
             </div>
 
             <div>
@@ -332,36 +405,11 @@ export default function GeneralPage() {
         <div className="bg-surface-primary rounded-card border border-surface-tertiary p-6">
           <h2 className="text-title-sm text-text-primary mb-2 flex items-center gap-2">
             <Globe className="w-5 h-5" />
-            Public Profile
+            Company Info (driver-facing)
           </h2>
           <p className="text-body-sm text-text-secondary mb-6">
-            When enabled, your organization appears in the driver directory so drivers can find and connect with you.
+            What drivers + shippers see on your MorPro Connect and MorPro Direct profile cards. Visibility is controlled separately from each product&apos;s profile page (Connect &middot; Direct).
           </p>
-
-          <div className="flex items-center justify-between gap-4 mb-6 p-4 bg-surface-secondary rounded-lg">
-            <div className="min-w-0">
-              <p className="text-body-sm font-medium text-text-primary">Show in Driver Directory</p>
-              <p className="text-small text-text-tertiary">
-                Drivers can find your organization when searching the directory
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setForm((prev) => ({ ...prev, is_profile_public: !prev.is_profile_public }));
-                setSaved(false);
-              }}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
-                form.is_profile_public ? 'bg-accent' : 'bg-surface-tertiary'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  form.is_profile_public ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
@@ -454,6 +502,210 @@ export default function GeneralPage() {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/* ───────── MorPro Verification card ───────── */
+
+const STEP_LABEL = {
+  not_started: 'Not started',
+  mc_pending: 'Enter your MC',
+  otp_pending: 'Verify your email',
+  identity_pending: 'Verify owner identity',
+  profile_pending: 'Submit profile',
+  submitted: 'Under review',
+  approved: 'Verified',
+  rejected: 'Rejected'
+};
+
+function VerificationCard({ verif, loading, orgSlug, isVerifiedBadge, onStart }) {
+  const status = verif?.status || 'not_started';
+  const isApproved = status === 'approved' || isVerifiedBadge;
+  const isRejected = status === 'rejected';
+  // `submitted` = carrier finished all four steps; just waiting on MorPro
+  // human review. Treat as its own state so the card doesn't keep nagging
+  // them to "Continue" when there's nothing left for them to do.
+  const isUnderReview = !isApproved && !isRejected && status === 'submitted';
+  const inProgress = !isApproved && !isRejected && !isUnderReview && status !== 'not_started';
+
+  if (loading) {
+    return (
+      <div className="mb-6 bg-surface-primary rounded-card border border-surface-tertiary p-6 flex items-center gap-3 text-text-tertiary">
+        <Loader2 className="w-4 h-4 animate-spin" /> Checking verification status…
+      </div>
+    );
+  }
+
+  void orgSlug; // kept for backwards-compat; deep-link no longer used
+
+  // Approved — green hero card
+  if (isApproved) {
+    return (
+      <div className="mb-6 rounded-card border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+            <BadgeCheck className="w-7 h-7" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-title-sm text-text-primary font-semibold">Verified with MorPro LINQ</h2>
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <Check className="w-2.5 h-2.5" /> Active
+              </span>
+            </div>
+            <p className="text-body-sm text-text-secondary mt-1">
+              {verif?.linq_legal_name && (
+                <>Legal name <span className="font-medium text-text-primary">{verif.linq_legal_name}</span> · </>
+              )}
+              Your carrier has been verified through MorPro LINQ — DOT, MC and address are now authoritative across MorPro Direct and MorPro Connect.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-tertiary">
+              <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Trusted on Direct</span>
+              <span className="text-text-tertiary">·</span>
+              <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Trusted on Connect</span>
+              {verif?.linq_lookup_at && (
+                <>
+                  <span className="text-text-tertiary">·</span>
+                  <span>Last verified {new Date(verif.linq_lookup_at).toLocaleDateString()}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Rejected — amber
+  if (isRejected) {
+    return (
+      <div className="mb-6 rounded-card border border-amber-200 bg-amber-50/50 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-title-sm text-text-primary font-semibold">Verification rejected</h2>
+            <p className="text-body-sm text-text-secondary mt-1">
+              Our team reviewed your submission and couldn&apos;t verify your carrier. Re-submit with correct information.
+            </p>
+            <button
+              type="button"
+              onClick={onStart}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent/90"
+            >
+              Re-submit verification <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Under review — they finished all the steps, just waiting on a MorPro
+  // human. No action button; just calm reassurance.
+  if (isUnderReview) {
+    return (
+      <div className="mb-6 rounded-card border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/15 text-blue-700 flex items-center justify-center flex-shrink-0">
+            <Loader2 className="w-7 h-7 animate-spin" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-title-sm text-text-primary font-semibold">Under MorPro review</h2>
+            <p className="text-body-sm text-text-secondary mt-1">
+              Your submission is in our queue. You&apos;ll see this card flip to{' '}
+              <span className="font-medium text-text-primary">Verified with MorPro LINQ</span> the moment our team approves it (usually within one business day).
+            </p>
+            <div className="mt-3 text-[11px] text-text-tertiary">
+              {verif?.linq_legal_name && <>Legal name on file: <span className="font-medium text-text-secondary">{verif.linq_legal_name}</span></>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // In-progress OR not started — blue hero CTA
+  return (
+    <div className="mb-6 rounded-card border border-accent/20 bg-gradient-to-br from-accent/5 to-white p-6">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-xl bg-accent text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+          <ShieldCheck className="w-7 h-7" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-title-sm text-text-primary font-semibold">
+            {inProgress ? 'Finish verifying your carrier' : 'Verify your carrier'}
+          </h2>
+          <p className="text-body-sm text-text-secondary mt-1">
+            MorPro Verification is a one-time check via MorPro LINQ (DOT lookup, FMCSA email, owner identity). Required to publish on
+            <span className="font-medium text-text-primary"> MorPro Direct</span> and
+            <span className="font-medium text-text-primary"> MorPro Connect</span> — verified data auto-populates DOT, MC, legal name, and address below.
+          </p>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={onStart}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent/90"
+            >
+              {inProgress ? 'Continue verification' : 'Start verification'} <ArrowRight className="w-4 h-4" />
+            </button>
+            {inProgress && (
+              <span className="text-small text-text-tertiary">
+                Current step: <span className="font-medium text-text-secondary">{STEP_LABEL[status] || status}</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Verify modal ───────── */
+
+function VerifyModal({ onClose, onApproved, orgSlug }) {
+  void orgSlug;
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      {/* Modal shell */}
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden bg-white rounded-card shadow-elevated flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-tertiary">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-accent" />
+            <h2 className="text-title-sm text-text-primary font-semibold">MorPro Verification</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-full text-text-secondary hover:bg-surface-secondary flex items-center justify-center"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <VerificationWizard onApproved={onApproved} showHeader />
+        </div>
+      </div>
     </div>
   );
 }

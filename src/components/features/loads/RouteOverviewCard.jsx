@@ -105,6 +105,14 @@ export function RouteOverviewCard({ load, stops, onUpdateField, onEditRoute }) {
             <p className="text-sm text-gray-600">
               {origin.city || 'City'}{origin.state ? `, ${origin.state}` : ''}
             </p>
+            <p className="mt-1 text-xs text-gray-500">
+              <span className="text-gray-400 mr-1">PU#</span>
+              <InlineField
+                value={load.pickup_number || load.schedule?.pickup_number || ''}
+                onSave={(v) => onUpdateField('pickup_number', v)}
+                placeholder="Add pickup #"
+              />
+            </p>
             <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
               <Clock className="w-3 h-3" />
               <span>{fmtDate(load.pickup_date)}</span>
@@ -174,6 +182,11 @@ export function RouteOverviewCard({ load, stops, onUpdateField, onEditRoute }) {
             <p className="font-semibold text-gray-900 text-sm truncate">
               {origin.city || 'City'}{origin.state ? `, ${origin.state}` : ''}
             </p>
+            {(load.pickup_number || load.schedule?.pickup_number) && (
+              <p className="text-xs text-gray-500 truncate">
+                PU# <span className="font-mono text-gray-700">{load.pickup_number || load.schedule?.pickup_number}</span>
+              </p>
+            )}
             <p className="text-xs text-gray-500">{fmtDate(load.pickup_date)}</p>
           </div>
         </div>

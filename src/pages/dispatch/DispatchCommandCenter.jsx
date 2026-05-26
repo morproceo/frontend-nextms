@@ -13,9 +13,7 @@ import { useDispatchCommandCenter } from '../../hooks';
 import { Card } from '../../components/ui/Card';
 import { LoadTimeline } from '../../components/features/dispatch/LoadTimeline';
 import { LogIQ } from '../../components/features/dispatch/LoadJudge';
-import { DispatchMap } from '../../components/features/dispatch/DispatchMap';
 import { CostCalculator } from '../../components/features/dispatch/CostCalculator';
-import { MarketData } from '../../components/features/dispatch/MarketData';
 import { LoadFormModal } from '../../components/features/loads/LoadFormModal';
 import {
   Radio,
@@ -23,17 +21,16 @@ import {
   MapPin,
   DollarSign,
   List,
-  Map,
   Wallet,
-  Target,
-  BarChart3
+  Target
 } from 'lucide-react';
 
 const TABS = [
   { id: 'timeline', label: 'Timeline', icon: List },
-  { id: 'map', label: 'Map', icon: Map },
-  { id: 'market', label: 'Market', icon: BarChart3 },
   { id: 'finances', label: 'Finances', icon: Wallet }
+  // Map + Market tabs removed 2026-05-25 (redundant — map view will live
+  // inside the Timeline calendar when re-added; market intel lives in
+  // its own LogIQ surface).
 ];
 
 export function DispatchCommandCenter() {
@@ -46,11 +43,10 @@ export function DispatchCommandCenter() {
     timelineLoading,
     timelineDays,
     setTimelineDays,
+    drivers,
     // KPIs
     kpis,
     kpisLoading,
-    // Map
-    mapLocations,
     // Cost Calculator
     costForm,
     updateCostForm,
@@ -191,16 +187,9 @@ export function DispatchCommandCenter() {
             loading={timelineLoading}
             days={timelineDays}
             onDaysChange={setTimelineDays}
+            drivers={drivers}
           />
         </div>
-      )}
-
-      {activeTab === 'map' && (
-        <DispatchMap loads={mapLocations} />
-      )}
-
-      {activeTab === 'market' && (
-        <MarketData />
       )}
 
       {activeTab === 'finances' && (

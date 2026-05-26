@@ -8,13 +8,20 @@ import {
   TrendingUp,
   Wrench,
   MapPin,
-  Loader2
+  Loader2,
+  Mic,
+  Phone
 } from 'lucide-react';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOrg } from '../../contexts/OrgContext';
 import genieApi from '../../api/genie.api';
+import driverGenieApi from '../../api/driverGenie.api';
+import { Orb } from '../ui/orb';
+// GenieVoiceOverlay pulls in @elevenlabs/client + three.js — heavy. Lazy
+// so it only loads once a driver actually taps the orb.
+const GenieVoiceOverlay = lazy(() => import('./GenieVoiceOverlay'));
 import { cn } from '../../lib/utils';
 
 /**
@@ -46,7 +53,10 @@ import { cn } from '../../lib/utils';
  * (POST /v1/agents/genie/chat), with conversation switching via the
  * header's messages icon.
  */
-export function GeniePanel({ open, onClose }) {
+export function GeniePanel({ open, onClose, apiVariant = 'org' }) {
+  // One panel, two backends: carrier-side org-scoped Genie vs the
+  // driver-side user-scoped Genie (their loads + their truck).
+  const api = apiVariant === 'driver' ? driverGenieApi : genieApi;
   const { user } = useAuth();
   const { currentOrg } = useOrg();
   const firstName = user?.first_name || (user?.email?.split('@')[0] ?? 'there');
@@ -57,7 +67,10 @@ export function GeniePanel({ open, onClose }) {
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  // Voice mode is driver-only; the mic button isn't rendered for carrier.
+  const [voiceMode, setVoiceMode] = useState(false);
   const scrollRef = useRef(null);
+  const isDriver = apiVariant === 'driver';
 
   useEffect(() => {
     if (!open) return;
@@ -69,7 +82,7 @@ export function GeniePanel({ open, onClose }) {
   }, [open, onClose]);
 
   const loadConversations = useCallback(() => {
-    genieApi.listGenieConversations()
+    api.listGenieConversations()
       .then((r) => setConversations(r.data?.conversations || []))
       .catch(() => {});
   }, []);
@@ -79,21 +92,33 @@ export function GeniePanel({ open, onClose }) {
   }, [open, loadConversations]);
 
   useEffect(() => {
+    // Don't auto-scroll while voice mode is up — the orb is full-bleed in
+    // the scroll region and voice transcripts trickling in would otherwise
+    // push the orb out of view.
+    if (voiceMode) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, sending]);
+  }, [messages, sending, voiceMode]);
 
   const newChat = () => {
     setConversationId(null);
     setMessages([]);
     setInput('');
     setShowHistory(false);
+    setVoiceMode(false);
+  };
+
+  // Voice overlay pushes transcribed turns here as they arrive so the
+  // panel's unified history reflects voice + text in one stream.
+  const appendVoiceTurn = ({ role, content, source }) => {
+    if (!content) return;
+    setMessages((m) => [...m, { role, content, source: source || 'voice' }]);
   };
 
   const openConversation = async (id) => {
     setConversationId(id);
     setShowHistory(false);
     try {
-      const r = await genieApi.getGenieConversation(id);
+      const r = await api.getGenieConversation(id);
       setMessages(r.data?.messages || []);
     } catch {
       setMessages([]);
@@ -107,7 +132,7 @@ export function GeniePanel({ open, onClose }) {
     setMessages((m) => [...m, { role: 'user', content: body }]);
     setSending(true);
     try {
-      const r = await genieApi.sendGenieMessage(body, conversationId);
+      const r = await api.sendGenieMessage(body, conversationId);
       const data = r.data || {};
       if (!conversationId && data.conversation_id) {
         setConversationId(data.conversation_id);
@@ -236,11 +261,36 @@ export function GeniePanel({ open, onClose }) {
           )}
 
           {/* — 2. Conversation scroll area —
-              Empty state sits at the TOP of this scrollable region. When
-              real messages arrive they'll render below, in the same scroll
-              container, with no layout jump. */}
-          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-            {!hasThread && (
+              Three display modes:
+                · Voice active (driver) → orb takes over the entire region;
+                  messages list is hidden so auto-scroll can't shove the
+                  orb out of view.
+                · Driver, no thread, voice idle → centered orb with a phone
+                  icon as the "tap to talk" affordance (mirrors the
+                  ElevenLabs reference screenshot).
+                · Otherwise → empty greeting at the top OR the messages
+                  list, scrolling as expected. */}
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto relative">
+            {isDriver && voiceMode ? (
+              <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-white/40 text-body-sm">Loading voice…</div>}>
+              <GenieVoiceOverlay
+                conversationId={conversationId}
+                onClose={() => setVoiceMode(false)}
+                onConversationId={(id) => {
+                  if (id && id !== conversationId) {
+                    setConversationId(id);
+                    loadConversations();
+                  }
+                }}
+                onTranscript={appendVoiceTurn}
+              />
+              </Suspense>
+            ) : isDriver && !hasThread ? (
+              <DriverVoiceIdleHero
+                firstName={firstName}
+                onStart={() => setVoiceMode(true)}
+              />
+            ) : !hasThread ? (
               <div className="px-5 pt-7 pb-4">
                 <GenieMark className="w-12 h-12 mb-4" pulse />
                 <h2 className="text-[22px] font-semibold text-white leading-tight tracking-tight">
@@ -255,9 +305,9 @@ export function GeniePanel({ open, onClose }) {
                   . Ask me anything.
                 </p>
               </div>
-            )}
+            ) : null}
 
-            {hasThread && (
+            {hasThread && !(isDriver && voiceMode) && (
               <div className="px-4 py-4 space-y-4">
                 {messages.map((m, i) => (
                   <div
@@ -291,6 +341,14 @@ export function GeniePanel({ open, onClose }) {
                           ))}
                         </div>
                       )}
+                      {m.source === 'voice' && (
+                        <div className={cn(
+                          'mt-1 flex items-center gap-1 text-[9px] uppercase tracking-wider text-white/35',
+                          m.role === 'user' ? 'justify-end' : 'justify-start'
+                        )}>
+                          <Mic className="w-2.5 h-2.5" /> voice
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -308,8 +366,11 @@ export function GeniePanel({ open, onClose }) {
 
           {/* — 3. Suggestions strip —
               Always-visible quick prompts directly above the input where
-              they're closest to thumb / cursor at the moment of action. */}
-          {!hasThread && (
+              they're closest to thumb / cursor at the moment of action.
+              Hidden for driver mode — the orb hero is the entry point and
+              the carrier-themed prompts ("P&L", "fleet service") don't
+              apply to a driver anyway. */}
+          {!hasThread && !isDriver && (
             <div className="px-3 pt-2 pb-1 border-t border-white/[0.04] flex-shrink-0">
               <div className="text-[10px] uppercase tracking-wider text-white/35 px-1 pb-1.5">
                 Try asking
@@ -330,13 +391,32 @@ export function GeniePanel({ open, onClose }) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Ask Genie anything…"
+                placeholder={voiceMode ? 'Or send a message…' : 'Ask Genie anything…'}
                 className={cn(
-                  'w-full resize-none bg-transparent px-4 py-3 pr-12',
+                  'w-full resize-none bg-transparent px-4 py-3',
+                  isDriver ? 'pr-20' : 'pr-12',
                   'text-body-sm text-white placeholder:text-white/35',
                   'focus:outline-none'
                 )}
               />
+              {/* Mic button — driver-only. Toggles the overlay. Hidden
+                  while voiceMode is true (the overlay's own end button
+                  takes over the affordance). */}
+              {isDriver && !voiceMode && (
+                <button
+                  type="button"
+                  aria-label="Talk to Genie"
+                  onClick={() => setVoiceMode(true)}
+                  className={cn(
+                    'absolute right-12 bottom-2 w-8 h-8 rounded-full',
+                    'flex items-center justify-center',
+                    'bg-white/[0.06] text-white/75 border border-white/10',
+                    'hover:bg-white/[0.12] hover:text-white transition-colors'
+                  )}
+                >
+                  <Mic className="w-4 h-4" strokeWidth={2.25} />
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="Send"
@@ -431,6 +511,74 @@ function GenieMark({ className = '', pulse = false }) {
         <path d="M5 18H3" stroke="url(#genie-mark-grad)" />
       </svg>
     </motion.div>
+  );
+}
+
+/**
+ * DriverVoiceIdleHero — the empty-state for driver Genie. Renders a
+ * centered, calm orb with a phone icon over it; tapping the orb starts a
+ * voice session. Mirrors the ElevenLabs widget's idle screen so drivers
+ * understand voice is the primary modality (typing still works in the
+ * composer below).
+ */
+function DriverVoiceIdleHero({ firstName, onStart }) {
+  // iOS Safari requires the very first call to getUserMedia + AudioContext
+  // to happen inside the user gesture handler — by the time our backend
+  // round-trip finishes the gesture window is closed and the page stalls
+  // at "Connecting…". Pre-warm both here synchronously, then start.
+  const handleTap = async () => {
+    try {
+      // Stream gets discarded; the permission grant + AudioContext unlock
+      // are the only things we need to persist. The SDK opens its own
+      // stream when it starts.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      // Unlock the AudioContext for iOS playback (otherwise output is muted).
+      const Ctor = window.AudioContext || window.webkitAudioContext;
+      if (Ctor) {
+        const ctx = new Ctor();
+        if (ctx.state === 'suspended') await ctx.resume();
+        try { await ctx.close(); } catch { /* ignore */ }
+      }
+    } catch {
+      // Permission denied — let the SDK surface the error; don't block.
+    }
+    onStart();
+  };
+
+  return (
+    <div className="h-full w-full flex flex-col items-center justify-center px-6 py-8 text-center">
+      <button
+        type="button"
+        onClick={handleTap}
+        aria-label="Tap to talk to Genie"
+        className="group relative outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-full"
+      >
+        <div className="w-44 h-44">
+          <Orb colors={['#FDE68A', '#1E3A8A']} agentState={null} />
+        </div>
+        {/* Phone affordance — sits dead-center on top of the orb, like the
+            ElevenLabs reference. Slight shadow so it lifts off the gradient. */}
+        <span
+          className={cn(
+            'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+            'w-14 h-14 rounded-full bg-white text-[#0a0e1a]',
+            'flex items-center justify-center',
+            'shadow-[0_10px_28px_-8px_rgba(0,0,0,0.5)]',
+            'transition-transform group-hover:scale-105 group-active:scale-95'
+          )}
+        >
+          <Phone className="w-5 h-5" strokeWidth={2.25} />
+        </span>
+      </button>
+
+      <h2 className="mt-7 text-[20px] font-semibold text-white tracking-tight">
+        Hey {firstName} — tap to talk to Genie
+      </h2>
+      <p className="mt-2 text-body-sm text-white/55 max-w-[280px] leading-relaxed">
+        Ask about your loads, your truck, fault codes, or your earnings — hands-free.
+      </p>
+    </div>
   );
 }
 

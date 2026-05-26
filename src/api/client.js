@@ -1,16 +1,16 @@
 import axios from 'axios';
 import { getOrgSlug } from '../lib/utils';
 
-// In dev, derive the API URL from the current page host so the app works
-// transparently over both `localhost:5173` and `<lan-ip>:5173`. An explicit
-// VITE_API_URL still wins when set (e.g. for prod or test env overrides).
+// Default to a same-origin /api path — Vite's dev proxy forwards it to
+// localhost:3001 internally. Works transparently for:
+//   - localhost:5173 (dev on this laptop)
+//   - <lan-ip>:5173 (phone on the same Wi-Fi)
+//   - <random>.trycloudflare.com (HTTPS tunnel — required for phone mic)
+// An explicit VITE_API_URL still wins (prod / test env overrides).
 const API_URL = (() => {
   const explicit = import.meta.env.VITE_API_URL;
   if (explicit) return explicit;
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    return `${window.location.protocol}//${window.location.hostname}:3001/api`;
-  }
-  return 'http://localhost:3001/api';
+  return '/api';
 })();
 
 /**

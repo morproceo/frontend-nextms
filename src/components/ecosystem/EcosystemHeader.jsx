@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { LogOut, User, Building2, ChevronDown } from 'lucide-react';
@@ -30,6 +30,16 @@ export function EcosystemHeader({ appName, appId, variant }) {
   const navigate = useNavigate();
   const slug = orgSlug || currentOrg?.slug || organizations?.[0]?.slug;
   const [genieOpen, setGenieOpen] = useState(false);
+
+  // Any place in the app can request the Genie panel by dispatching
+  // window.dispatchEvent(new CustomEvent('open-genie')). Used by the
+  // driver launcher's Genie tile so it reuses this single panel
+  // instance instead of mounting a second one.
+  useEffect(() => {
+    const open = () => setGenieOpen(true);
+    window.addEventListener('open-genie', open);
+    return () => window.removeEventListener('open-genie', open);
+  }, []);
 
   // Driver portal has no org context: hide the org switcher, the org
   // app-grid, and Genie (org-scoped). Brand returns to the driver
@@ -78,9 +88,9 @@ export function EcosystemHeader({ appName, appId, variant }) {
         {/* Right cluster */}
         <div className="flex items-center gap-2">
           {!isDriver && <OrgSwitcher />}
-          {!isDriver && (
-            <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
-          )}
+          {/* Genie is available on both sides — carrier sees org-scoped
+              Genie, driver sees their own context-aware Genie. */}
+          <GenieButton onClick={() => setGenieOpen(true)} isOpen={genieOpen} />
           {!isDriver && <AppGridMenu currentAppId={appId} />}
 
           <DropdownMenu.Root>
@@ -166,9 +176,11 @@ export function EcosystemHeader({ appName, appId, variant }) {
         </div>
       </div>
 
-      {!isDriver && (
-        <GeniePanel open={genieOpen} onClose={() => setGenieOpen(false)} />
-      )}
+      <GeniePanel
+        open={genieOpen}
+        onClose={() => setGenieOpen(false)}
+        apiVariant={isDriver ? 'driver' : 'org'}
+      />
     </header>
   );
 }

@@ -1,4 +1,4 @@
-import { Navigation, Wrench, Network } from 'lucide-react';
+import { Navigation, Wrench, Network, Sparkles } from 'lucide-react';
 
 /**
  * Driver launcher module registry.
@@ -36,6 +36,18 @@ export const DRIVER_APPS = [
     icon: Network,
     tint: '#10B981',
     to: '/driver/connect'
+  },
+  {
+    id: 'genie',
+    name: 'Genie',
+    tagline: 'Your AI co-pilot — voice or text',
+    icon: Sparkles,
+    tint: '#A855F7',
+    // Not a navigation tile — opens the Genie chat panel in place.
+    // DriverTile dispatches the `open-genie` window event; EcosystemHeader
+    // listens and toggles the panel open (so we reuse one panel instance
+    // instead of mounting a second one alongside the header's).
+    action: 'open-genie'
   }
   // More driver micro-services (e.g. Parking) get added here as tiles.
 ];

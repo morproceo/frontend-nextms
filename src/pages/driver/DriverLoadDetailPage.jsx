@@ -173,6 +173,15 @@ export function DriverLoadDetailPage() {
               </p>
             </div>
 
+            {load.schedule?.pickup_number && (
+              <div className="flex items-center gap-2 text-body-sm bg-accent/5 border border-accent/15 rounded-md px-3 py-2">
+                <span className="text-text-tertiary text-[11px] uppercase tracking-wider">PU#</span>
+                <span className="font-mono font-medium text-text-primary select-all">
+                  {load.schedule.pickup_number}
+                </span>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-body-sm">
               <Calendar className="w-4 h-4 text-text-tertiary" />
               <span>{formatDate(load.schedule?.pickup_date)}</span>

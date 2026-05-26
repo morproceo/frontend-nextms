@@ -42,26 +42,26 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">
             {effectiveMode === null ? 'New Load' : effectiveMode === 'ai' ? 'AI Import' : 'Create Load'}
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100:bg-gray-800 text-gray-500 hover:text-gray-700:text-gray-200 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto px-8 py-6 bg-white">
           {effectiveMode === null ? (
             // Mode Selection
             <div className="space-y-4">
-              <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              <p className="text-gray-600 text-center mb-6">
                 How would you like to create this load?
               </p>
 
@@ -69,13 +69,13 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
                 {/* AI Mode */}
                 <button
                   onClick={() => handleSelectMode('ai')}
-                  className="group p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left"
+                  className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 bg-gray-50 hover:bg-blue-50:bg-blue-900/20 transition-all text-left"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
-                    <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4 group-hover:bg-blue-200:bg-blue-900/50 transition-colors">
+                    <Sparkles className="w-6 h-6 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">AI Import</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="font-semibold text-gray-900 mb-1">AI Import</h3>
+                  <p className="text-sm text-gray-500">
                     Upload a rate confirmation and let AI extract all the details
                   </p>
                 </button>
@@ -83,13 +83,13 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
                 {/* Manual Mode */}
                 <button
                   onClick={() => handleSelectMode('manual')}
-                  className="group p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left"
+                  className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 bg-gray-50 hover:bg-blue-50:bg-blue-900/20 transition-all text-left"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
-                    <PenLine className="w-6 h-6 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                  <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center mb-4 group-hover:bg-blue-100:bg-blue-900/30 transition-colors">
+                    <PenLine className="w-6 h-6 text-gray-600 group-hover:text-blue-600:text-blue-400 transition-colors" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Manual Entry</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="font-semibold text-gray-900 mb-1">Manual Entry</h3>
+                  <p className="text-sm text-gray-500">
                     Enter load details step by step
                   </p>
                 </button>

@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatchTimeline, useCostSettings, useSaveCostSettings } from '../api/useDispatchApi';
 import { useLoadStats } from '../api/useLoadsApi';
+import { useDriversList } from '../api/useDriversApi';
 import { usePnlReport } from '../api/usePnlApi';
 import mapApi from '../../api/map.api';
 
@@ -42,6 +43,18 @@ export function useDispatchCommandCenter() {
   const [timelineDays, setTimelineDays] = useState(7);
   const { timeline, loading: timelineLoading, error: timelineError, fetchTimeline } = useDispatchTimeline();
 
+  // ---- Drivers — used by Calendar to draw a row per driver even when
+  //      they have no loads in the visible range. No status filter
+  //      (driver statuses are `available`/`driving`/`off_duty`/etc, not
+  //      `active`/`inactive`) so the full roster shows up.
+  const { drivers: driversRaw, fetchDrivers } = useDriversList();
+  // The drivers API still returns the response envelope `{success, data:[]}`.
+  // Normalize to an array here so consumers (GanttView) can just `.forEach`.
+  const drivers = useMemo(() => {
+    if (Array.isArray(driversRaw)) return driversRaw;
+    return driversRaw?.data || driversRaw?.drivers || [];
+  }, [driversRaw]);
+
   // ---- KPIs ----
   const { stats, loading: statsLoading, fetchStats } = useLoadStats();
 
@@ -70,6 +83,7 @@ export function useDispatchCommandCenter() {
     fetchStats();
     fetchPnl({});
     fetchCostSettings();
+    fetchDrivers();
   }, []);
 
   // Refetch timeline when days filter changes
@@ -380,6 +394,7 @@ export function useDispatchCommandCenter() {
     timelineLoading,
     timelineDays,
     setTimelineDays,
+    drivers,
 
     // KPIs
     kpis,
