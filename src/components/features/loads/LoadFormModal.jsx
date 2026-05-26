@@ -57,7 +57,7 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-8 py-5 sm:py-6 bg-white">
           {effectiveMode === null ? (
             // Mode Selection
             <div className="space-y-4">

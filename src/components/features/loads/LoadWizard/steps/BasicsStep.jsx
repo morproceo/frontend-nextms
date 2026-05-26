@@ -243,23 +243,23 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
                   placeholder="Street address"
                   className="w-full px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
-                <div className="flex gap-3">
+                <div className="grid grid-cols-[1fr_72px_88px] gap-2">
                   <input
                     type="text"
                     name="shipper_city"
                     value={formData.shipper_city}
                     onChange={handleChange}
                     placeholder="City"
-                    className="flex-1 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                   <input
                     type="text"
                     name="shipper_state"
                     value={formData.shipper_state}
                     onChange={(e) => updateFormData({ shipper_state: e.target.value.toUpperCase() })}
-                    placeholder="State"
+                    placeholder="ST"
                     maxLength={2}
-                    className="w-20 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 uppercase"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 uppercase text-center"
                   />
                   <input
                     type="text"
@@ -267,7 +267,7 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
                     value={formData.shipper_zip}
                     onChange={handleChange}
                     placeholder="ZIP"
-                    className="w-24 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                 </div>
               </div>
@@ -388,23 +388,23 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
                   placeholder="Street address"
                   className="w-full px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
-                <div className="flex gap-3">
+                <div className="grid grid-cols-[1fr_72px_88px] gap-2">
                   <input
                     type="text"
                     name="consignee_city"
                     value={formData.consignee_city}
                     onChange={handleChange}
                     placeholder="City"
-                    className="flex-1 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                   <input
                     type="text"
                     name="consignee_state"
                     value={formData.consignee_state}
                     onChange={(e) => updateFormData({ consignee_state: e.target.value.toUpperCase() })}
-                    placeholder="State"
+                    placeholder="ST"
                     maxLength={2}
-                    className="w-20 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 uppercase"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20 uppercase text-center"
                   />
                   <input
                     type="text"
@@ -412,7 +412,7 @@ export function BasicsStep({ formData, updateFormData, facilities, onFacilityAdd
                     value={formData.consignee_zip}
                     onChange={handleChange}
                     placeholder="ZIP"
-                    className="w-24 px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="min-w-0 px-3 sm:px-4 py-3 bg-white border-0 rounded-xl text-body text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                 </div>
               </div>
