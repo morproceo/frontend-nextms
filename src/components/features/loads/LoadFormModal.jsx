@@ -34,30 +34,30 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60"
         onClick={handleClose}
       />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      {/* Modal — full-screen sheet on mobile, centered card on desktop */}
+      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl h-[92vh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
             {effectiveMode === null ? 'New Load' : effectiveMode === 'ai' ? 'AI Import' : 'Create Load'}
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg hover:bg-gray-100:bg-gray-800 text-gray-500 hover:text-gray-700:text-gray-200 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 bg-white">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6 bg-white">
           {effectiveMode === null ? (
             // Mode Selection
             <div className="space-y-4">
@@ -65,7 +65,7 @@ export function LoadFormModal({ isOpen, onClose, onSuccess, prefill = null }) {
                 How would you like to create this load?
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* AI Mode */}
                 <button
                   onClick={() => handleSelectMode('ai')}

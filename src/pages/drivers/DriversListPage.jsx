@@ -39,16 +39,18 @@ function FilterDropdown({ label, value, options, onChange }) {
   const active = value && value !== 'all';
   return (
     <label className={cn(
-      'relative inline-flex items-center gap-2 px-4 py-3 rounded-xl cursor-pointer transition-all shadow-[0_1px_2px_rgba(16,24,40,0.04)] whitespace-nowrap',
+      'relative flex sm:inline-flex items-center justify-between sm:justify-start gap-2 px-3 sm:px-4 py-3 rounded-xl cursor-pointer transition-all shadow-[0_1px_2px_rgba(16,24,40,0.04)] min-w-0',
       active
         ? 'bg-accent/10 border border-accent/30 text-accent'
         : 'bg-white border border-gray-200 text-text-secondary hover:bg-surface-secondary'
     )}>
-      <span className="text-small text-text-tertiary">{label}:</span>
-      <span className={cn('text-body-sm font-semibold', active ? 'text-accent' : 'text-text-primary')}>
-        {current.label}
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="text-small text-text-tertiary shrink-0">{label}:</span>
+        <span className={cn('text-body-sm font-semibold truncate', active ? 'text-accent' : 'text-text-primary')}>
+          {current.label}
+        </span>
       </span>
-      <ChevronDown className={cn('w-4 h-4', active ? 'text-accent' : 'text-text-tertiary')} />
+      <ChevronDown className={cn('w-4 h-4 shrink-0', active ? 'text-accent' : 'text-text-tertiary')} />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -260,14 +262,14 @@ export function DriversListPage() {
           </div>
         </div>
 
-        {/* Compact dropdown pills — same height as the search input */}
-        <div className="flex gap-2">
+        {/* Compact dropdown pills — share row on mobile (50/50), inline on desktop */}
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <FilterDropdown
             label="Status"
             value={filters.status}
             onChange={setStatusFilter}
             options={[
-              { v: 'all', label: 'All statuses' },
+              { v: 'all', label: 'All' },
               ...Object.values(DriverStatusConfig).map((c) => ({ v: c.value, label: c.label }))
             ]}
           />
@@ -276,7 +278,7 @@ export function DriversListPage() {
             value={filters.account}
             onChange={setAccountFilter}
             options={[
-              { v: 'all', label: 'All accounts' },
+              { v: 'all', label: 'All' },
               ...Object.values(DriverAccountStatusConfig).map((c) => ({ v: c.value, label: c.label }))
             ]}
           />

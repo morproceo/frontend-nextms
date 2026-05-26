@@ -351,7 +351,7 @@ export function LoadsListPage() {
 
       {/* Status chips (kept — second-tier exact-status filter) */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
-        <ListFilter className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+        <ListFilter className="hidden sm:block w-3.5 h-3.5 text-text-tertiary shrink-0" />
         <button
           onClick={() => setStatusFilter('all')}
           className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
@@ -743,7 +743,6 @@ export function LoadsListPage() {
                   ref={rateConInputRef}
                   type="file"
                   accept="image/*,.pdf"
-                  capture="environment"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleScanRateCon(file);
