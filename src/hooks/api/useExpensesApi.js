@@ -5,30 +5,70 @@
  * loading/error state management.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useApiState, useMutation } from './useApiRequest';
 import expensesApi from '../../api/expenses.api';
 
 /**
  * Hook for fetching expenses list
  */
+const PAGE_SIZE = 50;
+
 export function useExpensesList(initialFilters = {}) {
   const { data, loading, error, fetch, setData, clearError } = useApiState(
-    (filters) => expensesApi.getExpenses(filters),
-    { initialData: { expenses: [], total: 0 } }
+    (filters) => expensesApi.getExpenses({ limit: PAGE_SIZE, offset: 0, ...filters }),
+    { initialData: { expenses: [], total: 0, limit: PAGE_SIZE, offset: 0 } }
   );
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [appendError, setAppendError] = useState(null);
 
+  // First-page or filter-change fetch: replaces the list.
   const fetchExpenses = useCallback((filters = initialFilters) => {
-    return fetch(filters);
+    return fetch({ limit: PAGE_SIZE, offset: 0, ...filters });
   }, [fetch, initialFilters]);
 
+  // Subsequent pages: append onto the existing list.
+  const loadMore = useCallback(async (filters = initialFilters) => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setAppendError(null);
+    try {
+      const next = await expensesApi.getExpenses({
+        ...filters,
+        limit: PAGE_SIZE,
+        offset: (data?.expenses?.length ?? 0)
+      });
+      setData((prev) => ({
+        ...(prev || {}),
+        expenses: [...(prev?.expenses || []), ...(next?.expenses || [])],
+        total: next?.total ?? prev?.total ?? 0,
+        limit: PAGE_SIZE,
+        offset: (prev?.expenses?.length ?? 0) + (next?.expenses?.length ?? 0)
+      }));
+    } catch (err) {
+      setAppendError(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [data, loadingMore, setData, initialFilters]);
+
+  const expenses = data?.expenses || [];
+  const total = data?.total || 0;
+
   return {
-    expenses: data?.expenses || [],
-    total: data?.total || 0,
+    expenses,
+    total,
+    hasMore: expenses.length < total,
     loading,
-    error,
+    loadingMore,
+    error: error || appendError,
     fetchExpenses,
-    setExpenses: (expenses) => setData(prev => ({ ...prev, expenses })),
+    loadMore,
+    setExpenses: (next) =>
+      setData((prev) => ({
+        ...(prev || {}),
+        expenses: typeof next === 'function' ? next(prev?.expenses || []) : next
+      })),
     clearError
   };
 }

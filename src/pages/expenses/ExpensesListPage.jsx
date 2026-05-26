@@ -86,7 +86,11 @@ export function ExpensesListPage() {
     exportExpenses,
     exporting,
     workflowLoading,
-    mutating
+    mutating,
+    total,
+    hasMore,
+    loadMore,
+    loadingMore
   } = useExpenses();
 
   // Format helpers
@@ -525,11 +529,31 @@ export function ExpensesListPage() {
 
       {/* Summary Footer */}
       <div className="flex items-center justify-between text-body-sm text-text-secondary">
-        <span>Showing {expenses.length} of {allExpenses.length} expenses</span>
+        <span>
+          Showing {expenses.length} of {allExpenses.length} loaded
+          {total > allExpenses.length && (
+            <span className="text-text-tertiary"> · {total} total</span>
+          )}
+        </span>
         <span>
           Filtered Total: <span className="font-semibold text-text-primary">{formatCurrency(stats.amounts.filtered)}</span>
         </span>
       </div>
+
+      {/* Load more — backend returns 50 at a time. Triggers a fresh fetch with
+          offset = current loaded length, then appends to the list. */}
+      {hasMore && (
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={() => loadMore()}
+            disabled={loadingMore}
+            className="px-5 py-2.5 rounded-full bg-surface-primary border border-surface-tertiary text-body-sm font-medium text-text-secondary hover:bg-surface-secondary disabled:opacity-50 transition-colors"
+          >
+            {loadingMore ? 'Loading…' : `Load more (${total - allExpenses.length} remaining)`}
+          </button>
+        </div>
+      )}
 
       {/* Add Expense Modal / Bottom Sheet */}
       {showAddModal && (

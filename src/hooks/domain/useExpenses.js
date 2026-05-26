@@ -37,9 +37,13 @@ export function useExpenses(options = {}) {
   // API layer
   const {
     expenses: rawExpenses,
+    total,
+    hasMore,
     loading,
+    loadingMore,
     error,
     fetchExpenses,
+    loadMore,
     setExpenses,
     clearError
   } = useExpensesList();
@@ -285,6 +289,10 @@ export function useExpenses(options = {}) {
     allExpenses: enrichedExpenses,
     stats,
     apiStats: statsHook.stats,
+    total,
+    hasMore,
+    loadMore,
+    loadingMore,
 
     // State
     loading,
