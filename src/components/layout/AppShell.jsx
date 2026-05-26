@@ -97,8 +97,7 @@ const navigation = [
       // (not under NextMS chrome), so these hrefs intentionally point
       // at /o/:slug/settings which renders OrgSettingsShell.
       { name: 'Organization', href: '/settings', icon: Settings },
-      { name: 'Billing', href: '/settings/billing', icon: CreditCard },
-      { name: 'Scoring Config', href: '/dispatch/scoring-config', icon: ShieldCheck }
+      { name: 'Billing', href: '/settings/billing', icon: CreditCard }
     ]
   }
 ];

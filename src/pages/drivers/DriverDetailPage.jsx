@@ -18,9 +18,6 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { DriverDocumentUploadModal } from '../../components/features/documents/DriverDocumentUploadModal';
-import { DriverReadinessCard } from '../../components/features/readiness/DriverReadinessCard';
-import { DriverIncidentsCard } from '../../components/features/readiness/DriverIncidentsCard';
-import { EvaluationsList } from '../../components/features/readiness/EvaluationsList';
 import {
   ArrowLeft,
   UserCheck,
@@ -80,7 +77,6 @@ export function DriverDetailPage() {
   const navigate = useNavigate();
   const { currentOrg, orgUrl } = useOrg();
   const [codeCopied, setCodeCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'evaluations'
 
   // Documents state
   const [documents, setDocuments] = useState([]);
@@ -315,38 +311,6 @@ export function DriverDetailPage() {
         </div>
       </Card>
 
-      {/* Main Content Grid */}
-      {/* Tab Strip (Phase 6) */}
-      <div className="border-b border-border">
-        <nav className="flex gap-0 -mb-px">
-          {[
-            { id: 'profile', label: 'Profile' },
-            { id: 'evaluations', label: 'Evaluations' }
-          ].map(t => {
-            const isActive = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 text-body-sm font-medium border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-text-tertiary hover:text-text-secondary hover:border-border'
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {activeTab === 'evaluations' ? (
-        <EvaluationsList
-          filter={{ driver_id: driver.id }}
-          emptyHint="No evaluations recorded for this driver yet."
-        />
-      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Details */}
         <div className="lg:col-span-2 space-y-6">
@@ -390,12 +354,6 @@ export function DriverDetailPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Driver Readiness (v1.2 Phase 3) */}
-          <DriverReadinessCard driverId={driver.id} />
-
-          {/* Driver Incidents (Phase 7) — feeds safety + execution scoring */}
-          <DriverIncidentsCard driverId={driver.id} />
 
           {/* Pay & Classification */}
           {(driver.driver_type || driver.pay_type || driver.pay_rate || driver.employee_number || driver.tax_classification) && (
@@ -968,7 +926,6 @@ export function DriverDetailPage() {
           )}
         </div>
       </div>
-      )}
 
       {/* Upload Modal */}
       <DriverDocumentUploadModal

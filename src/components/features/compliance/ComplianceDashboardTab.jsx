@@ -20,7 +20,6 @@ import {
   CheckCircle,
   ChevronRight
 } from 'lucide-react';
-import { ReadinessSummaryCard } from '../readiness/ReadinessSummaryCard';
 
 function getAlertLink(alert, orgSlug) {
   if (alert.type === 'driver') return `/o/${orgSlug}/drivers/${alert.entityId}`;
@@ -58,12 +57,10 @@ export function ComplianceDashboardTab({ alerts, summary, loading }) {
 
   const expiredCount = (alerts || []).filter(a => a.severity === 'expired').length;
   const expiringCount = (alerts || []).filter(a => a.severity === 'expiring').length;
-  const totalDrivers = summary?.totalDrivers ?? summary?.driver_total ?? null;
 
   if (!alerts || alerts.length === 0) {
     return (
       <div className="space-y-4">
-        <ReadinessSummaryCard totalDrivers={totalDrivers} />
         <Card padding="compact" className="p-8 text-center">
           <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-8 h-8 text-success" />
@@ -79,8 +76,6 @@ export function ComplianceDashboardTab({ alerts, summary, loading }) {
 
   return (
     <div className="space-y-4">
-      <ReadinessSummaryCard totalDrivers={totalDrivers} />
-
       {/* Summary badges */}
       <div className="flex flex-wrap gap-2">
         {expiredCount > 0 && (
