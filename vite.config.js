@@ -11,6 +11,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Bind on all interfaces so a phone on the same Wi-Fi (or a cloudflared
+    // tunnel proxying to this port) can reach the dev server.
+    host: true,
+    // cloudflared / ngrok tunnels send Host: <random>.trycloudflare.com,
+    // which Vite blocks by default as a "cross-origin attack". Allow any
+    // host while in dev.
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

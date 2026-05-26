@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
   Loader2, ArrowLeft, BadgeCheck, ShieldCheck, Mail, Phone, Truck, MapPin,
   Bookmark, BookmarkCheck, Briefcase, Calendar, Award, Send, MoreHorizontal,
-  Plus, Check
+  Plus, Check, Lock
 } from 'lucide-react';
 import connectApi from '../../api/connect.api';
 import { cn } from '../../lib/utils';
@@ -76,7 +76,7 @@ export default function DriverProfilePage() {
     );
   }
 
-  const { user, availability, identity, work_history, connection, onboarding_id } = p;
+  const { user, availability, identity, work_history, connection, onboarding_id, contact_unlocked } = p;
   const vb = verifPill(identity?.verification || 'unverified');
   const isVerified = identity?.verification === 'verified';
   const statusLabel = availability?.status && STATUS_LABEL[availability.status];
@@ -156,10 +156,14 @@ export default function DriverProfilePage() {
                     </span>
                   </>
                 )}
-                <span className="text-text-tertiary">·</span>
-                <a href={`mailto:${user.email}`} className="text-accent hover:underline">
-                  Contact info
-                </a>
+                {contact_unlocked && (
+                  <>
+                    <span className="text-text-tertiary">·</span>
+                    <a href={`mailto:${user.email}`} className="text-accent hover:underline">
+                      Contact info
+                    </a>
+                  </>
+                )}
               </div>
 
               <div className="text-small text-text-tertiary mt-1">
@@ -301,19 +305,40 @@ export default function DriverProfilePage() {
 
       {/* ── Contact ───────────────────────────────────────────────── */}
       <Section title="Contact info">
+        {!contact_unlocked && (
+          <div className="flex items-start gap-3 p-3 mb-3 rounded-lg bg-surface-secondary border border-surface-tertiary">
+            <Lock className="w-4 h-4 text-text-tertiary mt-0.5 shrink-0" />
+            <div className="text-body-sm text-text-secondary">
+              <span className="font-medium text-text-primary">Contact unlocks once connected.</span>{' '}
+              Send a connect invite — the driver gets to approve before their email and phone are shared.
+            </div>
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
           {user.email && (
             <Field label="Email">
-              <a href={`mailto:${user.email}`} className="text-accent hover:underline flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" /> {user.email}
-              </a>
+              {contact_unlocked ? (
+                <a href={`mailto:${user.email}`} className="text-accent hover:underline flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" /> {user.email}
+                </a>
+              ) : (
+                <span className="text-text-tertiary flex items-center gap-1.5 font-mono">
+                  <Mail className="w-3.5 h-3.5" /> {user.email}
+                </span>
+              )}
             </Field>
           )}
           {user.phone && (
             <Field label="Phone">
-              <a href={`tel:${user.phone}`} className="text-accent hover:underline flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> {user.phone}
-              </a>
+              {contact_unlocked ? (
+                <a href={`tel:${user.phone}`} className="text-accent hover:underline flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" /> {user.phone}
+                </a>
+              ) : (
+                <span className="text-text-tertiary flex items-center gap-1.5 font-mono">
+                  <Phone className="w-3.5 h-3.5" /> {user.phone}
+                </span>
+              )}
             </Field>
           )}
         </div>

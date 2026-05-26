@@ -60,6 +60,7 @@ import AdminUserDetailPage from './pages/admin/UserDetailPage';
 import AdminApprovalsPage from './pages/admin/ApprovalsPage';
 import AdminOrgsPage from './pages/admin/OrgsPage';
 import AdminOrgDetailPage from './pages/admin/OrgDetailPage';
+import AdminInsightsPage from './pages/admin/InsightsPage';
 
 // MorPro Direct (in-ecosystem app, Phase 1 + Phase 2)
 import DirectShell from './components/direct/DirectShell';
@@ -474,6 +475,7 @@ export function Router() {
             <Route path="users/:userId" element={<AdminUserDetailPage />} />
             <Route path="orgs" element={<AdminOrgsPage />} />
             <Route path="orgs/:orgId" element={<AdminOrgDetailPage />} />
+            <Route path="insights" element={<AdminInsightsPage />} />
             <Route path="approvals" element={<AdminApprovalsPage />} />
             <Route path="*" element={<Navigate to="." replace />} />
           </Route>

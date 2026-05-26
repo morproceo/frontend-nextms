@@ -69,9 +69,17 @@ export async function setOrgFreeAccess(orgId, enabled) {
   return data?.data ?? data;
 }
 
+// ── Insights / stats ─────────────────────────────────────────────────
+
+export async function getStatsDashboard(days = 30) {
+  const { data } = await api.get('/v1/admin/stats/dashboard', { params: { days } });
+  return data?.data ?? data;
+}
+
 export default {
   listUsers, getUser, updateUser, setUserPassword,
   listOrganizations, getOrganization,
   activateOrgApp, deactivateOrgApp, setOrgFreeAccess,
-  deleteOrganization, purgeOrganization
+  deleteOrganization, purgeOrganization,
+  getStatsDashboard
 };
