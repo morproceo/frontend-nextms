@@ -33,6 +33,7 @@ import {
   Check,
   X,
   Download,
+  ChevronLeft,
   ChevronRight,
   Calendar,
   Camera,
@@ -41,6 +42,82 @@ import {
   Loader2,
   Trash2
 } from 'lucide-react';
+
+/**
+ * Compact page-number pager. Shows up to 7 buttons centered on the current
+ * page, with ellipses on either side when totalPages is larger. Prev/Next
+ * arrows on the ends. Scrolls to top of the table on change so the user sees
+ * the new rows immediately.
+ */
+function Pager({ page, totalPages, loading, onChange }) {
+  const go = (n) => {
+    if (loading || n === page || n < 1 || n > totalPages) return;
+    onChange(n);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Build the visible page list: always 1 and totalPages, then a window
+  // around the current page. Insert null sentinels for ellipses.
+  const items = [];
+  const push = (n) => { if (!items.includes(n)) items.push(n); };
+  push(1);
+  for (let n = page - 2; n <= page + 2; n++) {
+    if (n >= 1 && n <= totalPages) push(n);
+  }
+  push(totalPages);
+  items.sort((a, b) => a - b);
+  const withEllipses = [];
+  items.forEach((n, i) => {
+    if (i > 0 && n - items[i - 1] > 1) withEllipses.push('…');
+    withEllipses.push(n);
+  });
+
+  const btn = 'min-w-[36px] h-9 px-2 rounded-md text-body-sm font-medium border transition-colors';
+  const idle = 'bg-surface-primary border-surface-tertiary text-text-secondary hover:bg-surface-secondary';
+  const active = 'bg-text-primary border-text-primary text-white';
+  const disabled = 'opacity-40 cursor-not-allowed';
+
+  return (
+    <div className="flex items-center justify-center gap-1.5 pt-2">
+      <button
+        type="button"
+        onClick={() => go(page - 1)}
+        disabled={loading || page === 1}
+        className={`${btn} ${idle} ${page === 1 ? disabled : ''} flex items-center justify-center`}
+        aria-label="Previous page"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {withEllipses.map((item, idx) =>
+        item === '…' ? (
+          <span key={`e${idx}`} className="px-1 text-text-tertiary">…</span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => go(item)}
+            disabled={loading}
+            className={`${btn} ${item === page ? active : idle}`}
+            aria-current={item === page ? 'page' : undefined}
+          >
+            {item}
+          </button>
+        )
+      )}
+
+      <button
+        type="button"
+        onClick={() => go(page + 1)}
+        disabled={loading || page === totalPages}
+        className={`${btn} ${idle} ${page === totalPages ? disabled : ''} flex items-center justify-center`}
+        aria-label="Next page"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 export function ExpensesListPage() {
   const navigate = useNavigate();
@@ -88,9 +165,10 @@ export function ExpensesListPage() {
     workflowLoading,
     mutating,
     total,
-    hasMore,
-    loadMore,
-    loadingMore
+    page,
+    pageSize,
+    totalPages,
+    goToPage
   } = useExpenses();
 
   // Format helpers
@@ -527,32 +605,19 @@ export function ExpensesListPage() {
         </div>
       </Card>
 
-      {/* Summary Footer */}
-      <div className="flex items-center justify-between text-body-sm text-text-secondary">
+      {/* Summary Footer + Pager */}
+      <div className="flex items-center justify-between text-body-sm text-text-secondary flex-wrap gap-3">
         <span>
-          Showing {expenses.length} of {allExpenses.length} loaded
-          {total > allExpenses.length && (
-            <span className="text-text-tertiary"> · {total} total</span>
-          )}
+          Showing {(page - 1) * pageSize + 1}–{(page - 1) * pageSize + expenses.length} of {total}
+          {totalPages > 1 && <span className="text-text-tertiary"> · Page {page} of {totalPages}</span>}
         </span>
         <span>
           Filtered Total: <span className="font-semibold text-text-primary">{formatCurrency(stats.amounts.filtered)}</span>
         </span>
       </div>
 
-      {/* Load more — backend returns 50 at a time. Triggers a fresh fetch with
-          offset = current loaded length, then appends to the list. */}
-      {hasMore && (
-        <div className="flex justify-center pt-2">
-          <button
-            type="button"
-            onClick={() => loadMore()}
-            disabled={loadingMore}
-            className="px-5 py-2.5 rounded-full bg-surface-primary border border-surface-tertiary text-body-sm font-medium text-text-secondary hover:bg-surface-secondary disabled:opacity-50 transition-colors"
-          >
-            {loadingMore ? 'Loading…' : `Load more (${total - allExpenses.length} remaining)`}
-          </button>
-        </div>
+      {totalPages > 1 && (
+        <Pager page={page} totalPages={totalPages} loading={loading} onChange={goToPage} />
       )}
 
       {/* Add Expense Modal / Bottom Sheet */}

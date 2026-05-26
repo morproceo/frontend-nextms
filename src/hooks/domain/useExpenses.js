@@ -38,12 +38,13 @@ export function useExpenses(options = {}) {
   const {
     expenses: rawExpenses,
     total,
-    hasMore,
+    page,
+    pageSize,
+    totalPages,
     loading,
-    loadingMore,
     error,
     fetchExpenses,
-    loadMore,
+    goToPage,
     setExpenses,
     clearError
   } = useExpensesList();
@@ -290,9 +291,10 @@ export function useExpenses(options = {}) {
     stats,
     apiStats: statsHook.stats,
     total,
-    hasMore,
-    loadMore,
-    loadingMore,
+    page,
+    pageSize,
+    totalPages,
+    goToPage,
 
     // State
     loading,

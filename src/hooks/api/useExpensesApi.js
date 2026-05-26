@@ -15,59 +15,37 @@ import expensesApi from '../../api/expenses.api';
 const PAGE_SIZE = 50;
 
 export function useExpensesList(initialFilters = {}) {
+  const [page, setPage] = useState(1);
   const { data, loading, error, fetch, setData, clearError } = useApiState(
     (filters) => expensesApi.getExpenses({ limit: PAGE_SIZE, offset: 0, ...filters }),
     { initialData: { expenses: [], total: 0, limit: PAGE_SIZE, offset: 0 } }
   );
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [appendError, setAppendError] = useState(null);
 
-  // First-page or filter-change fetch: replaces the list.
-  const fetchExpenses = useCallback((filters = initialFilters) => {
-    return fetch({ limit: PAGE_SIZE, offset: 0, ...filters });
+  // Fetch a specific page. Page 1 = offset 0; replaces the list every time.
+  const fetchExpenses = useCallback((filters = initialFilters, targetPage = 1) => {
+    const safePage = Math.max(1, targetPage);
+    setPage(safePage);
+    return fetch({ limit: PAGE_SIZE, offset: (safePage - 1) * PAGE_SIZE, ...filters });
   }, [fetch, initialFilters]);
 
-  // Subsequent pages: append onto the existing list.
-  // NOTE: useApiState's `fetch()` auto-unwraps {success, data} via its
-  // own response handler, but direct expensesApi.getExpenses() returns
-  // the raw envelope. Unwrap manually here.
-  const loadMore = useCallback(async (filters = initialFilters) => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    setAppendError(null);
-    try {
-      const raw = await expensesApi.getExpenses({
-        ...filters,
-        limit: PAGE_SIZE,
-        offset: (data?.expenses?.length ?? 0)
-      });
-      const next = raw?.data ?? raw;
-      setData((prev) => ({
-        ...(prev || {}),
-        expenses: [...(prev?.expenses || []), ...(next?.expenses || [])],
-        total: next?.total ?? prev?.total ?? 0,
-        limit: PAGE_SIZE,
-        offset: (prev?.expenses?.length ?? 0) + (next?.expenses?.length ?? 0)
-      }));
-    } catch (err) {
-      setAppendError(err);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [data, loadingMore, setData, initialFilters]);
+  const goToPage = useCallback((targetPage, filters = initialFilters) => {
+    return fetchExpenses(filters, targetPage);
+  }, [fetchExpenses, initialFilters]);
 
   const expenses = data?.expenses || [];
   const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return {
     expenses,
     total,
-    hasMore: expenses.length < total,
+    page,
+    pageSize: PAGE_SIZE,
+    totalPages,
     loading,
-    loadingMore,
-    error: error || appendError,
+    error,
     fetchExpenses,
-    loadMore,
+    goToPage,
     setExpenses: (next) =>
       setData((prev) => ({
         ...(prev || {}),
