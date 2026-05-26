@@ -28,16 +28,20 @@ export function useExpensesList(initialFilters = {}) {
   }, [fetch, initialFilters]);
 
   // Subsequent pages: append onto the existing list.
+  // NOTE: useApiState's `fetch()` auto-unwraps {success, data} via its
+  // own response handler, but direct expensesApi.getExpenses() returns
+  // the raw envelope. Unwrap manually here.
   const loadMore = useCallback(async (filters = initialFilters) => {
     if (loadingMore) return;
     setLoadingMore(true);
     setAppendError(null);
     try {
-      const next = await expensesApi.getExpenses({
+      const raw = await expensesApi.getExpenses({
         ...filters,
         limit: PAGE_SIZE,
         offset: (data?.expenses?.length ?? 0)
       });
+      const next = raw?.data ?? raw;
       setData((prev) => ({
         ...(prev || {}),
         expenses: [...(prev?.expenses || []), ...(next?.expenses || [])],
