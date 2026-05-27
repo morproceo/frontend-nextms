@@ -53,10 +53,19 @@ const navigation = [
     icon: Container,
     children: [
       { name: 'Trucks', href: '/assets/trucks', icon: Truck },
-      { name: 'Trailers', href: '/assets/trailers', icon: Container },
-      { name: 'Fuel', href: '/fuel', icon: Fuel },
-      { name: 'Fuel Cards', href: '/fuel/cards', icon: CreditCard },
-      { name: 'Fuel Import', href: '/fuel/transactions/import', icon: FileText }
+      { name: 'Trailers', href: '/assets/trailers', icon: Container }
+    ]
+  },
+
+  // ── Fuel Dashboard (its own group — overview + transactions + cards + import) ──
+  {
+    name: 'Fuel Dashboard',
+    icon: Fuel,
+    children: [
+      { name: 'Overview', href: '/fuel', icon: LayoutDashboard },
+      { name: 'Transactions', href: '/fuel/transactions', icon: Fuel },
+      { name: 'Cards', href: '/fuel/cards', icon: CreditCard },
+      { name: 'Import', href: '/fuel/transactions/import', icon: FileText }
     ]
   },
 
@@ -66,7 +75,6 @@ const navigation = [
     icon: DollarSign,
     children: [
       { name: 'Expenses', href: '/expenses', icon: Receipt },
-      { name: 'Fuel Transactions', href: '/fuel/transactions', icon: Fuel },
       { name: 'Settlements', href: '/settlements', icon: CreditCard },
       { name: 'Invoices', href: '/invoices', icon: DollarSign },
       { name: 'P&L', href: '/pnl', icon: TrendingUp },
