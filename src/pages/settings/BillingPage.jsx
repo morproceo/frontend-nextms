@@ -15,6 +15,7 @@ import { CurrentPlan } from '../../components/features/billing/CurrentPlan';
 import { PlanCard } from '../../components/features/billing/PlanCard';
 import { PaymentMethodCard } from '../../components/features/billing/PaymentMethodCard';
 import { PaymentHistory } from '../../components/features/billing/PaymentHistory';
+import { AiAgentsBilling } from '../../components/features/billing/AiAgentsBilling';
 import { Loader2, CheckCircle, XCircle, CreditCard, ExternalLink } from 'lucide-react';
 
 export function BillingPage() {
@@ -46,6 +47,18 @@ export function BillingPage() {
   const loadBillingData = async () => {
     try {
       setLoading(true);
+
+      // Reconcile any stuck Stripe checkout BEFORE pulling the overview
+      // so the page reflects the latest activation state. Idempotent —
+      // returns no_eligible_session when nothing's stuck, already_active
+      // when the webhook already did the job. Silent on failure: any
+      // overview after this is still informative.
+      try {
+        await billingApi.verifyCheckout();
+      } catch (e) {
+        console.warn('[Billing] checkout verify failed:', e?.response?.data?.error?.message || e.message);
+      }
+
       const [overviewRes, plansRes, methodsRes, paymentsRes] = await Promise.all([
         billingApi.getBillingOverview(),
         billingApi.getPlans(),
@@ -107,17 +120,22 @@ export function BillingPage() {
   const isExpired = subscription.status === 'expired';
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-title text-text-primary">Billing</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-title text-text-primary">Billing</h1>
+          <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5 sm:mt-1">
+            TMS subscription, AI agents, and payment history
+          </p>
+        </div>
         {(isActive || subscription.status === 'past_due') && (
           <button
             onClick={handleManageSubscription}
-            className="flex items-center gap-2 text-body-sm text-accent hover:text-accent/80"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-button text-body-sm text-accent hover:text-accent/80 hover:bg-accent/5 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            Manage Subscription
+            <span className="hidden sm:inline">Manage</span>
           </button>
         )}
       </div>
@@ -232,7 +250,10 @@ export function BillingPage() {
         </div>
       )}
 
-      {/* Payment History */}
+      {/* AI Agents — hired Genie Suite agents + hire CTA */}
+      <AiAgentsBilling />
+
+      {/* Payment History — TMS + agent payments unified */}
       {payments.length > 0 && (
         <PaymentHistory payments={payments} />
       )}

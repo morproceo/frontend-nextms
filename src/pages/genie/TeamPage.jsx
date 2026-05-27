@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Lock, Check, Sparkles } from 'lucide-react';
 import { GENIE_TEAM, GENIE_BUNDLE } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
-import { getActiveAgents, getAgentActivity } from '../../api/agents.api';
+import { getActiveAgents, getAgentActivity, verifyAgentCheckout } from '../../api/agents.api';
 import { cn } from '../../lib/utils';
 
 /**
@@ -19,12 +19,37 @@ import { cn } from '../../lib/utils';
  */
 export default function GeniePageTeam() {
   const { orgSlug } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const basePath = `/o/${orgSlug}/genie`;
 
   // Real hire state from organization_agents. Genie ships free.
   const [hired, setHired] = useState(new Set(['genie']));
   const [bundleActive, setBundleActive] = useState(false);
   const [recentBySlug, setRecentBySlug] = useState({});
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Post-checkout reconciliation — bundle redirects land here. Flip
+  // the org agents to 'active' immediately even if the webhook hasn't
+  // landed yet. session_id-less variants trigger a sweep of recent
+  // paid sessions; either way the URL params get stripped after.
+  useEffect(() => {
+    if (searchParams.get('subscribed') !== 'true') return;
+    const raw = searchParams.get('session_id');
+    const sessionId = raw && raw !== '{CHECKOUT_SESSION_ID}' ? raw : null;
+    let alive = true;
+    verifyAgentCheckout(sessionId)
+      .catch((e) => console.warn('[TeamPage] checkout verify failed:', e?.response?.data?.error?.message || e.message))
+      .finally(() => {
+        if (!alive) return;
+        const next = new URLSearchParams(searchParams);
+        next.delete('subscribed');
+        next.delete('session_id');
+        setSearchParams(next, { replace: true });
+        setRefreshTick((t) => t + 1);
+      });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -53,7 +78,7 @@ export default function GeniePageTeam() {
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [orgSlug]);
+  }, [orgSlug, refreshTick]);
 
   const formatPrice = (cents) => {
     if (!cents) return null;

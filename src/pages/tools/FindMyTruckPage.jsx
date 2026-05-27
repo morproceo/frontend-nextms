@@ -193,6 +193,16 @@ export function FindMyTruckPage() {
             Auto
           </label>
 
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate(orgUrl('/settings/integrations/motive'))}
+            title="Motive ELD integration settings"
+          >
+            <Settings className="w-4 h-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">ELD</span>
+          </Button>
+
           <Button variant="secondary" size="sm" onClick={fetchLocations} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>

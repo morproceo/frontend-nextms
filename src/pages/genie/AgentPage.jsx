@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
@@ -20,7 +20,7 @@ import { AgentProfileCard } from '../../components/genie/AgentProfileCard';
 import { useOrg } from '../../contexts/OrgContext';
 import agentPoliciesApi from '../../api/agentPolicies.api';
 import orgEmailApi from '../../api/orgEmailConnections.api';
-import { getActiveAgents } from '../../api/agents.api';
+import { getActiveAgents, verifyAgentCheckout } from '../../api/agents.api';
 import client from '../../api/client';
 import { cn } from '../../lib/utils';
 
@@ -44,21 +44,55 @@ import { cn } from '../../lib/utils';
 export default function AgentPage() {
   const { orgSlug, agentSlug } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const agent = getAgent(agentSlug);
 
   // Real hire state from organization_agents. Genie ships free.
   const [hiredSlugs, setHiredSlugs] = useState(['genie']);
-  useEffect(() => {
-    let alive = true;
+  const refetchActive = () =>
     getActiveAgents()
       .then((res) => {
-        if (!alive) return;
         const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
         setHiredSlugs(['genie', ...rows.map((r) => r.agent_slug).filter(Boolean)]);
       })
       .catch(() => {});
+
+  useEffect(() => {
+    let alive = true;
+    refetchActive().then(() => { if (!alive) setHiredSlugs(['genie']); });
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgSlug]);
+
+  // Post-checkout reconciliation. Two modes:
+  //   - session_id present → verify that exact session
+  //   - ?subscribed=true alone → sweep every recent paid agent
+  //     checkout for this org (recovers from pre-session_id URLs and
+  //     missed webhooks). Both call the same endpoint; backend picks
+  //     the right path based on whether session_id was sent.
+  // Strips the params after so a refresh doesn't replay.
+  useEffect(() => {
+    const subscribed = searchParams.get('subscribed') === 'true';
+    if (!subscribed) return;
+    const raw = searchParams.get('session_id');
+    const sessionId = raw && raw !== '{CHECKOUT_SESSION_ID}' ? raw : null;
+
+    let alive = true;
+    verifyAgentCheckout(sessionId)
+      .then(() => alive && refetchActive())
+      .catch((err) => {
+        console.warn('[AgentPage] checkout verify failed:', err?.response?.data?.error?.message || err.message);
+      })
+      .finally(() => {
+        if (!alive) return;
+        const next = new URLSearchParams(searchParams);
+        next.delete('subscribed');
+        next.delete('session_id');
+        setSearchParams(next, { replace: true });
+      });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const bundleActive = hiredSlugs.includes('genie-suite');
   const isHired = agent && (bundleActive || hiredSlugs.includes(agent.slug));
 

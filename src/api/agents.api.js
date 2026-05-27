@@ -25,6 +25,22 @@ export const cancelAgent = async (slug) => {
   return response.data;
 };
 
+/**
+ * Reconcile a Stripe Checkout session after the user returns to the
+ * success page. Flips the org agent to `active` even if the Stripe
+ * webhook hasn't landed yet (local dev without `stripe listen`, or
+ * transient delivery failure in prod). Idempotent.
+ *
+ * When called without a sessionId, the backend sweeps every recent
+ * paid agent checkout for this org's Stripe customer and activates
+ * any that haven't been activated yet.
+ */
+export const verifyAgentCheckout = async (sessionId) => {
+  const body = sessionId ? { session_id: sessionId } : {};
+  const response = await api.post('/v1/agents/checkout/verify', body);
+  return response.data;
+};
+
 export const getAgentPolicies = async (slug) => {
   const response = await api.get(`/v1/agents/${slug}/policies`);
   return response.data;
@@ -52,6 +68,7 @@ export default {
   getActiveAgents,
   subscribeAgent,
   cancelAgent,
+  verifyAgentCheckout,
   getAgentPolicies,
   updateAgentPolicies,
   getAgentActivity

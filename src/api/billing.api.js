@@ -22,6 +22,17 @@ export const getPlans = async () => {
 };
 
 /**
+ * Reconcile a recent paid TMS checkout against Stripe. Flips the org
+ * to 'active' even if the Stripe webhook never landed (local dev
+ * without `stripe listen`, or transient delivery failure in prod).
+ * Idempotent — safe to call repeatedly.
+ */
+export const verifyCheckout = async () => {
+  const response = await api.post('/v1/billing/checkout/verify', {});
+  return response.data;
+};
+
+/**
  * Create a checkout session to subscribe to a plan
  */
 export const subscribe = async (plan, billingPeriod) => {

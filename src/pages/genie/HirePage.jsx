@@ -53,9 +53,18 @@ export default function HirePage() {
     if (hired.has('genie-suite')) setMode('bundle');
   }, [hired]);
 
-  // Refresh after Checkout returns success.
+  // Refresh after Checkout returns success. Reconcile against Stripe
+  // so the org agent flips active even if the webhook hasn't landed.
+  // If no session_id is present, the backend sweeps recent paid
+  // agent checkouts and activates any that are stuck.
   useEffect(() => {
-    if (searchParams.get('subscribed') === 'true') loadActive();
+    if (searchParams.get('subscribed') !== 'true') return;
+    const raw = searchParams.get('session_id');
+    const sessionId = raw && raw !== '{CHECKOUT_SESSION_ID}' ? raw : null;
+    agentsApi.verifyAgentCheckout(sessionId)
+      .catch((e) => console.warn('[HirePage] checkout verify failed:', e?.response?.data?.error?.message || e.message))
+      .finally(() => loadActive());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const hire = async (slug) => {
