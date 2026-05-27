@@ -132,7 +132,7 @@ export function FindMyTruckPage() {
             <p className="text-body-sm text-text-secondary text-center max-w-md mb-6">
               Set up your Motive API key to see real-time truck locations.
             </p>
-            <Button onClick={() => navigate(orgUrl('/tools/ava/settings'))}>
+            <Button onClick={() => navigate(orgUrl('/settings/integrations/motive'))}>
               <Settings className="w-4 h-4 mr-2" />
               Configure Motive Integration
             </Button>

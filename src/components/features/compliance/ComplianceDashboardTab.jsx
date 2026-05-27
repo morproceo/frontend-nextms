@@ -45,7 +45,7 @@ function formatDate(dateStr) {
 
 export function ComplianceDashboardTab({ alerts, summary, loading }) {
   const navigate = useNavigate();
-  const { org } = useOrg();
+  const { currentOrg } = useOrg();
 
   if (loading) {
     return (
@@ -102,7 +102,7 @@ export function ComplianceDashboardTab({ alerts, summary, loading }) {
             return (
               <button
                 key={alert.id}
-                onClick={() => navigate(getAlertLink(alert, org?.slug))}
+                onClick={() => navigate(getAlertLink(alert, currentOrg?.slug))}
                 className="w-full flex items-center gap-3 sm:gap-4 px-4 py-3 hover:bg-surface-secondary transition-colors text-left"
               >
                 {/* Severity indicator */}

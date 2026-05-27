@@ -1,17 +1,22 @@
 /**
- * AVA Settings Page
- * Configure Motive integration
+ * MotiveIntegrationPage
+ * Org-level Motive ELD integration setup, surfaced from
+ * /o/:slug/settings/integrations → Motive card.
+ *
+ * Backed by the existing /v1/ava/settings endpoints (the underlying
+ * motive.service was named "ava" historically; the data + routes stayed
+ * stable when we moved the UI off the TMS Tools menu).
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOrg } from '../../contexts/OrgContext';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Badge } from '../../components/ui/Badge';
-import { Spinner } from '../../components/ui/Spinner';
-import * as avaApi from '../../api/ava.api';
+import { useOrg } from '../../../contexts/OrgContext';
+import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
+import { Badge } from '../../../components/ui/Badge';
+import { Spinner } from '../../../components/ui/Spinner';
+import * as avaApi from '../../../api/ava.api';
 import {
   ArrowLeft,
   Zap,
@@ -27,7 +32,7 @@ import {
   Clock
 } from 'lucide-react';
 
-export function AvaSettingsPage() {
+export function MotiveIntegrationPage() {
   const navigate = useNavigate();
   const { orgUrl, currentOrg } = useOrg();
 
@@ -146,16 +151,17 @@ export function AvaSettingsPage() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate(orgUrl('/tools/ava'))}>
+        <Button variant="ghost" onClick={() => navigate(orgUrl('/settings/integrations'))}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div>
           <h1 className="text-xl sm:text-title text-text-primary flex items-center gap-2">
-            <Settings className="w-6 h-6 text-text-secondary" />
-            AVA Settings
+            <Zap className="w-6 h-6 text-amber-500" />
+            Motive integration
           </h1>
           <p className="text-body-sm text-text-secondary mt-1">
-            Configure Motive ELD integration
+            Connect your Motive (KeepTruckin) ELD account so MorPro can pull live truck health,
+            fault codes, and HOS data for your fleet.
           </p>
         </div>
       </div>
@@ -405,4 +411,4 @@ export function AvaSettingsPage() {
   );
 }
 
-export default AvaSettingsPage;
+export default MotiveIntegrationPage;

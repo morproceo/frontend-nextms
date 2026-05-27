@@ -8,8 +8,21 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+const LAST_ORG_SLUG_KEY = 'tms_last_org_slug';
+
 /**
- * Get organization slug from URL
+ * Get organization slug from URL.
+ *
+ * Resolution order:
+ *   1. Subdomain: {slug}.app.com
+ *   2. Path: /o/{slug}/...
+ *   3. Cached last-known slug from a previous successful resolution
+ *      (saved to localStorage). Covers the brief navigation race where
+ *      an API call fires before the path settles into /o/<slug>.
+ *   4. Investor/driver portal stored slug.
+ *
+ * Whenever (1) or (2) succeeds, we update the cache so step 3 stays
+ * fresh.
  */
 export function getOrgSlug() {
   const host = window.location.host;
@@ -17,12 +30,28 @@ export function getOrgSlug() {
 
   // Check subdomain: {slug}.app.com
   if (host !== baseDomain && host.endsWith(`.${baseDomain}`)) {
-    return host.replace(`.${baseDomain}`, '');
+    const slug = host.replace(`.${baseDomain}`, '');
+    rememberOrgSlug(slug);
+    return slug;
   }
 
   // Check path: /o/{slug}/...
   const match = window.location.pathname.match(/^\/o\/([a-z0-9-]+)/);
-  if (match) return match[1];
+  if (match) {
+    rememberOrgSlug(match[1]);
+    return match[1];
+  }
+
+  // Fall back to the last-known slug so API calls fired during a
+  // brief navigation gap still carry org context. We don't restrict
+  // this to the org-routes prefix because the backend will reject
+  // mismatches at the membership check anyway.
+  try {
+    const cached = localStorage.getItem(LAST_ORG_SLUG_KEY);
+    if (cached) return cached;
+  } catch {
+    /* localStorage unavailable — ignore */
+  }
 
   // For investor/driver portals — use stored org slug from their single org
   const storedSlug = localStorage.getItem('tms_portal_org_slug');
@@ -31,6 +60,10 @@ export function getOrgSlug() {
   }
 
   return null;
+}
+
+function rememberOrgSlug(slug) {
+  try { localStorage.setItem(LAST_ORG_SLUG_KEY, slug); } catch { /* ignore */ }
 }
 
 /**

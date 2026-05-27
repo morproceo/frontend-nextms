@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail,
   Loader2,
@@ -10,10 +10,13 @@ import {
   Send,
   Plug,
   Link as LinkIcon,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  ChevronRight
 } from 'lucide-react';
 import { useOrg } from '../../../contexts/OrgContext';
 import orgEmailApi from '../../../api/orgEmailConnections.api';
+import * as avaApi from '../../../api/ava.api';
 import { cn } from '../../../lib/utils';
 
 /**
@@ -32,7 +35,8 @@ import { cn } from '../../../lib/utils';
  *   - Revoke removes the local connection.
  */
 export default function IntegrationsPage() {
-  const { currentOrg } = useOrg();
+  const { currentOrg, orgUrl } = useOrg();
+  const navigate = useNavigate();
   const orgId = currentOrg?.id;
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -41,6 +45,12 @@ export default function IntegrationsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [flash, setFlash] = useState(null);
+
+  // Motive status (so the integrations list shows a green dot when active)
+  const [motive, setMotive] = useState(null);
+  useEffect(() => {
+    avaApi.getSettings().then((r) => setMotive(r?.data || r)).catch(() => setMotive(null));
+  }, [orgId]);
 
   const successEmail = searchParams.get('email');
   const errorMessage = searchParams.get('message');
@@ -228,12 +238,64 @@ export default function IntegrationsPage() {
         )}
       </section>
 
+      {/* ── Motive (ELD) card ─────────────────────────────────────── */}
+      <IntegrationCard
+        icon={Zap}
+        iconCls="from-amber-500/15 to-orange-500/15 text-amber-500"
+        title="Motive (ELD)"
+        description="Pull live truck health, fault codes, and HOS data from your Motive (KeepTruckin) account. Powers Fleet Health, Driver Genie, and dispatch readiness checks."
+        connected={!!motive?.configured && motive?.integration?.is_active}
+        statusText={motive?.configured && motive?.integration?.is_active
+          ? `Connected · ${motive?.integration?.vehicle_count ?? 0} vehicles`
+          : 'Not connected'}
+        onOpen={() => navigate(orgUrl('/settings/integrations/motive'))}
+      />
+
       {/* Footer note */}
       <p className="text-small text-text-tertiary mt-4">
         Tokens are encrypted with AES-256-GCM at rest. Plaintext credentials never touch the database or logs.
-        Revoke any time from this page — or from your Google account.
+        Revoke any time from this page — or from the provider's dashboard.
       </p>
     </div>
+  );
+}
+
+/**
+ * Generic integration card — icon + title + description + status + chevron.
+ * Used for any integration whose settings live on a dedicated page.
+ */
+function IntegrationCard({ icon: Icon, iconCls, title, description, connected, statusText, onOpen }) {
+  return (
+    <section className="bg-surface-primary border border-surface-tertiary rounded-card overflow-hidden mt-4">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full px-5 py-4 flex items-start gap-3 text-left hover:bg-surface-secondary/40 transition-colors"
+      >
+        <div className={cn('w-10 h-10 rounded-button bg-gradient-to-br flex items-center justify-center', iconCls)}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-body font-semibold text-text-primary">{title}</h2>
+            <span className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold border',
+              connected
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-surface-secondary text-text-secondary border-surface-tertiary'
+            )}>
+              {connected ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+              {connected ? 'Connected' : 'Not connected'}
+            </span>
+          </div>
+          <p className="text-body-sm text-text-secondary mt-0.5 leading-snug">{description}</p>
+          {statusText && (
+            <p className="text-small text-text-tertiary mt-1.5">{statusText}</p>
+          )}
+        </div>
+        <ChevronRight className="w-4 h-4 text-text-tertiary self-center shrink-0" />
+      </button>
+    </section>
   );
 }
 

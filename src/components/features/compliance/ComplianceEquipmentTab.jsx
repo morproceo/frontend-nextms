@@ -61,7 +61,7 @@ function formatDate(dateStr) {
 
 export function ComplianceEquipmentTab({ trucks, trailers, loading }) {
   const navigate = useNavigate();
-  const { org } = useOrg();
+  const { currentOrg } = useOrg();
 
   // Combine trucks and trailers into a single list
   const equipment = useMemo(() => {
@@ -127,8 +127,8 @@ export function ComplianceEquipmentTab({ trucks, trailers, loading }) {
         {equipment.map((item) => {
           const Icon = item.type === 'truck' ? Truck : Container;
           const link = item.type === 'truck'
-            ? `/o/${org?.slug}/assets/trucks/${item.id}`
-            : `/o/${org?.slug}/assets/trailers/${item.id}`;
+            ? `/o/${currentOrg?.slug}/assets/trucks/${item.id}`
+            : `/o/${currentOrg?.slug}/assets/trailers/${item.id}`;
           const hasExpired = item.alerts.some(a => a.severity === 'expired');
 
           return (

@@ -40,7 +40,10 @@ function formatDate(dateStr) {
 
 export function ComplianceDriversTab({ drivers, loading }) {
   const navigate = useNavigate();
-  const { org } = useOrg();
+  // OrgContext exposes `currentOrg` (with `organization` as an alias).
+  // The old `org` destructure resolved to undefined and produced
+  // /o/undefined/drivers/... links that 400 on the backend.
+  const { currentOrg } = useOrg();
 
   if (loading) {
     return (
@@ -82,7 +85,7 @@ export function ComplianceDriversTab({ drivers, loading }) {
           return (
             <button
               key={driver.id}
-              onClick={() => navigate(`/o/${org?.slug}/drivers/${driver.id}`)}
+              onClick={() => navigate(`/o/${currentOrg?.slug}/drivers/${driver.id}`)}
               className="w-full flex flex-col sm:grid sm:grid-cols-[1fr_repeat(4,120px)_32px] gap-1 sm:gap-2 sm:items-center px-4 py-3 hover:bg-surface-secondary transition-colors text-left"
             >
               {/* Driver name */}

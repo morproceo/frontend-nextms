@@ -48,6 +48,7 @@ import OrgGeneralPage from './pages/account/org/GeneralPage';
 import OrgMembersPage from './pages/account/org/MembersPage';
 import OrgAppsPage from './pages/account/org/AppsPage';
 import OrgIntegrationsPage from './pages/account/org/IntegrationsPage';
+import MotiveIntegrationPage from './pages/account/org/MotiveIntegrationPage';
 import UserProfilePage from './pages/account/me/ProfilePage';
 import UserSecurityPage from './pages/account/me/SecurityPage';
 import UserNotificationsPage from './pages/account/me/NotificationsPage';
@@ -111,6 +112,7 @@ import GenieShell from './components/genie/GenieShell';
 import GenieTeamPage from './pages/genie/TeamPage';
 import GenieChatPage from './pages/genie/GenieChatPage';
 import GenieActivityFeedPage from './pages/genie/ActivityFeedPage';
+import GenieInboxPage from './pages/genie/InboxPage';
 import GenieAgentPage from './pages/genie/AgentPage';
 import GenieHirePage from './pages/genie/HirePage';
 import GenieSettingsPage from './pages/genie/SettingsPage';
@@ -198,7 +200,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 
 // Tools
-import { AvaPage, AvaTruckDetailPage, AvaSettingsPage, ComplianceCommandCenter } from './pages/tools';
+import { ComplianceCommandCenter } from './pages/tools';
 import FindMyTruckPage from './pages/tools/FindMyTruckPage';
 import {
   AtlasDashboardPage,
@@ -460,6 +462,7 @@ export function Router() {
             <Route path="billing" element={<BillingPage />} />
             <Route path="apps" element={<OrgAppsPage />} />
             <Route path="integrations" element={<OrgIntegrationsPage />} />
+            <Route path="integrations/motive" element={<MotiveIntegrationPage />} />
             <Route path="members" element={<OrgMembersPage />} />
             {/* Back-compat: any other /settings/* under AppShell used to live
                 here; redirect to the new General page so old links don't break. */}
@@ -540,10 +543,7 @@ export function Router() {
             {/* Settings + billing moved to launcher-level chrome at
                 /o/:slug/settings (above this AppShell block). The standalone
                 route shadows any /settings/* child here, so we drop them. */}
-            <Route path="tools/ava" element={<AvaPage />} />
-            <Route path="tools/ava/settings" element={<AvaSettingsPage />} />
             <Route path="tools/find-my-truck" element={<FindMyTruckPage />} />
-            <Route path="tools/ava/:truckId" element={<AvaTruckDetailPage />} />
             <Route path="tools/atlas" element={<AtlasDashboardPage />} />
             <Route path="tools/atlas/connections" element={<AtlasConnectionsPage />} />
             <Route path="tools/atlas/opportunities" element={<AtlasOpportunitiesPage />} />
@@ -639,6 +639,7 @@ export function Router() {
           <Route path="/o/:orgSlug/genie" element={<OrgRoute><GenieShell /></OrgRoute>}>
             <Route index element={<GenieTeamPage />} />
             <Route path="chat" element={<GenieChatPage />} />
+            <Route path="inbox" element={<GenieInboxPage />} />
             <Route path="activity" element={<GenieActivityFeedPage />} />
             <Route path="hire" element={<GenieHirePage />} />
             <Route path="settings" element={<GenieSettingsPage />} />

@@ -1,27 +1,45 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUp, Lock, Sparkles, Settings as SettingsIcon, ArrowRight, ChevronDown, Mail, AlertCircle } from 'lucide-react';
-import { getAgent, GENIE_TEAM } from '../../config/genieTeam';
+import {
+  ArrowLeft,
+  ArrowUp,
+  Lock,
+  Sparkles,
+  ArrowRight,
+  Mail,
+  AlertCircle
+} from 'lucide-react';
+import { getAgent } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
-import { JobQueuePanel } from '../../components/genie/JobQueuePanel';
 import { AlexInbox } from '../../components/genie/AlexInbox';
+import { CeceInbox } from '../../components/genie/CeceInbox';
+import { AgentStatStrip } from '../../components/genie/AgentStatStrip';
+import { AgentActivityFeed } from '../../components/genie/AgentActivityFeed';
+import { AgentTaskQueue } from '../../components/genie/AgentTaskQueue';
+import { AgentProfileCard } from '../../components/genie/AgentProfileCard';
 import { useOrg } from '../../contexts/OrgContext';
 import agentPoliciesApi from '../../api/agentPolicies.api';
 import orgEmailApi from '../../api/orgEmailConnections.api';
-import { getActiveAgents, getAgentActivity } from '../../api/agents.api';
+import { getActiveAgents } from '../../api/agents.api';
+import client from '../../api/client';
 import { cn } from '../../lib/utils';
 
 /**
- * AgentPage — per-agent detail at /o/:slug/genie/agents/:agentSlug.
+ * AgentPage — mission-control view for one agent at
+ * /o/:slug/genie/agents/:agentSlug.
  *
- * Same component renders for all six agents — content is driven by
- * `genieTeam.js` keyed by the slug param. Top: agent header (avatar,
- * name, role, status, hire CTA if locked). Middle: agent's recent
- * action stream. Bottom: chat-style composer (visual mock — no logic
- * yet; the input is inert).
+ * Layout:
+ *   Row 1: Hero (left) + Stat strip (right) on lg+; stacked on smaller.
+ *   Row 2: Capability banner (when a required integration is missing).
+ *   Row 3: 3-column workspace, equal height, internally scrollable:
+ *            [ Inbox ] [ Activity ] [ Profile ]
+ *          Agents without an inbox (only Alex + Cece have one) collapse
+ *          the workspace to [ Activity ] [ Profile ]. Genie skips the
+ *          workspace and gets a chat CTA + profile.
  *
- * Locked-agent state shows a Hire CTA in place of the composer to keep
- * the page useful even when the user lands on a locked agent's URL.
+ * Same component renders for all six agents; content is driven by the
+ * agent registry. Locked agents show a hire CTA in place of the
+ * actionable surfaces.
  */
 export default function AgentPage() {
   const { orgSlug, agentSlug } = useParams();
@@ -44,39 +62,50 @@ export default function AgentPage() {
   const bundleActive = hiredSlugs.includes('genie-suite');
   const isHired = agent && (bundleActive || hiredSlugs.includes(agent.slug));
 
-  // Real recent actions from agent_actions (replaces the old mock).
-  const [actions, setActions] = useState([]);
+  // Needs-action count for the stat strip. Computed per-agent from the
+  // same endpoints that drive their inbox component.
+  const [needsCount, setNeedsCount] = useState(0);
   useEffect(() => {
-    if (!agent?.slug || !isHired) { setActions([]); return; }
+    if (!agent?.slug || !isHired) { setNeedsCount(0); return; }
     let alive = true;
-    getAgentActivity(agent.slug, { limit: 25 })
-      .then((res) => {
-        if (!alive) return;
-        const payload = res?.data ?? res;
-        const list = payload?.actions ?? payload ?? [];
-        setActions(Array.isArray(list) ? list : []);
-      })
-      .catch(() => setActions([]));
-    return () => { alive = false; };
-  }, [agent?.slug, isHired, orgSlug]);
 
-  const relTime = (d) => {
-    if (!d) return '';
-    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-    if (s < 60) return 'just now';
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-    return new Date(d).toLocaleDateString();
-  };
+    const tick = async () => {
+      try {
+        if (agent.slug === 'alex') {
+          const res = await client.get('/v1/agents/alex/recent-reviews?limit=30');
+          const list = (res.data?.data ?? res.data)?.reviews || [];
+          const n = list.filter((r) => {
+            if (r.task_name === 'check_load_completeness') {
+              return (r.ready_count || 0) + (r.conflict_count || 0) > 0;
+            }
+            if (r.task_name === 'notify_broker_on_status_change') {
+              return !r.skipped && r.authority === 'propose' && !r.sent;
+            }
+            return false;
+          }).length;
+          if (alive) setNeedsCount(n);
+        } else if (agent.slug === 'cece') {
+          // Cece's "needs you" = open finance-watch alerts in the
+          // last 24h.
+          const res = await client.get('/v1/agents/jobs?agent=cece&minutes=1440&limit=40');
+          const jobs = (res.data?.data ?? res.data)?.jobs || [];
+          const n = jobs.filter(
+            (j) =>
+              j.status === 'completed' &&
+              j.task_name === 'finance_watch' &&
+              (j.output_data?.alerts?.length || j.output_data?.output?.alerts?.length || 0) > 0
+          ).length;
+          if (alive) setNeedsCount(n);
+        }
+      } catch {
+        // Silent — stats are best-effort.
+      }
+    };
 
-  // On mobile the agent profile (tagline + What/Hands cards) pushed the
-  // inbox — the primary surface — entirely below the fold. Collapse it
-  // behind an "About" toggle on phones; keep it open on md+ where there's
-  // room.
-  const [aboutOpen, setAboutOpen] = useState(
-    () => typeof window !== 'undefined' &&
-      window.matchMedia('(min-width: 768px)').matches
-  );
+    tick();
+    const id = setInterval(tick, 8000);
+    return () => { alive = false; clearInterval(id); };
+  }, [agent?.slug, isHired]);
 
   if (!agent) {
     return (
@@ -96,243 +125,106 @@ export default function AgentPage() {
     );
   }
 
+  const hasInbox = agent.slug === 'alex' || agent.slug === 'cece';
+
   return (
-    <div className="max-w-3xl">
+    <div className="pb-8" style={{ maxWidth: 'min(1700px, 100%)' }}>
       {/* Back */}
       <Link
         to={`/o/${orgSlug}/genie`}
-        className="inline-flex items-center gap-1.5 text-body-sm text-text-tertiary hover:text-text-primary mb-4 md:mb-6 transition-colors"
+        className="inline-flex items-center gap-1.5 text-body-sm text-text-tertiary hover:text-text-primary mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Team
       </Link>
 
-      {/* Hero — compact on mobile so the inbox is reachable fast */}
-      <div className="flex items-start gap-4 md:gap-5 mb-4 md:mb-8">
-        <div className="flex-shrink-0">
-          <div className="hidden md:block">
-            <AgentAvatar agent={agent} size="xl" muted={!isHired} />
-          </div>
-          <div className="md:hidden">
-            <AgentAvatar agent={agent} size="lg" muted={!isHired} />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-title md:text-headline text-text-primary">{agent.name}</h1>
-            {agent.isCeo && (
-              <span className="text-[10px] uppercase tracking-wider text-fuchsia-500 font-semibold mt-1">
-                CEO
-              </span>
-            )}
-          </div>
-          <div className="text-body-sm md:text-body text-text-secondary">{agent.role}</div>
-          <p className="hidden md:block text-body-sm text-text-secondary mt-3 leading-relaxed">
-            {agent.tagline}
-          </p>
-        </div>
-      </div>
-
-      {/* About toggle — mobile only. Desktop always shows the detail. */}
-      <button
-        type="button"
-        onClick={() => setAboutOpen((v) => !v)}
-        className="md:hidden w-full flex items-center justify-between px-4 py-3 mb-4 rounded-button bg-surface-primary border border-surface-tertiary text-body-sm text-text-secondary"
-      >
-        <span>About {agent.name.split(' ')[0]}</span>
-        <ChevronDown
-          className={cn(
-            'w-4 h-4 transition-transform',
-            aboutOpen && 'rotate-180'
-          )}
-        />
-      </button>
-
-      {/* Capabilities + Hands — collapsed on mobile, open on md+ */}
-      <div
-        className={cn(
-          'md:block',
-          aboutOpen ? 'block' : 'hidden'
+      {/* Hero (with stat strip docked on the right at lg+) ------ */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,500px)] gap-4 lg:gap-6 mb-5 items-stretch">
+        <AgentHero agent={agent} isHired={isHired} />
+        {isHired && (
+          <AgentStatStrip
+            agentSlug={agent.slug}
+            accent={agent.accent}
+            needsCount={needsCount}
+            className=""
+          />
         )}
-      >
-        <p className="md:hidden text-body-sm text-text-secondary mb-4 leading-relaxed">
-          {agent.tagline}
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 md:mb-8">
-          <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
-            <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
-              What {agent.name.split(' ')[0]} does
-            </div>
-            <ul className="space-y-2">
-              {agent.capabilities.map((c, i) => (
-                <li key={i} className="flex items-start gap-2 text-body-sm text-text-secondary">
-                  <Sparkles className={cn('w-3.5 h-3.5 flex-shrink-0 mt-1', `text-${agent.solidColor}-500`)} />
-                  <span>{c}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="bg-surface-primary border border-surface-tertiary rounded-card p-5">
-            <div className="text-[10px] uppercase tracking-wider text-text-tertiary mb-3">
-              Hands on
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {agent.hands.map((h) => (
-                <span
-                  key={h}
-                  className="px-2.5 py-1 text-body-sm rounded-full bg-surface-secondary text-text-secondary border border-surface-tertiary"
-                >
-                  {h}
-                </span>
-              ))}
-            </div>
-          </section>
-        </div>
       </div>
 
-      {/* Capability badges — banner when a task's `requires` (email_send /
-          email_read) isn't satisfied by the org's connected integrations.
-          Prevents silent agent failures from users not realizing they
-          need to connect Gmail first. */}
-      {isHired && (
-        <CapabilityBadges agentSlug={agent.slug} orgSlug={orgSlug} />
-      )}
+      {/* Capability banner --------------------------------------- */}
+      {isHired && <CapabilityBadges agentSlug={agent.slug} orgSlug={orgSlug} />}
 
-      {/* Quick link to this agent's policy section in Suite settings.
-          Lets the user flip autopilot knobs without leaving Alex's
-          context — the settings page auto-expands the matching agent
-          via the URL fragment. */}
-      {isHired && (
-        <Link
-          to={`/o/${orgSlug}/genie/settings#${agent.slug}`}
-          className="group flex items-center gap-3 mb-4 px-4 py-3 rounded-button bg-surface-primary border border-surface-tertiary hover:border-fuchsia-500/40 transition-colors"
+      {/* Workspace: 4 equal-height columns, internally scrollable.
+          Order: Inbox · Activity · Queue · Profile.
+          - sm/md: stacked
+          - lg : 2-col grid (rows wrap)
+          - xl : 4-col grid (side-by-side) */}
+      {isHired && hasInbox && (
+        <div
+          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch mb-5"
+          style={{ height: 'min(75vh, 820px)' }}
         >
-          <SettingsIcon className="w-4 h-4 text-text-secondary flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-body-sm font-medium text-text-primary">
-              {agent.name}'s policies
-            </div>
-            <div className="text-small text-text-tertiary">
-              Tune triggers, decision rules, and authority for this org.
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-text-tertiary group-hover:translate-x-0.5 group-hover:text-fuchsia-500 transition-all" />
-        </Link>
-      )}
-
-      {/* Alex's Inbox — the primary surface. Every load Alex has
-          reviewed is one row; expand to act (accept fills, choose on
-          conflicts, apply). The TMS load detail page never embeds
-          agent work — this is where the user reviews + approves
-          everything Alex produces. */}
-      {isHired && agent.slug === 'alex' && (
-        <AlexInbox className="mb-6" />
-      )}
-
-      {/* Worker activity — small secondary panel for debugging.
-          Shows operational job status (pending/running/completed/failed)
-          for the underlying queue. Most users won't need this; useful
-          when reactive triggers aren't firing as expected. */}
-      {isHired && (
-        <details className="mb-6 bg-surface-primary border border-surface-tertiary rounded-card overflow-hidden">
-          <summary className="cursor-pointer px-5 py-3 text-body-sm text-text-secondary hover:text-text-primary select-none">
-            Worker activity
-          </summary>
-          <JobQueuePanel agentSlug={agent.slug} className="border-0 rounded-none" />
-        </details>
-      )}
-
-      {/* Activity timeline */}
-      <section className="bg-surface-primary border border-surface-tertiary rounded-card mb-6 overflow-hidden">
-        <div className="px-5 py-3 border-b border-surface-tertiary">
-          <div className="text-body-sm font-medium text-text-primary">
-            {agent.name}'s recent actions
-          </div>
+          {agent.slug === 'alex' && <AlexInbox />}
+          {agent.slug === 'cece' && <CeceInbox />}
+          <AgentActivityFeed agentSlug={agent.slug} />
+          <AgentTaskQueue
+            agentSlug={agent.slug}
+            agentName={agent.name}
+            accent={agent.accent}
+            solidColor={agent.solidColor}
+          />
+          <AgentProfileCard agent={agent} orgSlug={orgSlug} />
         </div>
-        {actions.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="text-body-sm text-text-tertiary">
-              No activity yet — {agent.name} hasn't shipped anything to your inbox.
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-surface-tertiary">
-            {actions.map((a) => {
-              const title = String(a.action_type || 'action').replace(/_/g, ' ');
-              const summary = a.output_data?.summary || '';
-              return (
-                <div key={a.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-body-sm min-w-0">
-                      <span className="text-text-primary font-medium capitalize">{title}</span>
-                      {summary && (
-                        <span className="text-text-secondary"> — {summary}</span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-text-tertiary flex-shrink-0 whitespace-nowrap">
-                      {relTime(a.created_at)}
-                    </span>
-                  </div>
-                  {a.target_type && (
-                    <div className="mt-1 inline-block">
-                      <span className="text-[10px] uppercase tracking-wider text-text-tertiary bg-surface-secondary border border-surface-tertiary rounded-full px-2 py-0.5">
-                        {a.target_type}
-                      </span>
-                    </div>
-                  )}
+      )}
+
+      {/* Inboxless hired agents: 3-col Activity + Queue + Profile */}
+      {isHired && !hasInbox && agent.slug !== 'genie' && (
+        <div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch mb-5"
+          style={{ height: 'min(75vh, 820px)' }}
+        >
+          <AgentActivityFeed agentSlug={agent.slug} />
+          <AgentTaskQueue
+            agentSlug={agent.slug}
+            agentName={agent.name}
+            accent={agent.accent}
+            solidColor={agent.solidColor}
+          />
+          <AgentProfileCard agent={agent} orgSlug={orgSlug} />
+        </div>
+      )}
+
+      {/* Genie: it's not a worker — it talks. Chat CTA + profile. */}
+      {isHired && agent.slug === 'genie' && (
+        <div
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch mb-5"
+          style={{ height: 'min(75vh, 820px)' }}
+        >
+          <Link
+            to={`/o/${orgSlug}/genie/chat`}
+            className="group flex flex-col justify-between bg-surface-primary border border-surface-tertiary rounded-card p-6 hover:border-fuchsia-500/40 transition-colors h-full"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-body font-semibold text-text-primary">
+                  Chat with {agent.name}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Composer OR hire CTA */}
-      {isHired && agent.slug === 'genie' ? (
-        <Link
-          to={`/o/${orgSlug}/genie/chat`}
-          className="group flex items-center gap-4 bg-surface-primary border border-surface-tertiary rounded-card p-5 hover:border-fuchsia-500/40 transition-colors"
-        >
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-orange-400 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="text-body font-semibold text-text-primary">
-              Chat with {agent.name}
+                <div className="text-body-sm text-text-secondary">
+                  Ask about loads, expenses, this week, or what the team's been doing.
+                </div>
+              </div>
+              <ArrowUp className="w-5 h-5 text-fuchsia-500 rotate-45 group-hover:translate-x-0.5 transition-transform" />
             </div>
-            <div className="text-body-sm text-text-secondary">
-              Ask about loads, expenses, this week, or what the team's been doing.
-            </div>
-          </div>
-          <ArrowUp className="w-5 h-5 text-fuchsia-500 rotate-45 group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-      ) : isHired ? (
-        <div className="bg-surface-primary border border-surface-tertiary rounded-card p-3">
-          <div className="text-[10px] uppercase tracking-wider text-text-tertiary px-2 pb-2">
-            Talk to {agent.name}
-          </div>
-          <div className="relative rounded-xl bg-surface-secondary border border-surface-tertiary focus-within:border-accent transition-colors">
-            <textarea
-              rows={2}
-              placeholder={`Ask ${agent.name} something...`}
-              className="w-full resize-none bg-transparent px-4 py-3 pr-12 text-body-sm text-text-primary placeholder:text-text-tertiary focus:outline-none"
-            />
-            <button
-              type="button"
-              aria-label={`Send to ${agent.name}`}
-              className={cn(
-                'absolute right-2 bottom-2 w-8 h-8 rounded-full text-white',
-                'bg-gradient-to-br',
-                agent.accent,
-                'flex items-center justify-center hover:scale-105 active:scale-95 transition-transform'
-              )}
-            >
-              <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          </div>
+          </Link>
+          <AgentProfileCard agent={agent} orgSlug={orgSlug} />
         </div>
-      ) : (
+      )}
+
+      {/* Locked agent CTA --------------------------------------- */}
+      {!isHired && (
         <Link
           to={`/o/${orgSlug}/genie/hire?agent=${agent.slug}`}
           className={cn(
@@ -371,6 +263,81 @@ export default function AgentPage() {
 }
 
 /**
+ * AgentHero — avatar + name + role + status pill. A subtle accent halo
+ * around the avatar plus a live "Working" / "Idle" pill makes the page
+ * feel like a real person is on duty.
+ */
+function AgentHero({ agent, isHired }) {
+  const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    if (!isHired || !agent?.slug) { setWorking(false); return; }
+    let alive = true;
+    const check = async () => {
+      try {
+        const res = await client.get(
+          `/v1/agents/jobs?agent=${agent.slug}&status=pending,running&limit=5`
+        );
+        const jobs = (res.data?.data ?? res.data)?.jobs || [];
+        if (alive) setWorking(jobs.length > 0);
+      } catch {
+        // Silent.
+      }
+    };
+    check();
+    const id = setInterval(check, 6000);
+    return () => { alive = false; clearInterval(id); };
+  }, [agent?.slug, isHired]);
+
+  return (
+    <div className="relative flex items-start gap-4 md:gap-5 mb-5">
+      <div className="flex-shrink-0 relative">
+        <div className={cn(
+          'absolute -inset-1 rounded-full blur-md opacity-60 bg-gradient-to-br',
+          agent.accent
+        )} />
+        <div className="relative hidden md:block">
+          <AgentAvatar agent={agent} size="xl" muted={!isHired} />
+        </div>
+        <div className="relative md:hidden">
+          <AgentAvatar agent={agent} size="lg" muted={!isHired} />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <h1 className="text-title md:text-headline text-text-primary">{agent.name}</h1>
+          {agent.isCeo && (
+            <span className="text-[10px] uppercase tracking-wider text-fuchsia-500 font-semibold mt-1">
+              CEO
+            </span>
+          )}
+          {isHired && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-medium border',
+                working
+                  ? 'bg-cyan-500/10 text-cyan-700 border-cyan-500/30'
+                  : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+              )}
+            >
+              <span className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                working ? 'bg-cyan-500 animate-pulse' : 'bg-emerald-500'
+              )} />
+              {working ? 'Working' : 'Idle'}
+            </span>
+          )}
+        </div>
+        <div className="text-body-sm md:text-body text-text-secondary">{agent.role}</div>
+        <p className="hidden md:block text-body-sm text-text-secondary mt-2 leading-relaxed">
+          {agent.tagline}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * CapabilityBadges — reads the agent's task manifest, finds any task
  * that declares `requires: ['email_send'|'email_read']`, and shows a
  * banner if the org doesn't have the matching integration connected.
@@ -402,7 +369,7 @@ function CapabilityBadges({ agentSlug, orgSlug }) {
         setNeedsEmail(needsEmailNow);
         setConnection(activeConn || expiredConn || null);
       } catch {
-        // Silent — don't block the page on a metadata fetch.
+        // Silent.
       }
     }
     load();
@@ -411,22 +378,20 @@ function CapabilityBadges({ agentSlug, orgSlug }) {
 
   if (!needsEmail) return null;
 
-  // Active connection — small green confirmation pill
   if (connection?.status === 'active') {
     return (
-      <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-button bg-success/8 border border-success/20 text-body-sm text-success">
+      <div className="mb-5 flex items-center gap-2 px-3 py-2 rounded-button bg-success/8 border border-success/20 text-body-sm text-success">
         <Mail className="w-4 h-4" />
         <span>Email connected as <span className="font-medium">{connection.email_address}</span> — broker notifications work.</span>
       </div>
     );
   }
 
-  // Expired connection — needs reconnect
   if (connection?.status === 'expired') {
     return (
       <Link
         to={`/o/${orgSlug}/settings/integrations`}
-        className="mb-4 flex items-center gap-3 px-4 py-3 rounded-button bg-amber-500/10 border border-amber-500/30 text-amber-700 hover:bg-amber-500/15 transition-colors"
+        className="mb-5 flex items-center gap-3 px-4 py-3 rounded-button bg-amber-500/10 border border-amber-500/30 text-amber-700 hover:bg-amber-500/15 transition-colors"
       >
         <AlertCircle className="w-4 h-4 flex-shrink-0" />
         <div className="flex-1 min-w-0">
@@ -440,11 +405,10 @@ function CapabilityBadges({ agentSlug, orgSlug }) {
     );
   }
 
-  // No connection at all
   return (
     <Link
       to={`/o/${orgSlug}/settings/integrations`}
-      className="mb-4 flex items-center gap-3 px-4 py-3 rounded-button bg-fuchsia-500/8 border border-fuchsia-500/30 text-fuchsia-700 hover:bg-fuchsia-500/12 transition-colors"
+      className="mb-5 flex items-center gap-3 px-4 py-3 rounded-button bg-fuchsia-500/8 border border-fuchsia-500/30 text-fuchsia-700 hover:bg-fuchsia-500/12 transition-colors"
     >
       <Mail className="w-4 h-4 flex-shrink-0" />
       <div className="flex-1 min-w-0">

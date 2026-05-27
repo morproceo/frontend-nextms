@@ -56,17 +56,17 @@ function KpiCard({ label, value, subtitle, icon: Icon, color = 'accent' }) {
   };
 
   return (
-    <Card variant="elevated" padding="default">
-      <div className="flex items-start justify-between">
+    <Card variant="elevated" padding="compact" className="p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-small font-medium text-text-secondary">{label}</p>
-          <p className="text-title mt-1 text-text-primary truncate">{value}</p>
+          <p className="text-[11px] sm:text-small font-medium text-text-secondary truncate">{label}</p>
+          <p className="text-title-sm sm:text-headline mt-0.5 sm:mt-1 text-text-primary tabular-nums truncate">{value}</p>
           {subtitle && (
-            <p className="text-small text-text-tertiary mt-1">{subtitle}</p>
+            <p className="text-[10px] sm:text-small text-text-tertiary mt-0.5 sm:mt-1 truncate">{subtitle}</p>
           )}
         </div>
-        <div className={`p-2 rounded-lg ${colorClasses[color]} flex-shrink-0`}>
-          <Icon className="w-5 h-5" />
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${colorClasses[color]} flex-shrink-0 flex items-center justify-center`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
       </div>
     </Card>
@@ -90,13 +90,43 @@ function IncomeStatement({ report }) {
     operatingMargin
   } = report;
 
+  // Shared row data — feeds both the desktop table and the mobile
+  // stacked list so the two views can't drift.
+  const sections = [
+    {
+      label: 'REVENUE',
+      items: [{ label: 'Load Revenue', amount: revenue.loadRevenue, indent: 1 }],
+      subtotal: { label: 'Total Revenue', amount: revenue.loadRevenue }
+    },
+    {
+      label: 'COST OF REVENUE',
+      items: costOfRevenue.items.map((i) => ({ label: i.label, amount: i.amount, indent: 1 })),
+      emptyLabel: 'No cost of revenue items',
+      subtotal: { label: 'Total Cost of Revenue', amount: costOfRevenue.total }
+    },
+    {
+      highlight: { label: 'GROSS PROFIT', amount: grossProfit, percent: grossMargin }
+    },
+    {
+      label: 'OPERATING EXPENSES',
+      items: operatingExpenses.items.map((i) => ({ label: i.label, amount: i.amount, indent: 1 })),
+      emptyLabel: 'No operating expenses',
+      subtotal: { label: 'Total Operating Expenses', amount: operatingExpenses.total }
+    },
+    {
+      net: { label: 'NET INCOME', amount: netIncome, percent: operatingMargin }
+    }
+  ];
+
   return (
     <Card variant="elevated" padding="none">
-      <div className="px-6 py-4 border-b border-surface-tertiary">
-        <h2 className="text-title-sm text-text-primary">Income Statement</h2>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-tertiary">
+        <h2 className="text-body sm:text-title-sm font-semibold text-text-primary">Income Statement</h2>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[400px]">
+
+      {/* Desktop / tablet — the existing table. */}
+      <div className="hidden md:block">
+        <table className="w-full">
           <thead>
             <tr className="border-b border-surface-tertiary">
               <th className="px-6 py-3 text-left text-small font-medium text-text-secondary uppercase tracking-wider">
@@ -108,58 +138,110 @@ function IncomeStatement({ report }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-tertiary">
-            {/* REVENUE */}
-            <SectionHeader label="REVENUE" />
-            <LineItem label="Load Revenue" amount={revenue.loadRevenue} indent={1} />
-            <SubtotalRow label="Total Revenue" amount={revenue.loadRevenue} />
-
-            {/* COST OF REVENUE */}
-            <SectionHeader label="COST OF REVENUE" />
-            {costOfRevenue.items.map(item => (
-              <LineItem
-                key={item.category}
-                label={item.label}
-                amount={item.amount}
-                indent={1}
-              />
+            {sections.map((s, i) => (
+              <SectionRows key={i} section={s} />
             ))}
-            {costOfRevenue.items.length === 0 && (
-              <EmptyRow label="No cost of revenue items" />
-            )}
-            <SubtotalRow label="Total Cost of Revenue" amount={costOfRevenue.total} />
-
-            {/* GROSS PROFIT */}
-            <HighlightRow
-              label="GROSS PROFIT"
-              amount={grossProfit}
-              percent={grossMargin}
-            />
-
-            {/* OPERATING EXPENSES */}
-            <SectionHeader label="OPERATING EXPENSES" />
-            {operatingExpenses.items.map(item => (
-              <LineItem
-                key={item.category}
-                label={item.label}
-                amount={item.amount}
-                indent={1}
-              />
-            ))}
-            {operatingExpenses.items.length === 0 && (
-              <EmptyRow label="No operating expenses" />
-            )}
-            <SubtotalRow label="Total Operating Expenses" amount={operatingExpenses.total} />
-
-            {/* NET INCOME */}
-            <NetIncomeRow
-              label="NET INCOME"
-              amount={netIncome}
-              percent={operatingMargin}
-            />
           </tbody>
         </table>
       </div>
+
+      {/* Phone — stacked card rows. Tighter padding + larger touch
+          targets for amounts. Hidden visually from md+ to keep the
+          file's only source of section data the shared array. */}
+      <div className="md:hidden">
+        {sections.map((s, i) => (
+          <MobileSection key={i} section={s} />
+        ))}
+      </div>
     </Card>
+  );
+}
+
+function SectionRows({ section }) {
+  if (section.highlight) {
+    return <HighlightRow {...section.highlight} />;
+  }
+  if (section.net) {
+    return <NetIncomeRow {...section.net} />;
+  }
+  return (
+    <>
+      <SectionHeader label={section.label} />
+      {section.items.map((it, idx) => (
+        <LineItem key={idx} label={it.label} amount={it.amount} indent={it.indent || 0} />
+      ))}
+      {section.items.length === 0 && section.emptyLabel && (
+        <EmptyRow label={section.emptyLabel} />
+      )}
+      {section.subtotal && <SubtotalRow {...section.subtotal} />}
+    </>
+  );
+}
+
+function MobileSection({ section }) {
+  if (section.highlight) {
+    return (
+      <div className="px-4 py-3 bg-green-50/60 border-y border-green-100 flex items-baseline justify-between gap-3">
+        <span className="text-body-sm font-semibold text-green-700">{section.highlight.label}</span>
+        <span className="text-right">
+          <div className="text-body font-semibold text-green-700 tabular-nums">
+            {formatCurrency(section.highlight.amount)}
+          </div>
+          {section.highlight.percent != null && (
+            <div className="text-[11px] font-normal text-green-600">
+              {formatPercent(section.highlight.percent)} margin
+            </div>
+          )}
+        </span>
+      </div>
+    );
+  }
+  if (section.net) {
+    const isPos = section.net.amount >= 0;
+    return (
+      <div className={`px-4 py-3 border-t-2 ${isPos ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} flex items-baseline justify-between gap-3`}>
+        <span className={`text-body font-bold ${isPos ? 'text-green-700' : 'text-red-600'}`}>{section.net.label}</span>
+        <span className="text-right">
+          <div className={`text-body font-bold tabular-nums ${isPos ? 'text-green-700' : 'text-red-600'}`}>
+            {formatCurrency(section.net.amount)}
+          </div>
+          {section.net.percent != null && (
+            <div className={`text-[11px] font-semibold ${isPos ? 'text-green-600' : 'text-red-500'}`}>
+              {formatPercent(section.net.percent)} margin
+            </div>
+          )}
+        </span>
+      </div>
+    );
+  }
+  // Regular section.
+  return (
+    <div>
+      <div className="px-4 py-2 bg-surface-secondary text-[10px] uppercase tracking-wider font-semibold text-text-secondary">
+        {section.label}
+      </div>
+      <div className="divide-y divide-surface-tertiary">
+        {section.items.length === 0 && section.emptyLabel && (
+          <div className="px-4 py-2 text-body-sm text-text-tertiary italic">{section.emptyLabel}</div>
+        )}
+        {section.items.map((it, idx) => (
+          <div key={idx} className="px-4 py-2 flex items-baseline justify-between gap-3">
+            <span className="text-body-sm text-text-primary truncate">{it.label}</span>
+            <span className="text-body-sm text-text-primary tabular-nums flex-shrink-0">
+              {formatCurrency(it.amount)}
+            </span>
+          </div>
+        ))}
+        {section.subtotal && (
+          <div className="px-4 py-2 flex items-baseline justify-between gap-3 bg-surface-secondary/40">
+            <span className="text-body-sm font-semibold text-text-primary">{section.subtotal.label}</span>
+            <span className="text-body-sm font-semibold text-text-primary tabular-nums">
+              {formatCurrency(section.subtotal.amount)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -269,26 +351,26 @@ function TrendChart({ trend }) {
   const maxValue = Math.max(...trend.map(t => Math.max(t.revenue, t.totalCosts)), 1);
 
   return (
-    <Card variant="elevated" padding="default">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-title-sm text-text-primary">Monthly Trend</h2>
-        <div className="flex items-center gap-4 text-small">
+    <Card variant="elevated" padding="compact" className="p-4 sm:p-6">
+      <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 flex-wrap">
+        <h2 className="text-body sm:text-title-sm font-semibold text-text-primary">Monthly Trend</h2>
+        <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-small">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-accent" />
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-accent" />
             <span className="text-text-secondary">Revenue</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-red-400" />
-            <span className="text-text-secondary">Total Costs</span>
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm bg-red-400" />
+            <span className="text-text-secondary">Costs</span>
           </div>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         {trend.map(month => (
           <div key={month.month} className="space-y-1">
-            <div className="flex items-center justify-between text-small">
-              <span className="text-text-secondary font-medium w-24 flex-shrink-0">
+            <div className="flex items-center justify-between text-[11px] sm:text-small gap-2">
+              <span className="text-text-secondary font-medium w-16 sm:w-24 flex-shrink-0 truncate">
                 {formatMonth(month.month)}
               </span>
               <span className={`font-medium tabular-nums ${month.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -409,13 +491,13 @@ export function PnlPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-title text-text-primary">Profit & Loss</h1>
-          <p className="text-body-sm text-text-secondary mt-1">
-            Financial overview from completed loads and approved expenses
+          <h1 className="text-xl sm:text-title text-text-primary">Profit &amp; Loss</h1>
+          <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5 sm:mt-1">
+            Completed loads and approved expenses
           </p>
         </div>
         <PeriodSelector
@@ -433,14 +515,14 @@ export function PnlPage() {
 
       {/* Error */}
       {error && (
-        <Card variant="outline" padding="default" className="border-red-200 bg-red-50">
+        <Card variant="outline" padding="compact" className="border-red-200 bg-red-50 p-3 sm:p-4">
           <p className="text-body-sm text-red-600">{error}</p>
         </Card>
       )}
 
       {/* KPI Cards */}
       {kpis && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <KpiCard
             label="Total Revenue"
             value={formatCurrency(kpis.totalRevenue)}
@@ -473,7 +555,7 @@ export function PnlPage() {
       )}
 
       {/* Income Statement + Trend */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
           <IncomeStatement report={report} />
         </div>

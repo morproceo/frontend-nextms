@@ -90,9 +90,10 @@ const navigation = [
     name: 'Tools',
     icon: Wrench,
     children: [
-      { name: 'AVA AI Mechanic', href: '/tools/ava', icon: Zap },
       { name: 'Find My Truck', href: '/tools/find-my-truck', icon: MapPin },
-      { name: 'ATLAS Intelligence', href: '/tools/atlas', icon: Mail },
+      // ATLAS Intelligence removed — Alex (Genie Suite) inherits the
+      // freight-email intelligence task. Inbound leads land in the
+      // Genie Inbox under Alex; the dedicated TMS surface is gone.
       { name: 'Compliance', href: '/tools/compliance', icon: ShieldCheck },
       { name: 'FuelIQ', href: '/tools/fueliq', icon: Fuel }
     ]

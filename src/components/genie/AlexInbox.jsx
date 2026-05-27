@@ -38,16 +38,21 @@ import { cn } from '../../lib/utils';
  *   1. Needs attention (has ready or conflicts) — newest first
  *   2. Clean — newest first
  */
+const PAGE_SIZE = 12;
+
 export function AlexInbox({ className }) {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
   const pollRef = useRef(null);
+  const sentinelRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const fetchReviews = async () => {
     try {
-      const res = await client.get('/v1/agents/alex/recent-reviews?limit=30');
+      const res = await client.get('/v1/agents/alex/recent-reviews?limit=60');
       const data = res.data?.data ?? res.data;
       setReviews(data?.reviews || []);
       setError(null);
@@ -63,6 +68,23 @@ export function AlexInbox({ className }) {
     pollRef.current = setInterval(fetchReviews, 6000);
     return () => clearInterval(pollRef.current);
   }, []);
+
+  // Lazy-render: only display first N rows; reveal more as the user
+  // scrolls the column to the bottom.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayLimit((n) => Math.min(n + PAGE_SIZE, 60));
+        }
+      },
+      { root: scrollRef.current, threshold: 0.1 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [reviews.length, displayLimit]);
 
   const onRowApplied = async () => {
     // Refetch the whole list after an apply so counts and row positions
@@ -83,10 +105,14 @@ export function AlexInbox({ className }) {
   };
   const needsAttention = reviews.filter(needsAction);
   const clean = reviews.filter((r) => !needsAction(r));
+  const totalShown = Math.min(displayLimit, needsAttention.length + clean.length);
+  // Needs-attention always renders fully; clean fills the rest.
+  const cleanShown = clean.slice(0, Math.max(0, displayLimit - needsAttention.length));
+  const hasMore = totalShown < needsAttention.length + clean.length;
 
   return (
-    <section className={cn('bg-surface-primary border border-surface-tertiary rounded-card overflow-hidden', className)}>
-      <header className="px-5 py-3 border-b border-surface-tertiary flex items-center justify-between">
+    <section className={cn('bg-surface-primary border border-surface-tertiary rounded-card overflow-hidden flex flex-col h-full', className)}>
+      <header className="px-5 py-3 border-b border-surface-tertiary flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <Inbox className="w-4 h-4 text-text-secondary" />
           <span className="text-body-sm font-medium text-text-primary">Alex's inbox</span>
@@ -107,15 +133,15 @@ export function AlexInbox({ className }) {
       </header>
 
       {error && (
-        <div className="px-5 py-2 bg-error/5 border-b border-error/10 text-small text-error">{error}</div>
+        <div className="px-5 py-2 bg-error/5 border-b border-error/10 text-small text-error flex-shrink-0">{error}</div>
       )}
 
       {loading ? (
-        <div className="p-8 flex items-center justify-center">
+        <div className="p-8 flex items-center justify-center flex-1">
           <Loader2 className="w-5 h-5 text-text-tertiary animate-spin" />
         </div>
       ) : reviews.length === 0 ? (
-        <div className="p-10 text-center">
+        <div className="p-10 text-center flex-1 flex flex-col justify-center">
           <Sparkles className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
           <div className="text-body-sm text-text-secondary">
             Inbox is empty — Alex hasn't reviewed any loads yet.
@@ -125,7 +151,7 @@ export function AlexInbox({ className }) {
           </div>
         </div>
       ) : (
-        <div>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
           {needsAttention.length > 0 && (
             <Subhead label="Needs your action" count={needsAttention.length} tone="amber" />
           )}
@@ -141,11 +167,11 @@ export function AlexInbox({ className }) {
             ))}
           </div>
 
-          {clean.length > 0 && (
+          {cleanShown.length > 0 && (
             <Subhead label="Clean — reviewed, nothing to do" count={clean.length} tone="emerald" />
           )}
           <div className="divide-y divide-surface-tertiary">
-            {clean.map((r) => (
+            {cleanShown.map((r) => (
               <InboxRow
                 key={r.job_id}
                 review={r}
@@ -156,6 +182,11 @@ export function AlexInbox({ className }) {
               />
             ))}
           </div>
+          {hasMore && (
+            <div ref={sentinelRef} className="px-5 py-3 text-center text-small text-text-tertiary">
+              <Loader2 className="w-4 h-4 animate-spin inline-block" />
+            </div>
+          )}
         </div>
       )}
     </section>

@@ -4,6 +4,7 @@ import {
   Users,
   Activity,
   MessageCircle,
+  Inbox,
   ShoppingBag,
   Settings as SettingsIcon,
   ArrowLeft,
@@ -57,8 +58,9 @@ export default function GenieShell() {
 
   const topNav = [
     { label: 'Chat with Genie', to: `${basePath}/chat`, icon: MessageCircle },
-    { label: 'Team', to: basePath, icon: Users, end: true },
-    { label: 'Activity feed', to: `${basePath}/activity`, icon: Activity }
+    { label: 'Inbox',           to: `${basePath}/inbox`, icon: Inbox },
+    { label: 'Team',            to: basePath, icon: Users, end: true },
+    { label: 'Activity feed',   to: `${basePath}/activity`, icon: Activity }
   ];
 
   const managementNav = [

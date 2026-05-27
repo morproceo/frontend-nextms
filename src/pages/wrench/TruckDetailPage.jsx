@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Truck, Loader2, AlertTriangle, MapPin, Activity,
-  Wrench, FileText, History, StickyNote, Sparkles, Gauge, CheckCircle2
+  Wrench, FileText, History, StickyNote, Sparkles, Gauge, CheckCircle2,
+  MessageSquare, Send
 } from 'lucide-react';
 import wrenchApi from '../../api/wrench.api';
+import * as avaApi from '../../api/ava.api';
 import AiDiagnosisCard from '../../components/wrench/AiDiagnosisCard';
 import MaintenanceForm from '../../components/wrench/MaintenanceForm';
 
@@ -12,6 +14,7 @@ const TABS = [
   { key: 'overview',    label: 'Overview',     icon: Truck },
   { key: 'faultcodes',  label: 'Fault codes',  icon: AlertTriangle },
   { key: 'diagnosis',   label: 'AI diagnosis', icon: Sparkles },
+  { key: 'chat',        label: 'Chat',         icon: MessageSquare },
   { key: 'telematics',  label: 'Telematics',   icon: Gauge },
   { key: 'maintenance', label: 'Maintenance',  icon: Wrench },
   { key: 'documents',   label: 'Documents',    icon: FileText },
@@ -99,6 +102,7 @@ export default function TruckDetailPage() {
       {tab === 'overview'   && <Overview truck={truck} location={location} active={activeDiagnostics} />}
       {tab === 'faultcodes' && <FaultCodes diagnostics={diagnostics} onChange={refresh} />}
       {tab === 'diagnosis'  && <DiagnosisTab diagnostics={diagnostics} />}
+      {tab === 'chat'       && <ChatTab truck={truck} diagnostics={activeDiagnostics} />}
       {tab === 'telematics' && <Telematics truck={truck} location={location} />}
       {tab === 'maintenance'&& <MaintenanceTab truckId={truck.id} />}
       {tab === 'documents'  && <Placeholder text="Document attachments ship in Phase D." />}
@@ -433,6 +437,107 @@ function buildPrefill(d) {
     related_fault_code_id: d.id,
     related_diagnosis_id: d.id
   };
+}
+
+/**
+ * ChatTab — conversational AI mechanic. Same backend endpoint that
+ * powered the deprecated AVA Truck Detail page. The chat is scoped to a
+ * single truck so the model has its fault codes + maintenance context.
+ */
+function ChatTab({ truck, diagnostics }) {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: `Ask me anything about Unit ${truck.unit_number || truck.id.slice(0,8)} — fault codes, recommended fixes, parts, urgency. I've got the current diagnostics + truck details loaded.`
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages.length, sending]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    setInput('');
+    const next = [...messages, { role: 'user', content: text }];
+    setMessages(next);
+    setSending(true);
+    try {
+      const res = await avaApi.chat({
+        truckId: truck.id,
+        messages: next.map((m) => ({ role: m.role, content: m.content })),
+        context: {
+          unit: truck.unit_number,
+          make: truck.make,
+          model: truck.model,
+          year: truck.year,
+          odometer: truck.current_odometer,
+          fault_codes: diagnostics.map((d) => ({ code: d.code, severity: d.severity, description: d.description }))
+        }
+      });
+      const reply = res?.reply || res?.data?.reply || 'No response.';
+      setMessages((m) => [...m, { role: 'assistant', content: reply }]);
+    } catch (err) {
+      const msg = err?.response?.data?.error?.message || err?.message || 'Chat failed.';
+      setMessages((m) => [...m, { role: 'assistant', content: `⚠️ ${msg}` }]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="rounded-card border border-border-subtle bg-surface-primary overflow-hidden flex flex-col h-[min(70vh,640px)]">
+      <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-accent" />
+        <p className="text-body-sm font-semibold text-text-primary">AI mechanic chat</p>
+        <span className="ml-auto text-small text-text-tertiary">
+          {diagnostics.length} active code{diagnostics.length === 1 ? '' : 's'}
+        </span>
+      </div>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-secondary/30">
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={`max-w-[85%] px-3 py-2 rounded-card text-body-sm leading-relaxed ${
+              m.role === 'user'
+                ? 'bg-accent text-white ml-auto rounded-br-sm'
+                : 'bg-white text-text-primary border border-border-subtle rounded-bl-sm'
+            }`}
+          >
+            {m.content}
+          </div>
+        ))}
+        {sending && (
+          <div className="bg-white text-text-secondary border border-border-subtle rounded-card rounded-bl-sm px-3 py-2 max-w-[85%] flex items-center gap-2 text-body-sm">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Thinking…
+          </div>
+        )}
+      </div>
+      <div className="border-t border-border-subtle p-3 flex items-end gap-2 bg-surface-primary">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Ask about a fault code, parts, urgency…"
+          rows={1}
+          className="flex-1 resize-none min-h-[40px] max-h-[120px] px-3 py-2 rounded-button border border-border bg-surface-secondary text-body-sm placeholder:text-text-tertiary focus:outline-none focus:border-accent"
+        />
+        <button
+          type="button"
+          onClick={send}
+          disabled={!input.trim() || sending}
+          className="h-10 px-4 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent-hover disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <Send className="w-3.5 h-3.5" /> Send
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Placeholder({ text }) {
