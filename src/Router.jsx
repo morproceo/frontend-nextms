@@ -49,6 +49,7 @@ import OrgMembersPage from './pages/account/org/MembersPage';
 import OrgAppsPage from './pages/account/org/AppsPage';
 import OrgIntegrationsPage from './pages/account/org/IntegrationsPage';
 import MotiveIntegrationPage from './pages/account/org/MotiveIntegrationPage';
+import MotiveOAuthResultPage from './pages/oauth/MotiveOAuthResultPage';
 import UserProfilePage from './pages/account/me/ProfilePage';
 import UserSecurityPage from './pages/account/me/SecurityPage';
 import UserNotificationsPage from './pages/account/me/NotificationsPage';
@@ -376,6 +377,11 @@ export function Router() {
           <Route path="/verify" element={<VerifyPage />} />
           <Route path="/driver-signup" element={<DriverSignupPage />} />
         </Route>
+
+        {/* OAuth callback result landing page. Public — the popup may
+            still be logged out when it lands here; it just posts a
+            message to the opener and closes itself. */}
+        <Route path="/oauth/motive/result" element={<MotiveOAuthResultPage />} />
 
         {/* Organization invite acceptance */}
         <Route path="/invitations/:token/accept" element={<InviteAcceptPage />} />

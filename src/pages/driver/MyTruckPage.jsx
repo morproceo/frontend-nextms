@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Wrench, Truck, AlertTriangle, Loader2, Send, Sparkles,
-  ChevronRight, KeyRound, CheckCircle2
+  ChevronRight, KeyRound, CheckCircle2, Zap, ChevronDown
 } from 'lucide-react';
 import myTruckApi from '../../api/myTruck.api';
+import * as motiveOAuthApi from '../../api/motiveOAuth.api';
 import { cn } from '../../lib/utils';
 
 const sevColor = (s) => {
@@ -307,6 +308,96 @@ function TruckChat() {
 /* ───────────────────── Independent: connect / pick ───────────────────── */
 
 function ConnectMotive({ onDone }) {
+  const [oauthBusy, setOauthBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const popupPollRef = useRef(null);
+
+  // Listen for the postMessage from the popup's result page.
+  useEffect(() => {
+    const onMessage = (ev) => {
+      if (ev.origin !== window.location.origin) return;
+      const data = ev.data || {};
+      if (data.source !== 'motive-oauth') return;
+      if (data.status === 'success') {
+        onDone();
+      } else {
+        setErr(data.message || 'Connection failed');
+      }
+      setOauthBusy(false);
+      if (popupPollRef.current) clearInterval(popupPollRef.current);
+    };
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      if (popupPollRef.current) clearInterval(popupPollRef.current);
+    };
+  }, [onDone]);
+
+  const connectOAuth = async () => {
+    setErr(null); setOauthBusy(true);
+    try {
+      const { authUrl } = await motiveOAuthApi.startConnect('user');
+      const popup = motiveOAuthApi.openOAuthPopup(authUrl);
+      if (!popup) {
+        setErr('Popup blocked — please allow popups and try again.');
+        setOauthBusy(false);
+        return;
+      }
+      popupPollRef.current = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(popupPollRef.current);
+          setOauthBusy(false);
+          onDone();
+        }
+      }, 700);
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || 'Could not start OAuth');
+      setOauthBusy(false);
+    }
+  };
+
+  return (
+    <div className="max-w-lg mx-auto py-10 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center mx-auto mb-4">
+        <Zap className="w-7 h-7 text-orange-500" />
+      </div>
+      <h1 className="text-title text-text-primary">Connect your truck</h1>
+      <p className="text-body-sm text-text-secondary mt-2">
+        Sign in with your Motive account to unlock live fault codes and the
+        AI mechanic. No copy-pasting required.
+      </p>
+
+      <button
+        type="button"
+        onClick={connectOAuth}
+        disabled={oauthBusy}
+        className="w-full mt-6 py-2.5 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent/90 disabled:opacity-60 flex items-center justify-center gap-2"
+      >
+        {oauthBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+        Connect with Motive
+      </button>
+      {err && <p className="text-small text-error mt-3 text-left">{err}</p>}
+
+      {/* Advanced — paste API key fallback */}
+      <div className="mt-8 text-left">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="flex items-center gap-1.5 text-small text-text-tertiary hover:text-text-secondary"
+        >
+          <KeyRound className="w-3.5 h-3.5" />
+          Advanced: use an API key instead
+          <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showAdvanced && 'rotate-180')} />
+        </button>
+        {showAdvanced && <ApiKeyForm onDone={onDone} />}
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyForm({ onDone }) {
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -325,36 +416,25 @@ function ConnectMotive({ onDone }) {
   };
 
   return (
-    <div className="max-w-lg mx-auto py-10 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center mx-auto mb-4">
-        <KeyRound className="w-7 h-7 text-orange-500" />
-      </div>
-      <h1 className="text-title text-text-primary">Connect your truck</h1>
-      <p className="text-body-sm text-text-secondary mt-2">
-        You're not with a company yet — bring your own Motive key to unlock
-        live fault codes and the AI mechanic. Find it in Motive → Settings →
-        API Keys.
-      </p>
-      <div className="mt-6 text-left">
-        <label className="text-small text-text-tertiary">Motive API key</label>
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="Paste your Motive API key"
-          className="w-full mt-1 px-3 py-2.5 rounded-input border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
-        {err && <p className="text-small text-error mt-2">{err}</p>}
-        <button
-          type="button"
-          onClick={connect}
-          disabled={busy || !key.trim()}
-          className="w-full mt-4 py-2.5 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent/90 disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-          Connect Motive
-        </button>
-      </div>
+    <div className="mt-3">
+      <label className="text-small text-text-tertiary">Motive API key</label>
+      <input
+        type="password"
+        value={key}
+        onChange={(e) => setKey(e.target.value)}
+        placeholder="Paste your Motive API key"
+        className="w-full mt-1 px-3 py-2.5 rounded-input border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
+      />
+      {err && <p className="text-small text-error mt-2">{err}</p>}
+      <button
+        type="button"
+        onClick={connect}
+        disabled={busy || !key.trim()}
+        className="w-full mt-3 py-2 rounded-button bg-surface-secondary text-text-primary text-body-sm font-medium border border-surface-tertiary hover:bg-surface-tertiary disabled:opacity-60 flex items-center justify-center gap-2"
+      >
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+        Save API key
+      </button>
     </div>
   );
 }

@@ -1,26 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Plug, Loader2, CheckCircle2, AlertCircle, Settings, RefreshCw, X
+  Plug, Loader2, CheckCircle2, AlertCircle, Settings, RefreshCw,
+  Zap, KeyRound, ChevronDown
 } from 'lucide-react';
 import wrenchApi from '../../api/wrench.api';
+import * as motiveOAuthApi from '../../api/motiveOAuth.api';
 
 const META = {
   motive: {
-    description: 'Live truck locations + fault codes via your existing Motive Vehicle Gateway.',
-    inputs: [{ name: 'api_key', label: 'Motive API key', type: 'password', placeholder: 'mot_xxxxx' }]
+    description: 'Live truck locations + fault codes via your Motive ELD.'
   },
   samsara: {
     description: 'Same data, Samsara fleets. Coming next.',
-    disabled: true,
-    inputs: []
+    disabled: true
   },
   morprotms: {
-    description: 'Use the trucks already in your MorPro TMS. Always available.',
-    inputs: []
+    description: 'Use the trucks already in your MorPro TMS. Always available.'
   },
   manual: {
-    description: 'Manage trucks by hand. No telematics, no fault codes.',
-    inputs: []
+    description: 'Manage trucks by hand. No telematics, no fault codes.'
   }
 };
 
@@ -48,7 +46,7 @@ export default function ConnectionsPage() {
         <div className="min-w-0">
           <h1 className="text-xl sm:text-title text-text-primary">Connections</h1>
           <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5">
-            Pick where your truck data comes from.
+            Pick where your truck data comes from. Connect once — every Fleet Health tool uses the same source.
           </p>
         </div>
       </header>
@@ -87,8 +85,17 @@ function ProviderCard({ provider, meta, expanded, onToggle, onChange }) {
           <div className="flex items-center gap-2 mb-0.5">
             <p className="text-body font-medium text-text-primary">{provider.label}</p>
             <ConnPill connected={connected} />
+            {provider.id === 'motive' && provider.status?.auth_type === 'oauth' && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium bg-accent/15 text-accent">
+                OAuth
+              </span>
+            )}
           </div>
-          <p className="text-small text-text-tertiary">{meta?.description || ''}</p>
+          <p className="text-small text-text-tertiary">
+            {provider.id === 'motive' && connected && provider.status?.company
+              ? `Connected to ${provider.status.company}`
+              : (meta?.description || '')}
+          </p>
         </div>
         {!meta?.disabled && (
           <button onClick={onToggle}
@@ -99,47 +106,91 @@ function ProviderCard({ provider, meta, expanded, onToggle, onChange }) {
       </div>
       {expanded && (
         <div className="border-t border-border-subtle p-4 bg-surface-secondary/30">
-          <ProviderForm provider={provider} meta={meta} onChange={onChange} />
+          {provider.id === 'motive'
+            ? <MotiveForm provider={provider} onChange={onChange} />
+            : <ProviderForm provider={provider} meta={meta} onChange={onChange} />}
         </div>
       )}
     </li>
   );
 }
 
-function ProviderForm({ provider, meta, onChange }) {
-  const [form, setForm] = useState({});
+/**
+ * Motive's expanded panel — OAuth-first. Same connection row as
+ * /o/<slug>/settings/integrations/motive, so any action here is
+ * mirrored there and vice versa.
+ */
+function MotiveForm({ provider, onChange }) {
+  const connected = provider.status?.connected;
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState(null);
   const [error, setError] = useState(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [apiKey, setApiKey] = useState('');
 
-  const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const popupPollRef = useRef(null);
 
-  const save = async () => {
-    setBusy('save'); setError(null); setMsg(null);
+  // Listen for OAuth popup result
+  useEffect(() => {
+    const onMessage = (ev) => {
+      if (ev.origin !== window.location.origin) return;
+      const data = ev.data || {};
+      if (data.source !== 'motive-oauth') return;
+      if (data.status === 'success') {
+        setMsg(data.company ? `Connected to ${data.company}` : 'Connected to Motive');
+      } else {
+        setError(data.message || 'Connection failed');
+      }
+      setBusy(null);
+      if (popupPollRef.current) clearInterval(popupPollRef.current);
+      onChange?.();
+    };
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      if (popupPollRef.current) clearInterval(popupPollRef.current);
+    };
+  }, [onChange]);
+
+  const connectOAuth = async () => {
+    setBusy('oauth'); setError(null); setMsg(null);
     try {
-      await wrenchApi.saveConnection(provider.id, form);
-      setMsg('Saved.');
-      setForm({});
-      await onChange?.();
+      const { authUrl } = await motiveOAuthApi.startConnect('org');
+      const popup = motiveOAuthApi.openOAuthPopup(authUrl);
+      if (!popup) {
+        setError('Popup blocked — allow popups for this site and try again.');
+        setBusy(null);
+        return;
+      }
+      popupPollRef.current = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(popupPollRef.current);
+          setBusy(null);
+          onChange?.();
+        }
+      }, 700);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
-    } finally { setBusy(null); }
+      setBusy(null);
+      setError(err.response?.data?.message || err.message);
+    }
   };
 
-  const test = async () => {
-    setBusy('test'); setError(null); setMsg(null);
+  const disconnect = async () => {
+    if (!window.confirm('Disconnect Motive? Find My Truck, AVA, and the Wrench dashboard will stop syncing until you reconnect.')) return;
+    setBusy('disconnect'); setError(null); setMsg(null);
     try {
-      const r = await wrenchApi.testConnection(provider.id);
-      setMsg(r.connected ? 'Connection OK.' : `Not connected${r.reason ? ': ' + r.reason : ''}`);
+      await motiveOAuthApi.disconnect('org');
+      setMsg('Disconnected');
+      await onChange?.();
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      setError(err.response?.data?.message || err.message);
     } finally { setBusy(null); }
   };
 
   const sync = async () => {
     setBusy('sync'); setError(null); setMsg(null);
     try {
-      const r = await wrenchApi.syncConnection(provider.id);
+      const r = await wrenchApi.syncConnection('motive');
       setMsg(r.skipped ? `Sync skipped (${r.skipped})` : `Synced. ${r.synced || 0} record(s) updated.`);
       await onChange?.();
     } catch (err) {
@@ -147,28 +198,60 @@ function ProviderForm({ provider, meta, onChange }) {
     } finally { setBusy(null); }
   };
 
-  if (meta?.disabled) {
-    return (
-      <p className="text-body-sm text-text-tertiary">
-        {provider.status?.reason === 'samsara_not_implemented'
-          ? 'Coming next. We\'ll let you know when it\'s ready to connect.'
-          : 'Not available yet.'}
-      </p>
-    );
-  }
+  const saveApiKey = async () => {
+    if (!apiKey.trim()) return;
+    setBusy('save'); setError(null); setMsg(null);
+    try {
+      await wrenchApi.saveConnection('motive', { api_key: apiKey.trim() });
+      setMsg('API key saved.');
+      setApiKey('');
+      await onChange?.();
+    } catch (err) {
+      setError(err.response?.data?.error?.message || err.message);
+    } finally { setBusy(null); }
+  };
 
   return (
-    <div className="space-y-3">
-      {(meta?.inputs || []).map((f) => (
-        <label key={f.name} className="block">
-          <span className="block text-small text-text-tertiary mb-1">{f.label}</span>
-          <input type={f.type || 'text'}
-            value={form[f.name] ?? ''}
-            onChange={update(f.name)}
-            placeholder={f.placeholder}
-            className="w-full px-3 py-2 rounded-button border border-border bg-surface-primary text-body-sm" />
-        </label>
-      ))}
+    <div className="space-y-4">
+      {!connected ? (
+        <>
+          <p className="text-body-sm text-text-secondary">
+            Sign in with Motive — no API keys to copy. Authorizes live vehicle locations,
+            fault codes, and driver info.
+          </p>
+          <button onClick={connectOAuth} disabled={busy === 'oauth'}
+            className="px-3 py-2 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent-hover disabled:opacity-50 inline-flex items-center gap-2">
+            {busy === 'oauth' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            Connect with Motive
+          </button>
+        </>
+      ) : (
+        <>
+          {provider.status?.last_synced_at && (
+            <p className="text-small text-text-tertiary">
+              Last sync: {new Date(provider.status.last_synced_at).toLocaleString()}
+              {provider.status?.vehicle_count ? ` · ${provider.status.vehicle_count} vehicles` : ''}
+            </p>
+          )}
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={connectOAuth} disabled={busy === 'oauth'}
+              className="px-3 py-1.5 rounded-button border border-border text-body-sm text-text-secondary hover:bg-surface-secondary disabled:opacity-50 inline-flex items-center gap-1.5">
+              {busy === 'oauth' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              Reconnect
+            </button>
+            <button onClick={sync} disabled={busy === 'sync'}
+              className="px-3 py-1.5 rounded-button border border-border text-body-sm text-text-secondary hover:bg-surface-secondary disabled:opacity-50 inline-flex items-center gap-1.5">
+              {busy === 'sync' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Sync now
+            </button>
+            <button onClick={disconnect} disabled={busy === 'disconnect'}
+              className="px-3 py-1.5 rounded-button border border-border text-body-sm text-error hover:bg-error/5 disabled:opacity-50 inline-flex items-center gap-1.5">
+              {busy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Disconnect
+            </button>
+          </div>
+        </>
+      )}
 
       {error && (
         <div className="rounded-card border border-error/30 bg-error-muted text-error p-2 inline-flex items-start gap-2">
@@ -183,25 +266,55 @@ function ProviderForm({ provider, meta, onChange }) {
         </div>
       )}
 
-      <div className="flex gap-2 flex-wrap">
-        {(meta?.inputs?.length ?? 0) > 0 && (
-          <button onClick={save} disabled={busy === 'save'}
-            className="px-3 py-1.5 rounded-button bg-accent text-white text-body-sm font-medium hover:bg-accent-hover disabled:opacity-50 inline-flex items-center gap-1.5">
-            {busy === 'save' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save credentials'}
-          </button>
-        )}
-        <button onClick={test} disabled={busy === 'test'}
-          className="px-3 py-1.5 rounded-button border border-border text-body-sm text-text-secondary hover:bg-surface-secondary disabled:opacity-50 inline-flex items-center gap-1.5">
-          {busy === 'test' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Test connection'}
+      {/* Advanced — paste API key fallback (BYOK) */}
+      <div className="pt-2 border-t border-border-subtle">
+        <button onClick={() => setShowAdvanced((v) => !v)}
+          className="inline-flex items-center gap-1.5 text-small text-text-tertiary hover:text-text-secondary">
+          <KeyRound className="w-3.5 h-3.5" />
+          Advanced: use an API key
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
         </button>
-        {provider.status?.connected && provider.id === 'motive' && (
-          <button onClick={sync} disabled={busy === 'sync'}
-            className="px-3 py-1.5 rounded-button border border-border text-body-sm text-text-secondary hover:bg-surface-secondary disabled:opacity-50 inline-flex items-center gap-1.5">
-            {busy === 'sync' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><RefreshCw className="w-3.5 h-3.5" /> Sync now</>}
-          </button>
+        {showAdvanced && (
+          <div className="mt-3 space-y-2">
+            <p className="text-small text-text-tertiary">
+              For Motive accounts where OAuth isn't available. Stored encrypted.
+            </p>
+            <input type="password" value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="mot_xxxxx"
+              className="w-full px-3 py-2 rounded-button border border-border bg-surface-primary text-body-sm" />
+            <button onClick={saveApiKey} disabled={busy === 'save' || !apiKey.trim()}
+              className="px-3 py-1.5 rounded-button bg-surface-secondary border border-border text-body-sm text-text-primary hover:bg-surface-tertiary disabled:opacity-50 inline-flex items-center gap-1.5">
+              {busy === 'save' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Save API key
+            </button>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Generic form for non-Motive providers (Samsara, morprotms, manual).
+ * Same shape as before.
+ */
+function ProviderForm({ provider, meta, onChange }) {
+  if (meta?.disabled) {
+    return (
+      <p className="text-body-sm text-text-tertiary">
+        {provider.status?.reason === 'samsara_not_implemented'
+          ? "Coming next. We'll let you know when it's ready to connect."
+          : 'Not available yet.'}
+      </p>
+    );
+  }
+
+  // morprotms + manual have no inputs and no actions — just description.
+  return (
+    <p className="text-body-sm text-text-tertiary">
+      {meta?.description}
+    </p>
   );
 }
 
