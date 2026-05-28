@@ -30,23 +30,25 @@ export default function MaintenancePage() {
   useEffect(() => { refresh(); /* eslint-disable-line */ }, [status]);
 
   return (
-    <div className="px-6 py-10 max-w-5xl mx-auto">
-      <header className="flex items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-            <Wrench className="w-5 h-5 text-white" />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-5xl">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center flex-shrink-0">
+            <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-title text-text-primary">Maintenance</h1>
-            <p className="text-body-sm text-text-secondary">{rows.length} record{rows.length === 1 ? '' : 's'}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-title text-text-primary">Maintenance</h1>
+            <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5">
+              {rows.length} record{rows.length === 1 ? '' : 's'}
+            </p>
           </div>
         </div>
       </header>
 
-      <div className="flex gap-1 mb-4 border-b border-border-subtle overflow-x-auto">
+      <div className="flex gap-1 border-b border-border-subtle overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
           <button key={t.v} onClick={() => setStatus(t.v)}
-            className={`px-4 py-2 text-body-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+            className={`px-3 sm:px-4 py-2 text-body-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
               status === t.v
                 ? 'border-accent text-accent'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
@@ -57,7 +59,7 @@ export default function MaintenancePage() {
       </div>
 
       {error && (
-        <div className="rounded-card border border-error/30 bg-error-muted text-error p-3 mb-4">
+        <div className="rounded-card border border-error/30 bg-error-muted text-error p-3">
           <p className="text-body-sm">{error}</p>
         </div>
       )}
@@ -65,21 +67,21 @@ export default function MaintenancePage() {
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-text-tertiary" /></div>
       ) : rows.length === 0 ? (
-        <div className="rounded-card border border-border-subtle p-10 text-center">
-          <Wrench className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
+        <div className="rounded-card border border-border-subtle p-8 sm:p-10 text-center">
+          <Wrench className="w-7 h-7 sm:w-8 sm:h-8 text-text-tertiary mx-auto mb-3" />
           <p className="text-body-sm text-text-secondary">No maintenance records yet. Open a truck and create one from a fault code.</p>
         </div>
       ) : (
         <ul className="space-y-2">
           {rows.map((r) => (
-            <li key={r.id} className="rounded-card border border-border-subtle bg-surface-primary p-4">
+            <li key={r.id} className="rounded-card border border-border-subtle bg-surface-primary p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-body font-medium text-text-primary truncate">{r.title}</p>
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <p className="text-body-sm sm:text-body font-medium text-text-primary truncate">{r.title}</p>
                     <StatusPill s={r.status} />
                   </div>
-                  <p className="text-small text-text-tertiary">
+                  <p className="text-[11px] sm:text-small text-text-tertiary truncate">
                     {r.truck?.unit_number ? `Unit ${r.truck.unit_number}` : 'Truck'}
                     {' · '}{prettyType(r.maintenance_type)}
                     {r.actual_cost_cents
@@ -88,15 +90,16 @@ export default function MaintenancePage() {
                           ? ` · est $${(r.estimated_cost_low_cents/100).toFixed(0)}–$${(r.estimated_cost_high_cents/100).toFixed(0)}`
                           : '')}
                   </p>
-                  <p className="text-small text-text-tertiary mt-0.5">
+                  <p className="text-[11px] sm:text-small text-text-tertiary mt-0.5">
                     Created {new Date(r.created_at).toLocaleDateString()}
                     {r.completed_at ? ` · Completed ${new Date(r.completed_at).toLocaleDateString()}` : ''}
                   </p>
                 </div>
                 {r.truck && (
                   <Link to={`/o/${orgSlug}/wrench/trucks/${r.truck.id}`}
-                    className="text-body-sm text-text-secondary hover:text-text-primary flex-shrink-0 inline-flex items-center">
-                    View truck <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    className="text-[11px] sm:text-body-sm text-text-secondary hover:text-text-primary flex-shrink-0 inline-flex items-center whitespace-nowrap">
+                    <span className="hidden sm:inline">View truck</span>
+                    <ChevronRight className="w-3.5 h-3.5 sm:ml-0.5" />
                   </Link>
                 )}
               </div>

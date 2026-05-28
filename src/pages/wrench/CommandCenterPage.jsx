@@ -42,23 +42,25 @@ export default function CommandCenterPage() {
   const c = dash?.counts || {};
 
   return (
-    <div className="px-6 py-10 max-w-7xl mx-auto">
-      <header className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-          <Wrench className="w-5 h-5 text-white" />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <header className="flex items-center gap-3">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center flex-shrink-0">
+          <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
-        <div>
-          <h1 className="text-title text-text-primary">Command center</h1>
-          <p className="text-body-sm text-text-secondary">Real-time fleet health, fault codes, and AI diagnosis.</p>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-title text-text-primary">Command center</h1>
+          <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5">
+            Real-time fleet health, fault codes, and AI diagnosis.
+          </p>
         </div>
       </header>
 
       {dash?.stale_data && (
-        <div className="rounded-card border border-amber-500/30 bg-amber-500/10 p-3 mb-4 flex items-start gap-2">
+        <div className="rounded-card border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
           <Clock className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-body-sm text-text-primary">Data may be stale</p>
-            <p className="text-small text-text-secondary">
+            <p className="text-[11px] sm:text-small text-text-secondary">
               Last sync was {dash.minutes_since_sync} minutes ago. Provider connection may need attention.
             </p>
           </div>
@@ -70,11 +72,11 @@ export default function CommandCenterPage() {
       )}
 
       {!dash?.has_provider && (
-        <div className="rounded-card border border-border-subtle bg-surface-primary p-4 mb-4 flex items-start gap-3">
+        <div className="rounded-card border border-border-subtle bg-surface-primary p-3 sm:p-4 flex items-start gap-3">
           <Plug className="w-5 h-5 text-text-tertiary mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-body-sm font-medium text-text-primary">No telematics provider connected</p>
-            <p className="text-small text-text-secondary mt-0.5">
+            <p className="text-[11px] sm:text-small text-text-secondary mt-0.5">
               Connect Motive or Samsara to get live locations + fault codes. Or keep using your imported MorPro TMS trucks.
             </p>
           </div>
@@ -85,10 +87,10 @@ export default function CommandCenterPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard label="Total trucks" value={c.total_trucks ?? 0} icon={Truck} />
         <StatCard label="Active" value={c.active_trucks ?? 0} icon={CheckCircle2} tone="emerald" />
-        <StatCard label="With fault codes" value={c.trucks_with_fault_codes ?? 0} icon={AlertTriangle} tone={c.trucks_with_fault_codes ? 'amber' : 'default'} />
+        <StatCard label="Fault codes" value={c.trucks_with_fault_codes ?? 0} icon={AlertTriangle} tone={c.trucks_with_fault_codes ? 'amber' : 'default'} />
         <StatCard label="Critical" value={c.critical_issues ?? 0} icon={AlertTriangle} tone={c.critical_issues ? 'red' : 'default'} />
         <StatCard label="Maintenance due" value={c.maintenance_due ?? 0} icon={Activity} tone={c.maintenance_due ? 'amber' : 'default'} />
       </div>
@@ -105,13 +107,23 @@ function StatCard({ label, value, icon: Icon, tone = 'default' }) {
     red: 'text-red-600 dark:text-red-400',
     emerald: 'text-emerald-600 dark:text-emerald-400'
   }[tone];
+  const iconBg = {
+    default: 'bg-surface-secondary',
+    amber: 'bg-amber-500/10',
+    red: 'bg-red-500/10',
+    emerald: 'bg-emerald-500/10'
+  }[tone];
   return (
-    <div className="rounded-card border border-border-subtle bg-surface-primary p-4">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className={`w-3.5 h-3.5 ${toneCls}`} />
-        <p className="text-[10px] uppercase tracking-wider text-text-tertiary">{label}</p>
+    <div className="rounded-card border border-border-subtle bg-surface-primary p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[11px] sm:text-small font-medium text-text-secondary truncate">{label}</p>
+          <p className={`text-title-sm sm:text-headline mt-0.5 sm:mt-1 ${toneCls} tabular-nums`}>{value}</p>
+        </div>
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${toneCls}`} />
+        </div>
       </div>
-      <p className={`text-title-lg font-semibold ${toneCls}`}>{value}</p>
     </div>
   );
 }
@@ -119,15 +131,16 @@ function StatCard({ label, value, icon: Icon, tone = 'default' }) {
 function TruckHealthTable({ trucks, orgSlug }) {
   if (trucks.length === 0) {
     return (
-      <div className="rounded-card border border-border-subtle p-10 text-center">
-        <Truck className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
+      <div className="rounded-card border border-border-subtle p-8 sm:p-10 text-center">
+        <Truck className="w-7 h-7 sm:w-8 sm:h-8 text-text-tertiary mx-auto mb-3" />
         <p className="text-body-sm text-text-secondary">No trucks yet. Add trucks via Connections.</p>
       </div>
     );
   }
   return (
     <div className="rounded-card border border-border-subtle bg-surface-primary overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Desktop / tablet — table */}
+      <div className="hidden md:block">
         <table className="w-full text-sm">
           <thead className="bg-surface-secondary/60 text-text-tertiary text-left">
             <tr>
@@ -150,8 +163,8 @@ function TruckHealthTable({ trucks, orgSlug }) {
                   {t.currentDriver ? `${t.currentDriver.first_name} ${t.currentDriver.last_name}` : '—'}
                 </td>
                 <td className="px-3 py-2"><HealthPill h={t.health} /></td>
-                <td className="px-3 py-2 text-right text-text-primary">{t.active_fault_count || '—'}</td>
-                <td className="px-3 py-2 text-right text-text-primary">
+                <td className="px-3 py-2 text-right text-text-primary tabular-nums">{t.active_fault_count || '—'}</td>
+                <td className="px-3 py-2 text-right text-text-primary tabular-nums">
                   {t.current_odometer ? Number(t.current_odometer).toLocaleString() : '—'}
                 </td>
                 <td className="px-3 py-2 text-text-tertiary text-[11px]">
@@ -167,6 +180,34 @@ function TruckHealthTable({ trucks, orgSlug }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Phone — stacked card rows */}
+      <div className="md:hidden divide-y divide-border-subtle">
+        {trucks.map((t) => (
+          <Link
+            key={t.id}
+            to={`/o/${orgSlug}/wrench/trucks/${t.id}`}
+            className="flex items-center gap-3 p-3 hover:bg-surface-secondary/40 transition-colors"
+          >
+            <div className="w-9 h-9 rounded-lg bg-surface-secondary flex items-center justify-center flex-shrink-0">
+              <Truck className="w-4 h-4 text-text-tertiary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-body-sm font-medium text-text-primary truncate">{t.unit_number || '—'}</p>
+                <HealthPill h={t.health} />
+              </div>
+              <p className="text-[11px] text-text-tertiary truncate">
+                {t.vin ? t.vin.slice(-8) : '—'}
+                {t.currentDriver ? ` · ${t.currentDriver.first_name} ${t.currentDriver.last_name}` : ''}
+                {t.active_fault_count ? ` · ${t.active_fault_count} code${t.active_fault_count === 1 ? '' : 's'}` : ''}
+                {t.current_odometer ? ` · ${Number(t.current_odometer).toLocaleString()} mi` : ''}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-text-tertiary flex-shrink-0" />
+          </Link>
+        ))}
       </div>
     </div>
   );

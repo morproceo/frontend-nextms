@@ -40,14 +40,16 @@ export default function ConnectionsPage() {
   useEffect(() => { refresh(); }, []);
 
   return (
-    <div className="px-6 py-10 max-w-3xl mx-auto">
-      <header className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-          <Plug className="w-5 h-5 text-white" />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-3xl">
+      <header className="flex items-center gap-3">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center flex-shrink-0">
+          <Plug className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
-        <div>
-          <h1 className="text-title text-text-primary">Connections</h1>
-          <p className="text-body-sm text-text-secondary">Pick where your truck data comes from.</p>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-title text-text-primary">Connections</h1>
+          <p className="text-[11px] sm:text-body-sm text-text-secondary mt-0.5">
+            Pick where your truck data comes from.
+          </p>
         </div>
       </header>
 
