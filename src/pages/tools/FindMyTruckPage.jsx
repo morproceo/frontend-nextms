@@ -12,7 +12,6 @@ import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { Input } from '../../components/ui/Input';
 import FleetMap from '../../components/features/tools/FleetMap';
-import CurrentTripCard from '../../components/features/tools/CurrentTripCard';
 import api from '../../api/client';
 import {
   MapPin,
@@ -339,22 +338,6 @@ export function FindMyTruckPage() {
               onTruckSelect={setSelectedTruckId}
               loading={loading}
             />
-
-            {/* Current-trip card overlay — shown when the selected truck
-                has an active dispatch. */}
-            {(() => {
-              const selected = trucks.find(
-                (t) => t.truck_id === selectedTruckId || t.motive_vehicle_id === selectedTruckId
-              );
-              if (!selected?.current_dispatch) return null;
-              return (
-                <CurrentTripCard
-                  truck={selected}
-                  onClose={() => setSelectedTruckId(null)}
-                  onTripStarted={fetchLocations}
-                />
-              );
-            })()}
           </div>
         </div>
       )}
