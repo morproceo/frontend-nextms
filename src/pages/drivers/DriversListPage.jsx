@@ -22,9 +22,10 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import driverConnectionApi from '../../api/driverConnection.api';
+import * as driversApi from '../../api/drivers.api';
 import {
   Users, Plus, Search, UserX, Mail, Phone, ChevronRight, ChevronDown, Bell, Check, X,
-  Database, Globe, Send, Shield, UserCheck, Clock, Truck, AlertCircle
+  Database, Globe, Send, Shield, UserCheck, Clock, Truck, AlertCircle, Trash2, Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -181,6 +182,40 @@ export function DriversListPage() {
     navigate(orgUrl(`/drivers/${driverId}`));
   };
 
+  // ─── Remove driver from organization ────────────────────────────────
+  // Soft-delete on the org-scoped Driver row. Does NOT touch the User
+  // (their MorPro account, personal driver pages, and connections to
+  // any other orgs they belong to all stay intact).
+  const [removingId, setRemovingId] = useState(null);
+  const [removeError, setRemoveError] = useState(null);
+
+  const handleRemoveDriver = useCallback(async (driver, e) => {
+    e?.stopPropagation();
+    const name = `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'this driver';
+    const ok = window.confirm(
+      `Remove ${name} from your organization?\n\n` +
+      `They'll be removed from your dispatch lists and reports. Their ` +
+      `personal MorPro account stays intact — they can keep using their ` +
+      `own driver app. You can re-add them later.`
+    );
+    if (!ok) return;
+    setRemovingId(driver.id);
+    setRemoveError(null);
+    try {
+      await driversApi.deleteDriver(driver.id);
+      await refetch();
+    } catch (err) {
+      setRemoveError(
+        err.response?.data?.message ||
+        err.response?.data?.error?.message ||
+        err.message ||
+        'Could not remove driver'
+      );
+    } finally {
+      setRemovingId(null);
+    }
+  }, [refetch]);
+
   // Loading state
   if (loading && allDrivers.length === 0) {
     return (
@@ -328,6 +363,24 @@ export function DriversListPage() {
         </Card>
       )}
 
+      {/* Remove error */}
+      {removeError && (
+        <Card padding="default" className="bg-error/5 border border-error/20">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
+            <p className="text-body-sm text-error flex-1">{removeError}</p>
+            <button
+              type="button"
+              onClick={() => setRemoveError(null)}
+              className="text-error/70 hover:text-error"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </Card>
+      )}
+
       {/* Error State */}
       {error && (
         <Card padding="default" className="bg-error/5 border border-error/20">
@@ -444,6 +497,25 @@ export function DriversListPage() {
                   )}>
                     {statusConfig.label || driver.status}
                   </span>
+
+                  {/* Remove from organization */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemoveDriver(driver, e)}
+                    disabled={removingId === driver.id}
+                    title="Remove from organization"
+                    aria-label={`Remove ${driver.first_name || ''} ${driver.last_name || ''} from organization`}
+                    className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
+                      'text-text-tertiary hover:text-error hover:bg-error/10',
+                      'sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100',
+                      removingId === driver.id && 'opacity-100 cursor-wait'
+                    )}
+                  >
+                    {removingId === driver.id
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Trash2 className="w-4 h-4" />}
+                  </button>
 
                   {/* Chevron */}
                   <ChevronRight className="w-4 h-4 text-text-tertiary group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
