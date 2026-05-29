@@ -2,6 +2,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { OrgProvider } from './contexts/OrgContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { Router } from './Router';
+import { Analytics } from '@vercel/analytics/react';
 
 export function App() {
   return (
@@ -9,6 +10,7 @@ export function App() {
       <OrgProvider>
         <ToastProvider>
           <Router />
+          <Analytics />
         </ToastProvider>
       </OrgProvider>
     </AuthProvider>
