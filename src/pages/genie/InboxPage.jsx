@@ -1466,6 +1466,25 @@ function subjectForJob(job) {
   if (task === 'review_pending_expense') {
     return 'Pending expense reviewed';
   }
+  if (task === 'review_recent_loads') {
+    // Dynamic subject so the inbox list shows what Alex actually did,
+    // not a generic "Review Recent Loads" repeated for every run.
+    const counts = data?.counts || {};
+    const fixed = counts.fixes_applied || 0;
+    const stillOpen = (counts.with_issues || 0) - (counts.fully_resolved || 0);
+    const total = counts.total_checked || 0;
+    if (total === 0) return 'Audit · no new loads to review';
+    if (fixed > 0 && stillOpen > 0) {
+      return `Audit · fixed ${fixed}, ${stillOpen} need eyes`;
+    }
+    if (fixed > 0) {
+      return `Audit complete · fixed ${fixed} field${fixed === 1 ? '' : 's'}`;
+    }
+    if (stillOpen > 0) {
+      return `Audit · ${stillOpen} load${stillOpen === 1 ? '' : 's'} need eyes`;
+    }
+    return `Audit complete · all ${total} clean`;
+  }
   return humanize(task);
 }
 
