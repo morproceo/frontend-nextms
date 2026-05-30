@@ -73,6 +73,16 @@ export const updateLoadStatus = async (loadId, status) => {
 };
 
 /**
+ * Mark a load as delayed with a required reason. Atomically writes the
+ * load row + load_event so the activity feed shows why next to the
+ * status change. Backend: POST /v1/loads/:id/delay
+ */
+export const markLoadDelayed = async (loadId, reason) => {
+  const response = await api.post(`/v1/loads/${loadId}/delay`, { reason });
+  return response.data;
+};
+
+/**
  * Update billing status
  */
 export const updateBillingStatus = async (loadId, billingStatus) => {

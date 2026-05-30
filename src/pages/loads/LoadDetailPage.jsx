@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useLoad, useDriversList, useBrokersList } from '../../hooks';
 import { LoadStatusConfig, BillingStatusConfig } from '../../config/status';
 import { Button } from '../../components/ui/Button';
@@ -22,6 +23,7 @@ import NetworkOriginBanner from '../../components/features/loads/NetworkOriginBa
 import { LoadActivityTimeline } from '../../components/loads/LoadActivityTimeline';
 import { LoadDetailsPanel } from '../../components/loads/LoadDetailsPanel';
 import uploadsApi from '../../api/uploads.api';
+import * as loadsApi from '../../api/loads.api';
 import {
   ArrowLeft,
   Truck,
@@ -42,7 +44,8 @@ import {
   ExternalLink,
   Map,
   AlertCircle,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 
 // Build status flow from centralized config (ordered for UI flow)
@@ -156,6 +159,9 @@ export function LoadDetailPage() {
   // Local financial state for immediate UI updates from route calculations
   const [localFinancials, setLocalFinancials] = useState(null);
   const [statusError, setStatusError] = useState(null);
+  const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const { toast } = useToast();
 
   // Fetch drivers and documents on mount
   useEffect(() => {
@@ -202,7 +208,16 @@ export function LoadDetailPage() {
     }
   };
 
+  // Delayed status requires a reason — we intercept the dropdown pick
+  // and open a modal instead of firing the generic status update.
+  const [showDelayModal, setShowDelayModal] = useState(false);
+
   const updateStatus = async (newStatus) => {
+    if (newStatus === 'delayed') {
+      // Open the modal; the modal handles the API call + refetch.
+      setShowDelayModal(true);
+      return;
+    }
     try {
       await hookUpdateStatus(newStatus);
       setStatusError(null);
@@ -211,6 +226,51 @@ export function LoadDetailPage() {
         || err?.message || 'Failed to update status';
       setStatusError(msg);
       console.error('Failed to update status:', err);
+    }
+  };
+
+  const handleDelaySubmit = async (reason) => {
+    try {
+      await loadsApi.markLoadDelayed(loadId, reason);
+      setStatusError(null);
+      setShowDelayModal(false);
+      await refetch();
+      toast({
+        title: 'Load marked delayed',
+        description: 'Alex will draft the broker notification.',
+        variant: 'success'
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.error?.message
+        || err?.message || 'Failed to mark delayed';
+      setStatusError(msg);
+      throw err;
+    }
+  };
+
+  // Dispatch flow — confirm first, then update + toast so the dispatcher
+  // sees the success and knows the driver got the realtime ping.
+  const confirmDispatch = async () => {
+    if (dispatching) return;
+    setDispatching(true);
+    try {
+      await hookUpdateStatus('dispatched');
+      setShowDispatchConfirm(false);
+      setStatusError(null);
+      toast({
+        title: 'Load dispatched',
+        description: load?.driver?.user
+          ? `Pinged ${load.driver.user.first_name || 'the driver'} on the mobile app.`
+          : 'Driver pinged on the mobile app.',
+        variant: 'success'
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.error?.message
+        || err?.message || 'Failed to dispatch';
+      setStatusError(msg);
+      toast({ title: 'Dispatch failed', description: msg, variant: 'error' });
+    } finally {
+      setDispatching(false);
     }
   };
 
@@ -425,11 +485,21 @@ export function LoadDetailPage() {
             <Map className="w-4 h-4" />
           </button>
 
-          <Button size="sm" onClick={() => {}} className="hidden sm:flex">
+          <Button
+            size="sm"
+            onClick={() => setShowDispatchConfirm(true)}
+            disabled={!load?.driver_id || load?.status === 'dispatched'}
+            className="hidden sm:flex"
+          >
             <Send className="w-4 h-4 mr-1.5" />
-            Dispatch
+            {load?.status === 'dispatched' ? 'Dispatched' : 'Dispatch'}
           </Button>
-          <Button size="sm" onClick={() => {}} className="sm:hidden p-2">
+          <Button
+            size="sm"
+            onClick={() => setShowDispatchConfirm(true)}
+            disabled={!load?.driver_id || load?.status === 'dispatched'}
+            className="sm:hidden p-2"
+          >
             <Send className="w-4 h-4" />
           </Button>
           <div className="relative">
@@ -574,6 +644,170 @@ export function LoadDetailPage() {
         loadId={loadId}
         onSuccess={() => fetchDocuments()}
       />
+
+      {/* Dispatch confirmation modal */}
+      {showDispatchConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => !dispatching && setShowDispatchConfirm(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-text-primary">Ready to dispatch?</h3>
+                  <p className="text-sm text-text-secondary">
+                    {load?.driver?.user
+                      ? `${load.driver.user.first_name || ''} ${load.driver.user.last_name || ''}`.trim() || 'The driver'
+                      : 'The driver'}
+                    {' will get an instant notification on their mobile app.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Load</span>
+                  <span className="text-text-primary font-medium">
+                    #{load?.reference_number || loadId?.slice?.(0, 8)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-text-secondary">Route</span>
+                  <span className="text-text-primary font-medium truncate">
+                    {[load?.shipper?.city, load?.shipper?.state].filter(Boolean).join(', ') || 'TBD'}
+                    {' → '}
+                    {[load?.consignee?.city, load?.consignee?.state].filter(Boolean).join(', ') || 'TBD'}
+                  </span>
+                </div>
+                {load?.financials?.revenue ? (
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Rate</span>
+                    <span className="text-text-primary font-medium">
+                      ${Math.round(load.financials.revenue).toLocaleString()}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setShowDispatchConfirm(false)}
+                disabled={dispatching}
+              >
+                Cancel
+              </Button>
+              <Button onClick={confirmDispatch} disabled={dispatching}>
+                {dispatching ? (
+                  <>
+                    <Spinner className="w-4 h-4 mr-1.5" /> Dispatching…
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-1.5" /> Dispatch & Notify
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delay reason modal — pops when the status dropdown picks "Delayed".
+          The submit POSTs to /v1/loads/:id/delay which atomically writes
+          the status + delay_reason + delayed_at + a load_event row, and
+          triggers Alex's broker notification. */}
+      {showDelayModal && (
+        <DelayReasonModal
+          loadRef={load?.reference_number}
+          onCancel={() => setShowDelayModal(false)}
+          onSubmit={handleDelaySubmit}
+        />
+      )}
+    </div>
+  );
+}
+
+function DelayReasonModal({ loadRef, onCancel, onSubmit }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const submit = async () => {
+    const trimmed = reason.trim();
+    if (!trimmed) { setError('A reason is required.'); return; }
+    setBusy(true); setError(null);
+    try {
+      await onSubmit(trimmed);
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || err.message || 'Failed to save.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={() => !busy && onCancel()}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+      >
+        <div className="p-6 space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">
+              Mark Load {loadRef ? `#${loadRef}` : ''} delayed
+            </h3>
+            <p className="text-sm text-text-secondary mt-1">
+              What's the reason? Saved on the load and added to the activity feed.
+              Alex will draft a broker email mentioning the delay.
+            </p>
+          </div>
+
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. Traffic accident on I-95, ETA pushed by ~3 hours"
+            rows={4}
+            autoFocus
+            disabled={busy}
+            className="w-full px-3 py-2.5 rounded-input border border-surface-tertiary text-body-sm focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
+          />
+
+          {error && (
+            <p className="text-small text-error">{error}</p>
+          )}
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="px-3 py-2 rounded-button text-body-sm font-medium text-text-secondary hover:bg-surface-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy || !reason.trim()}
+              className="px-4 py-2 rounded-button text-body-sm font-medium text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Mark delayed
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
