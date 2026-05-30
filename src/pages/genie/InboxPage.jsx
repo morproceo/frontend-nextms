@@ -1523,6 +1523,23 @@ function subjectForJob(job) {
     return ref ? `Load ${ref} reviewed` : `Load completeness check`;
   }
   if (task === 'notify_broker_on_status_change') {
+    // Surface the "awaiting docs" hold-state clearly so the user knows
+    // why Alex didn't send yet.
+    if (data?.skipped && data?.reason === 'awaiting_delivery_docs') {
+      return ref
+        ? `Awaiting signed BOL · Load ${ref}`
+        : 'Awaiting signed BOL';
+    }
+    if (data?.skipped && data?.reason) {
+      return ref
+        ? `Broker notification skipped · Load ${ref}`
+        : 'Broker notification skipped';
+    }
+    if (data?.sent) {
+      return ref
+        ? `Broker notified · Load ${ref}`
+        : 'Broker notified';
+    }
     return ref ? `Broker notification · Load ${ref}` : 'Broker notification drafted';
   }
   if (task === 'categorize_expense') {
