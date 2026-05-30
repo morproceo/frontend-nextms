@@ -25,6 +25,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import inboxApi from '../../api/inbox.api';
+import * as atlasApi from '../../api/atlas.api';
 import { GENIE_TEAM, getAgent } from '../../config/genieTeam';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
 import { getJobNarrative } from '../../utils/agentNarrative';
@@ -1057,6 +1058,13 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
   const canRerun =
     (job?.task_name === 'check_load_completeness' && !!job?.target_id) ||
     job?.status === 'failed';
+  // Inline lead actions — Alex found an opportunity; user owns the
+  // accept/reject decision unless auto_create_leads is on.
+  const leadData = job?.task_name === 'scan_email_for_leads'
+    ? (job.output_data?.output || job.output_data || {})
+    : null;
+  const isLeadDecision = !!leadData?.opportunity_id && !leadData?.auto_added
+    && (leadData?.status === 'new' || leadData?.status === 'reviewed');
 
   const onApprove = async () => {
     setBusy(true); setError(null);
@@ -1082,6 +1090,30 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     setBusy(true); setError(null);
     try {
       await inboxApi.rerunAlexCheck(job.target_id);
+      await onActed?.();
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || err.message);
+    } finally { setBusy(false); }
+  };
+
+  const onAcceptLead = async () => {
+    if (!leadData?.opportunity_id) return;
+    setBusy(true); setError(null);
+    try {
+      await atlasApi.acceptOpportunity(leadData.opportunity_id);
+      await onActed?.();
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || err.message);
+    } finally { setBusy(false); }
+  };
+
+  const onRejectLead = async () => {
+    if (!leadData?.opportunity_id) return;
+    const reason = window.prompt('Why are you rejecting this lead? (helps Alex learn)') || '';
+    if (reason === null) return;
+    setBusy(true); setError(null);
+    try {
+      await atlasApi.rejectOpportunity(leadData.opportunity_id, reason.trim() || 'no reason given');
       await onActed?.();
     } catch (err) {
       setError(err?.response?.data?.error?.message || err.message);
@@ -1137,6 +1169,37 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
             >
               <X className="w-3.5 h-3.5" />
               Discard
+            </button>
+          </>
+        )}
+        {isLeadDecision && (
+          <>
+            <button
+              type="button"
+              onClick={onAcceptLead}
+              disabled={busy}
+              title="Convert this lead into a Load in your TMS"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-button text-body-sm font-medium text-white bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 hover:scale-[1.02] transition-transform disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              Accept &amp; create load
+            </button>
+            {message.deepLink && (
+              <Link
+                to={message.deepLink}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-button text-body-sm font-medium bg-surface-secondary text-text-secondary hover:bg-surface-tertiary"
+              >
+                Edit details
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={onRejectLead}
+              disabled={busy}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-button text-body-sm font-medium bg-surface-secondary text-error hover:bg-error/10 disabled:opacity-50"
+            >
+              <X className="w-3.5 h-3.5" />
+              Reject
             </button>
           </>
         )}
@@ -1402,7 +1465,15 @@ function jobToMessage(job) {
     job.status === 'failed' ||
     (job.task_name === 'notify_broker_on_status_change' &&
       !out.sent && !out.skipped &&
-      (out.authority === 'propose' || data?.authority === 'propose'));
+      (out.authority === 'propose' || data?.authority === 'propose')) ||
+    // Lead found by Alex that Alex didn't auto-accept — user owns the
+    // accept/reject call. If opportunity status has moved on since
+    // (e.g. user accepted from the opportunities page), the inline
+    // buttons will fail gracefully and the user can refresh.
+    (job.task_name === 'scan_email_for_leads' &&
+      !!data?.opportunity_id &&
+      !data?.auto_added &&
+      (data?.status === 'new' || data?.status === 'reviewed'));
   const deepLink = buildDeepLink(job);
 
   return {
@@ -1514,9 +1585,18 @@ function subjectForJob(job) {
 }
 
 function buildDeepLink(job) {
-  if (!job?.target_id) return null;
   const orgSlug = window?.location?.pathname?.match(/\/o\/([^/]+)\//)?.[1];
   if (!orgSlug) return null;
+
+  // Lead detection result — link to the opportunity, not the target_id
+  // (target_id isn't set for scan_email_for_leads).
+  if (job?.task_name === 'scan_email_for_leads') {
+    const oppId = (job.output_data?.output || job.output_data)?.opportunity_id;
+    if (oppId) return `/o/${orgSlug}/tools/atlas/opportunities/${oppId}`;
+    return null;
+  }
+
+  if (!job?.target_id) return null;
   const t = job.target_type;
   if (t === 'load') return `/o/${orgSlug}/loads/${job.target_id}`;
   if (t === 'expense' || t === 'fuel_transaction') return `/o/${orgSlug}/expenses/${job.target_id}`;
