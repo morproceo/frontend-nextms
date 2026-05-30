@@ -113,15 +113,13 @@ export const getLoadForCarrier = async (id) => {
   return res.data?.data ?? res.data;
 };
 
-// Lookup network linkage by internal load id (404 if not linked).
+// Lookup network linkage by internal load id. Backend returns 200 with
+// { linked: false, network_load: null } when not linked — no exception
+// path needed. Returns the network_load object if linked, null otherwise.
 export const getNetworkLinkageByInternalLoadId = async (internalLoadId) => {
-  try {
-    const res = await api.get(`/v1/network/loads/by-internal/${internalLoadId}`);
-    return res.data?.data ?? res.data;
-  } catch (err) {
-    if (err.response?.status === 404) return null;
-    throw err;
-  }
+  const res = await api.get(`/v1/network/loads/by-internal/${internalLoadId}`);
+  const payload = res.data?.data ?? res.data;
+  return payload?.linked ? payload.network_load : null;
 };
 
 // ── Phase 2 — bids ────────────────────────────────────────────────────
