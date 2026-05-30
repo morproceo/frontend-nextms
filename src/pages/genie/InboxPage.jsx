@@ -1466,6 +1466,31 @@ function subjectForJob(job) {
   if (task === 'review_pending_expense') {
     return 'Pending expense reviewed';
   }
+  if (task === 'scan_email_for_leads') {
+    // Subject reports the outcome of the scan: lead found (with broker
+    // + route), no lead, or processing skipped/failed. Each scanned
+    // email produces a job — one job = at most one lead.
+    const oppId = data?.opportunity_id;
+    if (oppId) {
+      const broker = data?.broker?.name || data?.broker_name;
+      const route = data?.route;
+      if (data?.auto_added) {
+        return broker
+          ? `New lead added · ${broker}${route ? ' · ' + route : ''}`
+          : 'New lead added';
+      }
+      return broker
+        ? `Found a lead · ${broker}${route ? ' · ' + route : ''}`
+        : 'Found a new lead';
+    }
+    return 'Scanned email · no lead';
+  }
+  if (task === 'scan_inbox_now') {
+    const triggered = data?.triggered_count || data?.connections?.filter?.((c) => c.status === 'triggered').length;
+    return triggered
+      ? `Inbox scan kicked off · ${triggered} mailbox${triggered === 1 ? '' : 'es'}`
+      : 'Inbox scan kicked off';
+  }
   if (task === 'review_recent_loads') {
     // Dynamic subject so the inbox list shows what Alex actually did,
     // not a generic "Review Recent Loads" repeated for every run.
