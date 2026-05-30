@@ -3,21 +3,28 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { BrokersTab } from '../../components/features/customers/BrokersTab';
 import { FacilitiesTab } from '../../components/features/customers/FacilitiesTab';
-import { Building2, Warehouse } from 'lucide-react';
+import { LeadsTab } from '../../components/features/customers/LeadsTab';
+import { Building2, Warehouse, Sparkles } from 'lucide-react';
 
 export function CustomersPage() {
   const navigate = useNavigate();
   const { orgUrl } = useOrg();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'brokers';
+  // Allow deep linking to a specific lead, e.g. from the Genie Inbox:
+  //   /customers?tab=leads&leadId=<uuid>
+  const focusLeadId = searchParams.get('leadId') || null;
 
   const setActiveTab = (tab) => {
+    // Drop leadId when switching tabs so a stale id doesn't open a sheet
+    // on the wrong surface.
     setSearchParams({ tab });
   };
 
   const tabs = [
     { id: 'brokers', label: 'Brokers', icon: Building2 },
-    { id: 'facilities', label: 'Shippers & Receivers', icon: Warehouse }
+    { id: 'facilities', label: 'Shippers & Receivers', icon: Warehouse },
+    { id: 'leads', label: 'Leads', icon: Sparkles }
   ];
 
   return (
@@ -65,6 +72,9 @@ export function CustomersPage() {
             onViewFacility={(id) => navigate(orgUrl(`/customers/facilities/${id}`))}
             onAddFacility={() => navigate(orgUrl('/customers/facilities/new'))}
           />
+        )}
+        {activeTab === 'leads' && (
+          <LeadsTab initialLeadId={focusLeadId} />
         )}
       </div>
     </div>

@@ -1588,11 +1588,12 @@ function buildDeepLink(job) {
   const orgSlug = window?.location?.pathname?.match(/\/o\/([^/]+)\//)?.[1];
   if (!orgSlug) return null;
 
-  // Lead detection result — link to the opportunity, not the target_id
-  // (target_id isn't set for scan_email_for_leads).
+  // Lead detection result — link to the Leads tab inside Customers
+  // (CRM surface, no agent gate). target_id isn't set on scan_email_for_leads;
+  // the opportunity_id lives in output_data.
   if (job?.task_name === 'scan_email_for_leads') {
     const oppId = (job.output_data?.output || job.output_data)?.opportunity_id;
-    if (oppId) return `/o/${orgSlug}/tools/atlas/opportunities/${oppId}`;
+    if (oppId) return `/o/${orgSlug}/customers?tab=leads&leadId=${oppId}`;
     return null;
   }
 
