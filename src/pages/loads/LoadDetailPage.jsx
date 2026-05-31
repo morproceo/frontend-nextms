@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useToast } from '../../contexts/ToastContext';
+import { getAgent } from '../../config/genieTeam';
 import { useLoad, useDriversList, useBrokersList } from '../../hooks';
 import { LoadStatusConfig, BillingStatusConfig } from '../../config/status';
 import { Button } from '../../components/ui/Button';
@@ -237,8 +238,10 @@ export function LoadDetailPage() {
       await refetch();
       toast({
         title: 'Load marked delayed',
-        description: 'Alex will draft the broker notification.',
-        variant: 'success'
+        description: 'Alex is composing the broker notification — it will land in your inbox shortly.',
+        variant: 'info',
+        agent: getAgent('alex'),
+        action: orgUrl ? { label: 'Watch the inbox', to: orgUrl('/genie/inbox') } : undefined
       });
     } catch (err) {
       const msg = err?.response?.data?.error?.message

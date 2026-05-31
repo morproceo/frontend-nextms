@@ -23,6 +23,9 @@ import { Button } from '../../ui/Button';
 import { Badge } from '../../ui/Badge';
 import { Spinner } from '../../ui/Spinner';
 import leadsApi from '../../../api/leads.api';
+import { useToast } from '../../../contexts/ToastContext';
+import { useOrg } from '../../../contexts/OrgContext';
+import { getAgent } from '../../../config/genieTeam';
 import {
   Search, Mail, Phone, ArrowRight, X, Check, Loader2,
   AlertCircle, Sparkles, Truck, MapPin, DollarSign, Calendar
@@ -270,6 +273,8 @@ function LeadDetailSheet({ lead, onClose, onChanged }) {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(false);
+  const { toast } = useToast();
+  const { orgUrl } = useOrg();
   const [form, setForm] = useState({
     broker_name: lead.broker_name || '',
     broker_email: lead.broker_email || '',
@@ -293,11 +298,23 @@ function LeadDetailSheet({ lead, onClose, onChanged }) {
   const onAccept = async () => {
     setBusy('accept'); setError(null);
     try {
-      await leadsApi.acceptLead(lead.id);
+      const result = await leadsApi.acceptLead(lead.id);
+      const loadRef = result?.load?.reference_number;
+      const loadId = result?.load?.id;
+      const loadLink = loadId && orgUrl ? orgUrl(`/loads/${loadId}`) : null;
       await onChanged();
       onClose();
+      toast({
+        title: loadRef ? `Lead accepted · Load #${loadRef} created` : 'Lead accepted',
+        description: `${lead.broker_name || 'The broker'} is now in your Brokers tab and the load is ready for dispatch.`,
+        variant: 'success',
+        agent: getAgent('alex'),
+        action: loadLink ? { label: 'Open the load', to: loadLink } : undefined
+      });
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      const msg = err.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Could not accept lead', description: msg, variant: 'error' });
     } finally { setBusy(null); }
   };
 
@@ -309,8 +326,16 @@ function LeadDetailSheet({ lead, onClose, onChanged }) {
       await leadsApi.rejectLead(lead.id, reason.trim() || 'no reason given');
       await onChanged();
       onClose();
+      toast({
+        title: 'Lead rejected',
+        description: 'I noted the reason — it weighs into how I rank similar leads.',
+        variant: 'info',
+        agent: getAgent('alex')
+      });
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      const msg = err.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Could not reject lead', description: msg, variant: 'error' });
     } finally { setBusy(null); }
   };
 
@@ -325,8 +350,15 @@ function LeadDetailSheet({ lead, onClose, onChanged }) {
       await leadsApi.updateLead(lead.id, dirty);
       await onChanged();
       setEditing(false);
+      toast({
+        title: 'Lead updated',
+        description: 'Changes saved.',
+        variant: 'success'
+      });
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message);
+      const msg = err.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Could not save', description: msg, variant: 'error' });
     } finally { setBusy(null); }
   };
 

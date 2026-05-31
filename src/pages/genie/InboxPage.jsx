@@ -27,6 +27,7 @@ import {
 import inboxApi from '../../api/inbox.api';
 import * as atlasApi from '../../api/atlas.api';
 import { GENIE_TEAM, getAgent } from '../../config/genieTeam';
+import { useToast } from '../../contexts/ToastContext';
 import { AgentAvatar } from '../../components/genie/AgentAvatar';
 import { getJobNarrative } from '../../utils/agentNarrative';
 import { cn } from '../../lib/utils';
@@ -1052,8 +1053,14 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
   const [replyOpen, setReplyOpen] = useState(message.kind === 'thread');
   const [reply, setReply] = useState('');
   const [error, setError] = useState(null);
+  const { toast } = useToast();
 
   const job = message.raw;
+  // Used to stamp Alex (or whichever agent owns the task) on toasts
+  // fired from this action bar — the avatar + name come from the
+  // genieTeam config.
+  const jobAgent = job?.agent_slug ? getAgent(job.agent_slug) : null;
+  const inboxLink = orgSlug ? `/o/${orgSlug}/genie/inbox` : '/genie/inbox';
   const isDraft = job?.task_name === 'notify_broker_on_status_change' && message.needsAction;
   const canRerun =
     (job?.task_name === 'check_load_completeness' && !!job?.target_id) ||
@@ -1071,8 +1078,16 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     try {
       await inboxApi.approveNotification(job.id);
       await onActed?.();
+      toast({
+        title: 'Broker email sent',
+        description: 'I delivered the draft you approved.',
+        variant: 'success',
+        agent: jobAgent
+      });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message);
+      const msg = err?.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Send failed', description: msg, variant: 'error' });
     } finally { setBusy(false); }
   };
   const onDiscard = async () => {
@@ -1081,8 +1096,16 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     try {
       await inboxApi.discardNotification(job.id);
       await onActed?.();
+      toast({
+        title: 'Draft discarded',
+        description: 'No email was sent.',
+        variant: 'info',
+        agent: jobAgent
+      });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message);
+      const msg = err?.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Discard failed', description: msg, variant: 'error' });
     } finally { setBusy(false); }
   };
   const onRerun = async () => {
@@ -1091,8 +1114,17 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     try {
       await inboxApi.rerunAlexCheck(job.target_id);
       await onActed?.();
+      toast({
+        title: 'Re-running',
+        description: 'I queued the task — results will land in your inbox shortly.',
+        variant: 'info',
+        agent: jobAgent,
+        action: { label: 'Open in inbox', to: inboxLink }
+      });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message);
+      const msg = err?.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Re-run failed', description: msg, variant: 'error' });
     } finally { setBusy(false); }
   };
 
@@ -1100,10 +1132,22 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     if (!leadData?.opportunity_id) return;
     setBusy(true); setError(null);
     try {
-      await atlasApi.acceptOpportunity(leadData.opportunity_id);
+      const result = await atlasApi.acceptOpportunity(leadData.opportunity_id);
+      const loadRef = result?.load?.reference_number;
+      const loadId = result?.load?.id;
+      const loadLink = loadId && orgSlug ? `/o/${orgSlug}/loads/${loadId}` : null;
       await onActed?.();
+      toast({
+        title: loadRef ? `Lead accepted · Load #${loadRef} created` : 'Lead accepted',
+        description: 'Broker, lane, and rate are pre-filled — ready for dispatch.',
+        variant: 'success',
+        agent: jobAgent,
+        action: loadLink ? { label: 'Open the load', to: loadLink } : undefined
+      });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message);
+      const msg = err?.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Could not accept lead', description: msg, variant: 'error' });
     } finally { setBusy(false); }
   };
 
@@ -1115,8 +1159,16 @@ function ActionBar({ message, orgSlug, navigate, onActed }) {
     try {
       await atlasApi.rejectOpportunity(leadData.opportunity_id, reason.trim() || 'no reason given');
       await onActed?.();
+      toast({
+        title: 'Lead rejected',
+        description: 'I noted the reason and will weigh it on similar leads.',
+        variant: 'info',
+        agent: jobAgent
+      });
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message);
+      const msg = err?.response?.data?.error?.message || err.message;
+      setError(msg);
+      toast({ title: 'Could not reject lead', description: msg, variant: 'error' });
     } finally { setBusy(false); }
   };
 
