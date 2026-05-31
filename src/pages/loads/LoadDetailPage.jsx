@@ -222,10 +222,26 @@ export function LoadDetailPage() {
     try {
       await hookUpdateStatus(newStatus);
       setStatusError(null);
+      // Quiet success toast — close to where the user's eye is when
+      // they pick from the dropdown (bottom-right), since the status
+      // card sits mid-page.
+      toast({
+        title: `Status set to ${LoadStatusConfig[newStatus]?.label || newStatus}`,
+        variant: 'success',
+        durationMs: 3000
+      });
     } catch (err) {
       const msg = err?.response?.data?.error?.message
         || err?.message || 'Failed to update status';
       setStatusError(msg);
+      // Pair the inline banner (which scrolls off-screen for users
+      // clicking from lower on the page) with an immediate toast so
+      // the click never looks like a no-op.
+      toast({
+        title: 'Status change blocked',
+        description: msg,
+        variant: 'error'
+      });
       console.error('Failed to update status:', err);
     }
   };

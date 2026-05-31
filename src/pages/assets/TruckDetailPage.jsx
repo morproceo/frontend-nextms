@@ -367,8 +367,14 @@ export function TruckDetailPage() {
     finally { setDocumentsLoading(false); }
   }, [truckId]);
 
-  useEffect(() => { fetchDocuments(); }, [fetchDocuments]);
-  useEffect(() => { fetchDrivers(); fetchTrailers({ is_active: true }); }, [fetchDrivers, fetchTrailers]);
+  // Mount-only fetches. fetchDocuments / fetchDrivers / fetchTrailers
+  // are NOT stable references (useApiState recreates the inner fetch
+  // each render because its fetcher closes over fresh args), so listing
+  // them as deps creates an infinite refetch loop. Run once on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchDocuments(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchDrivers(); fetchTrailers({ is_active: true }); }, []);
 
   const handleDeleteDocument = async (documentId) => {
     if (!confirm('Delete this document?')) return;

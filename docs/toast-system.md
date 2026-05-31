@@ -58,9 +58,42 @@ toast({
 
 - **Form-field validation.** "Email is required" belongs **under the field**, not in a toast that vanishes.
 - **Pure read failures.** A list fetch that 500s should render an empty state with a retry button, not a toast.
-- **Blocking errors that need a decision.** "This load can't be marked completed until you upload the BOL" needs persistent UI the user can read while uploading. Use a banner.
 - **Every single tiny event.** Owner-op gets ~10 sessions/day. Stay under ~15 toasts/day total or they install mental adblock.
 - **Sensitive info.** Anything that should require auth or that you wouldn't show on a screenshot.
+
+### ⚖️ Use BOTH a toast AND an inline banner for
+
+When the error is **action-triggered AND blocking** — i.e. the user clicked
+something and it failed, but the resolution requires sustained attention
+(upload a doc, fill required fields).
+
+| Surface | Why |
+|---|---|
+| **Toast** at bottom-right | Fires near where the user's eye is when they click the action button. Catches the "did my click do anything?" moment instantly. |
+| **Banner** at top of page | Stays visible while the user navigates to fix the blocker. Toast vanishes in 5s — the persistent reference matters when they're mid-task. |
+
+Pattern (see `LoadDetailPage.updateStatus` for the canonical example):
+```js
+try {
+  await hookUpdateStatus(newStatus);
+  setStatusError(null);
+  toast({ title: 'Status updated', variant: 'success', durationMs: 3000 });
+} catch (err) {
+  const msg = err?.response?.data?.error?.message || err.message;
+  setStatusError(msg);                                  // banner for reference
+  toast({                                                // toast for the moment
+    title: 'Status change blocked',
+    description: msg,
+    variant: 'error'
+  });
+}
+```
+
+**The trap to avoid:** putting a blocking error in *only* a banner. If the
+banner is above the fold from the action button (status card mid-page,
+banner at top), the user clicks → nothing appears in their viewport →
+they think the app is dead → eventually scroll up and find the error.
+Always pair these with a toast.
 
 ---
 
@@ -231,6 +264,12 @@ src/pages/loads/LoadDetailPage.jsx                  ← Dispatch, Mark delayed
 
 ## Changelog
 
+- **2026-05-31** — Added the "BOTH toast AND banner" pattern after a real
+  bug: on Load Detail, picking Completed without a BOL set the inline
+  banner at the top of the page but the user was looking at the status
+  dropdown mid-page — click looked dead. Now action-triggered blocking
+  errors fire a toast *and* the banner. The toast is the moment, the
+  banner is the reference. Wired into `LoadDetailPage.updateStatus`.
 - **2026-05-31** — Phase 1 shipped. ToastContext extended with `agent`
   (renders AgentAvatar instead of variant icon) and `action: { label, to
   } | { label, onClick }`. Wired into 9 user-action surfaces across
