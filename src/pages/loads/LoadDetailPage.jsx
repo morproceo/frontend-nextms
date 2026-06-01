@@ -196,12 +196,18 @@ export function LoadDetailPage() {
   };
 
   // Fields that affect financial calculations (RPM, margin)
-  const financialFields = ['revenue', 'miles', 'driver_pay', 'rate'];
+  const financialFields = ['revenue', 'miles', 'driver_pay', 'rate', 'driver_pay_overridden', 'driver_id'];
 
-  const updateField = async (field, value) => {
+  const updateField = async (field, value, extraFields = null) => {
     try {
-      await hookUpdateField(field, value);
-      if (financialFields.includes(field)) {
+      if (extraFields) {
+        // Multi-field write so a value + its companion flag (e.g. typing
+        // driver_pay flips driver_pay_overridden=true) commit together.
+        await updateFields({ [field]: value, ...extraFields });
+      } else {
+        await hookUpdateField(field, value);
+      }
+      if (financialFields.includes(field) || (extraFields && Object.keys(extraFields).some((k) => financialFields.includes(k)))) {
         await refetch();
       }
     } catch (err) {
@@ -387,7 +393,7 @@ export function LoadDetailPage() {
   };
 
   // Collapsible section state for mobile
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'activity'
+  const [activeTab, setActiveTab] = useState('activity'); // 'activity' | 'details'
   const [expandedSections, setExpandedSections] = useState({
     broker: true,
     assignment: false,
@@ -582,14 +588,16 @@ export function LoadDetailPage() {
             rpm={rpm}
             miles={miles}
             onUpdateField={updateField}
+            driverPayOverridden={!!load.driver_pay_overridden}
+            driver={load.driver || null}
           />
 
           {/* Tab Strip */}
           <div className="border-b border-border">
             <nav className="flex gap-0 -mb-px">
               {[
-                { id: 'details', label: 'Details' },
-                { id: 'activity', label: 'Activity' }
+                { id: 'activity', label: 'Activity' },
+                { id: 'details', label: 'Details' }
               ].map(t => {
                 const isActive = activeTab === t.id;
                 return (

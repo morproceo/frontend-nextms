@@ -100,7 +100,23 @@ function IncomeStatement({ report }) {
     },
     {
       label: 'COST OF REVENUE',
-      items: costOfRevenue.items.map((i) => ({ label: i.label, amount: i.amount, indent: 1 })),
+      items: costOfRevenue.items.flatMap((i) => {
+        const row = { label: i.label, amount: i.amount, indent: 1 };
+        // Show the base + adjustment breakdown for the driver-pay line
+        // when there's been at least one carrier adjustment, so the math
+        // is visible instead of just a single number.
+        if (i.category === 'load_driver_pay' && i.adjustments_count > 0) {
+          const adjLabel = i.adjustments_total === 0
+            ? `Earnings adjustments (${i.adjustments_count} · net $0)`
+            : `Earnings adjustments (${i.adjustments_count})`;
+          return [
+            { label: 'Base settlement pay', amount: i.base_amount, indent: 2, subtle: true },
+            { label: adjLabel, amount: i.adjustments_total, indent: 2, subtle: true },
+            row
+          ];
+        }
+        return [row];
+      }),
       emptyLabel: 'No cost of revenue items',
       subtotal: { label: 'Total Cost of Revenue', amount: costOfRevenue.total }
     },
@@ -168,7 +184,7 @@ function SectionRows({ section }) {
     <>
       <SectionHeader label={section.label} />
       {section.items.map((it, idx) => (
-        <LineItem key={idx} label={it.label} amount={it.amount} indent={it.indent || 0} />
+        <LineItem key={idx} label={it.label} amount={it.amount} indent={it.indent || 0} subtle={it.subtle} />
       ))}
       {section.items.length === 0 && section.emptyLabel && (
         <EmptyRow label={section.emptyLabel} />
@@ -225,9 +241,9 @@ function MobileSection({ section }) {
           <div className="px-4 py-2 text-body-sm text-text-tertiary italic">{section.emptyLabel}</div>
         )}
         {section.items.map((it, idx) => (
-          <div key={idx} className="px-4 py-2 flex items-baseline justify-between gap-3">
-            <span className="text-body-sm text-text-primary truncate">{it.label}</span>
-            <span className="text-body-sm text-text-primary tabular-nums flex-shrink-0">
+          <div key={idx} className={`px-4 py-2 flex items-baseline justify-between gap-3 ${it.subtle ? 'pl-8' : ''}`}>
+            <span className={`truncate ${it.subtle ? 'text-small text-text-tertiary' : 'text-body-sm text-text-primary'}`}>{it.label}</span>
+            <span className={`tabular-nums flex-shrink-0 ${it.subtle ? 'text-small text-text-tertiary' : 'text-body-sm text-text-primary'}`}>
               {formatCurrency(it.amount)}
             </span>
           </div>
@@ -255,13 +271,14 @@ function SectionHeader({ label }) {
   );
 }
 
-function LineItem({ label, amount, indent = 0 }) {
+function LineItem({ label, amount, indent = 0, subtle = false }) {
+  const textClass = subtle ? 'text-text-tertiary text-small' : 'text-text-primary text-body-sm';
   return (
     <tr className="hover:bg-surface-secondary/50">
-      <td className="px-6 py-2.5 text-body-sm text-text-primary" style={{ paddingLeft: `${1.5 + indent * 1.5}rem` }}>
+      <td className={`px-6 py-2 ${textClass}`} style={{ paddingLeft: `${1.5 + indent * 1.5}rem` }}>
         {label}
       </td>
-      <td className="px-6 py-2.5 text-body-sm text-text-primary text-right tabular-nums">
+      <td className={`px-6 py-2 ${textClass} text-right tabular-nums`}>
         {formatCurrency(amount)}
       </td>
     </tr>

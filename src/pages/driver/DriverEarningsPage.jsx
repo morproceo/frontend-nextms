@@ -1,32 +1,57 @@
 /**
- * DriverEarningsPage - Refactored to use hooks architecture
+ * DriverEarningsPage
  *
- * This page demonstrates the new pattern:
- * - No direct API imports
- * - Business logic delegated to useDriverPortalEarnings hook
- * - Component focuses on rendering
+ * Reads from the driver-owned earnings ledger (driver_earnings). Each row
+ * survives carrier load-deletion and driver org off-boarding. Net pay per
+ * row reflects base pay + any carrier-issued adjustments. Status badge
+ * tells the driver whether the money is still earned/pending, on an open
+ * settlement, or paid.
  */
 
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useDriverPortalEarnings } from '../../hooks';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { Badge } from '../../components/ui/Badge';
 import {
   DollarSign,
   TrendingUp,
   Package,
   MapPin,
-  Truck
+  Truck,
+  ChevronDown,
+  ChevronRight,
+  Building2,
+  AlertTriangle,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../lib/utils';
 
+const STATUS_META = {
+  earned: { label: 'Pending', variant: 'gray', Icon: Clock },
+  in_settlement: { label: 'On settlement', variant: 'blue', Icon: TrendingUp },
+  paid: { label: 'Paid', variant: 'emerald', Icon: CheckCircle2 }
+};
+
 export function DriverEarningsPage() {
-  // All data and logic from the hook
-  const {
-    history,
-    summary,
-    loading
-  } = useDriverPortalEarnings();
+  const { history, summary, loading, refetch } = useDriverPortalEarnings();
+  const [expandedId, setExpandedId] = useState(null);
+
+  // Refetch when the tab regains focus. A frontend WebSocket subscriber for
+  // `earnings_updated` is its own piece of work (Phase 2 toast system);
+  // until then this is the cheapest way to pick up carrier-issued
+  // adjustments and PAID stamps without polling on a timer.
+  useEffect(() => {
+    const onFocus = () => refetch?.();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refetch?.();
+    });
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -42,72 +67,60 @@ export function DriverEarningsPage() {
       <div>
         <h1 className="text-headline text-text-primary">Earnings</h1>
         <p className="text-body text-text-secondary mt-1">
-          Track your earnings and completed loads
+          Your lifetime earnings on MorPro — stays with you, even if a load is
+          edited or you switch carriers.
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-success" />
-            </div>
-            <div>
-              <p className="text-small text-text-tertiary">This Month</p>
-              <p className="text-title text-text-primary">
-                {formatCurrency(summary.monthToDate)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <p className="text-small text-text-tertiary">Year to Date</p>
-              <p className="text-title text-text-primary">
-                {formatCurrency(summary.yearToDate)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Package className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-small text-text-tertiary">Completed Loads</p>
-              <p className="text-title text-text-primary">
-                {summary.completedLoads}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-              <Truck className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-small text-text-tertiary">Total Miles</p>
-              <p className="text-title text-text-primary">
-                {summary.totalMiles.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </Card>
+      {/* Summary tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryTile
+          label="Paid"
+          value={formatCurrency(summary.paid)}
+          accent="success"
+          Icon={CheckCircle2}
+        />
+        <SummaryTile
+          label="Pending"
+          value={formatCurrency(summary.pending)}
+          accent="accent"
+          Icon={Clock}
+        />
+        <SummaryTile
+          label="This month"
+          value={formatCurrency(summary.monthToDate)}
+          accent="purple"
+          Icon={DollarSign}
+        />
+        <SummaryTile
+          label="Lifetime"
+          value={formatCurrency(summary.allTime)}
+          accent="orange"
+          Icon={TrendingUp}
+        />
       </div>
 
-      {/* Earnings History */}
+      {/* Optional sub-row: only when meaningful */}
+      <div className="flex flex-wrap items-center gap-3 text-small text-text-secondary">
+        <span className="inline-flex items-center gap-1">
+          <Package className="w-3.5 h-3.5" />
+          {summary.completedLoads} {summary.completedLoads === 1 ? 'load' : 'loads'}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Truck className="w-3.5 h-3.5" />
+          {summary.totalMiles.toLocaleString()} mi
+        </span>
+        {summary.carrierCount > 1 && (
+          <span className="inline-flex items-center gap-1">
+            <Building2 className="w-3.5 h-3.5" />
+            {summary.carrierCount} carriers
+          </span>
+        )}
+      </div>
+
+      {/* History */}
       <Card className="p-6">
-        <h2 className="text-title text-text-primary mb-4">Recent Earnings</h2>
+        <h2 className="text-title text-text-primary mb-4">Recent earnings</h2>
 
         {history.length === 0 ? (
           <div className="text-center py-8">
@@ -115,48 +128,155 @@ export function DriverEarningsPage() {
               <DollarSign className="w-8 h-8 text-text-tertiary" />
             </div>
             <p className="text-body text-text-secondary">
-              No completed loads with earnings yet.
+              No earnings yet. Complete a load and your carrier will record
+              your pay here.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {history.map((load) => (
-              <Link
-                key={load.id}
-                to={`/driver/loads/${load.id}`}
-                className="flex items-center justify-between p-4 bg-surface-secondary rounded-card hover:bg-surface-tertiary/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-surface-primary flex items-center justify-center">
-                    <Package className="w-5 h-5 text-text-tertiary" />
-                  </div>
-                  <div>
-                    <p className="text-body font-medium text-text-primary">
-                      {load.reference_number}
-                    </p>
-                    <div className="flex items-center gap-2 text-small text-text-secondary">
-                      <MapPin className="w-3 h-3" />
-                      <span>
-                        {load.shipper_city}, {load.shipper_state} → {load.consignee_city}, {load.consignee_state}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-body font-semibold text-success">
-                    {formatCurrency(load.driver_pay)}
-                  </p>
-                  <p className="text-small text-text-tertiary">
-                    {load.miles?.toLocaleString()} mi • {formatDate(load.completed_at)}
-                  </p>
-                </div>
-              </Link>
+          <ul className="space-y-3">
+            {history.map((row) => (
+              <EarningRow
+                key={row.id}
+                row={row}
+                expanded={expandedId === row.id}
+                onToggle={() => setExpandedId(expandedId === row.id ? null : row.id)}
+                showCarrier={summary.carrierCount > 1}
+              />
             ))}
-          </div>
+          </ul>
         )}
       </Card>
     </div>
+  );
+}
+
+function SummaryTile({ label, value, accent = 'success', Icon }) {
+  const accentBg = {
+    success: 'bg-success/10 text-success',
+    accent: 'bg-accent/10 text-accent',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600'
+  }[accent];
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accentBg}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-small text-text-tertiary">{label}</p>
+          <p className="text-title text-text-primary truncate">{value}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function EarningRow({ row, expanded, onToggle, showCarrier }) {
+  const status = STATUS_META[row.pay_status] || STATUS_META.earned;
+  const adjustments = row.adjustments || [];
+  const hasAdjustments = adjustments.length > 0;
+  const base = Number(row.pay_amount || 0);
+  const net = Number(row.net_pay ?? base);
+  const route = [row.pickup_city, row.pickup_state, '→', row.delivery_city, row.delivery_state]
+    .filter(Boolean)
+    .join(' ')
+    .replace(' → ', ' → ');
+  const completedAt = row.delivery_date || row.recognized_at;
+
+  return (
+    <li className="bg-surface-secondary rounded-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-tertiary/50 transition-colors rounded-card"
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-10 h-10 rounded-lg bg-surface-primary flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-text-tertiary" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-body font-medium text-text-primary truncate">
+                {row.load_reference || 'Load'}
+              </p>
+              <Badge variant={status.variant}>
+                <status.Icon className="w-3 h-3" />
+                {status.label}
+                {row.pay_status === 'paid' && row.paid_at && (
+                  <span className="opacity-80 ml-1">· {formatDate(row.paid_at)}</span>
+                )}
+              </Badge>
+              {row.load_deleted_at && (
+                <Badge variant="gray" title="The carrier deleted this load from their system. Your earning record is preserved.">
+                  <AlertTriangle className="w-3 h-3" />
+                  Load deleted
+                </Badge>
+              )}
+              {showCarrier && row.organization_name && (
+                <Badge variant="gray">
+                  <Building2 className="w-3 h-3" />
+                  {row.organization_name}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-small text-text-secondary mt-0.5">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{route}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <p className="text-body font-semibold text-success">
+              {formatCurrency(net)}
+            </p>
+            <p className="text-small text-text-tertiary">
+              {row.miles?.toLocaleString() || 0} mi · {formatDate(completedAt)}
+            </p>
+          </div>
+          {hasAdjustments && (
+            <span className="text-text-tertiary">
+              {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {hasAdjustments && expanded && (
+        <div className="px-4 pb-4 -mt-1 space-y-2 text-small">
+          <div className="flex items-center justify-between text-text-secondary">
+            <span>Original pay</span>
+            <span className="font-mono">{formatCurrency(base)}</span>
+          </div>
+          {adjustments.map((adj) => (
+            <div key={adj.id} className="flex items-start justify-between gap-3 pt-2 border-t border-border-subtle">
+              <div className="min-w-0">
+                <p className="text-text-primary">
+                  Adjustment {Number(adj.amount) >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
+                </p>
+                <p className="text-text-tertiary truncate">{adj.reason}</p>
+                <p className="text-text-tertiary">{formatDate(adj.created_at)}</p>
+              </div>
+              <span className={`font-mono ${Number(adj.amount) < 0 ? 'text-red-600' : 'text-success'}`}>
+                {Number(adj.amount) >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-2 border-t border-border-subtle font-semibold">
+            <span>Net pay</span>
+            <span className="font-mono">{formatCurrency(net)}</span>
+          </div>
+          {row.pay_status === 'paid' && row.payment_method && (
+            <p className="text-text-tertiary pt-1">
+              Paid via {row.payment_method}{row.payment_reference ? ` · ${row.payment_reference}` : ''}
+            </p>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 

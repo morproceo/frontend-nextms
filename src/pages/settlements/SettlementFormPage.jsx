@@ -6,7 +6,7 @@
  * - View/Edit mode (/settlements/:settlementId): full settlement builder/viewer
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useOrg } from '../../contexts/OrgContext';
 import { useDriversList } from '../../hooks';
@@ -25,8 +25,10 @@ import {
   CheckCircle,
   DollarSign,
   XCircle,
-  FileText
+  FileText,
+  Pencil
 } from 'lucide-react';
+import { EarningAdjustModal } from './EarningAdjustModal';
 
 // --- Helpers ---
 
@@ -114,6 +116,9 @@ export function SettlementFormPage() {
   const [availableLoads, setAvailableLoads] = useState([]);
   const [loadsLoading, setLoadsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Earnings adjust modal (post-DRAFT correction flow for LOAD_PAY items)
+  const [adjustTarget, setAdjustTarget] = useState(null);
 
   // Custom item form
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
@@ -324,10 +329,23 @@ export function SettlementFormPage() {
 
   // --- Compute summary from items ---
   const items = settlement?.items || [];
+  const earnings = settlement?.earnings || [];
+  // Index earnings by load_id so each LOAD_PAY row can look up its
+  // adjustment trail without an extra round-trip.
+  const earningByLoadId = earnings.reduce((acc, e) => {
+    if (e.load_id) acc[e.load_id] = e;
+    return acc;
+  }, {});
   const totalLoadPay = items.filter((i) => i.item_type === 'load_pay').reduce((s, i) => s + parseFloat(i.amount || 0), 0);
   const totalDeductions = items.filter((i) => i.item_type === 'deduction' || i.item_type === 'advance').reduce((s, i) => s + parseFloat(i.amount || 0), 0);
   const totalAdditions = items.filter((i) => i.item_type === 'addition' || i.item_type === 'reimbursement').reduce((s, i) => s + parseFloat(i.amount || 0), 0);
-  const netPay = settlement?.net_pay != null ? parseFloat(settlement.net_pay) : (totalLoadPay + totalAdditions - totalDeductions);
+  // Adjustments are append-only corrections on earnings — they live
+  // outside settlement_items but still move the dollars the driver gets.
+  const totalAdjustments = earnings.reduce(
+    (s, e) => s + (e.adjustments || []).reduce((ss, a) => ss + parseFloat(a.amount || 0), 0),
+    0
+  );
+  const netPay = (settlement?.net_pay != null ? parseFloat(settlement.net_pay) : (totalLoadPay + totalAdditions - totalDeductions)) + totalAdjustments;
 
   const isDraft = settlement?.status === 'draft';
   const driverName = settlement?.driver
@@ -463,7 +481,7 @@ export function SettlementFormPage() {
           <CardTitle>Settlement Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div>
               <p className="text-small text-text-tertiary">Total Load Pay</p>
               <p className="text-body font-semibold text-text-primary">{formatCurrency(totalLoadPay)}</p>
@@ -475,6 +493,12 @@ export function SettlementFormPage() {
             <div>
               <p className="text-small text-text-tertiary">Total Additions</p>
               <p className="text-body font-semibold text-green-600">{formatCurrency(totalAdditions)}</p>
+            </div>
+            <div>
+              <p className="text-small text-text-tertiary" title="Append-only corrections issued via the earnings adjust flow. These shift net pay but do not modify the LOAD_PAY items.">Adjustments</p>
+              <p className={`text-body font-semibold ${totalAdjustments < 0 ? 'text-red-600' : totalAdjustments > 0 ? 'text-green-600' : 'text-text-primary'}`}>
+                {totalAdjustments >= 0 ? '+' : ''}{formatCurrency(totalAdjustments)}
+              </p>
             </div>
             <div>
               <p className="text-small text-text-tertiary">Net Pay</p>
@@ -646,35 +670,94 @@ export function SettlementFormPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} className="border-b border-surface-tertiary last:border-0">
-                      <td className="py-3 pr-4 text-body-sm text-text-primary">{item.description}</td>
-                      <td className="py-3 pr-4">
-                        <Badge variant={ITEM_TYPE_BADGE[item.item_type] || 'gray'}>
-                          {ITEM_TYPE_LABELS[item.item_type] || item.item_type}
-                        </Badge>
-                      </td>
-                      <td className="py-3 pr-4 text-body-sm text-text-primary text-right font-medium">
-                        {formatCurrency(item.amount)}
-                      </td>
-                      <td className="py-3 pr-4 text-body-sm text-text-secondary">
-                        {formatDate(item.date)}
-                      </td>
-                      {isDraft && (
-                        <td className="py-3 text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRemoveItem(item.id)}
-                            disabled={actionLoading}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
+                  {items.map((item) => {
+                    const isLoadPay = item.item_type === 'load_pay';
+                    const canAdjust = !isDraft && isLoadPay && item.load_id && settlement?.driver_id;
+                    const earning = isLoadPay ? earningByLoadId[item.load_id] : null;
+                    const adjustments = earning?.adjustments || [];
+                    const adjSum = adjustments.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+                    const itemNet = parseFloat(item.amount || 0) + adjSum;
+                    return (
+                      <Fragment key={item.id}>
+                        <tr className={`${adjustments.length > 0 ? '' : 'border-b border-surface-tertiary last:border-0'}`}>
+                          <td className="py-3 pr-4 text-body-sm text-text-primary">{item.description}</td>
+                          <td className="py-3 pr-4">
+                            <Badge variant={ITEM_TYPE_BADGE[item.item_type] || 'gray'}>
+                              {ITEM_TYPE_LABELS[item.item_type] || item.item_type}
+                            </Badge>
+                          </td>
+                          <td className="py-3 pr-4 text-body-sm text-text-primary text-right font-medium">
+                            {formatCurrency(item.amount)}
+                          </td>
+                          <td className="py-3 pr-4 text-body-sm text-text-secondary">
+                            {formatDate(item.date)}
+                          </td>
+                          {isDraft ? (
+                            <td className="py-3 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleRemoveItem(item.id)}
+                                disabled={actionLoading}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </td>
+                          ) : canAdjust ? (
+                            <td className="py-3 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setAdjustTarget({
+                                  loadId: item.load_id,
+                                  driverId: settlement.driver_id,
+                                  loadReference: item.load?.reference_number || item.description
+                                })}
+                                className="text-text-secondary hover:text-accent"
+                                title="Append an adjustment (driver will be notified)"
+                              >
+                                <Pencil className="w-3.5 h-3.5 mr-1" />
+                                Adjust
+                              </Button>
+                            </td>
+                          ) : null}
+                        </tr>
+                        {adjustments.map((adj) => (
+                          <tr key={adj.id} className="bg-surface-secondary/40">
+                            <td className="py-2 pl-6 pr-4 text-small text-text-secondary">
+                              <span className="text-text-tertiary">↳ </span>
+                              {adj.reason}
+                              {adj.adjustedBy && (
+                                <span className="text-text-tertiary"> · by {adj.adjustedBy.first_name} {adj.adjustedBy.last_name}</span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-4">
+                              <Badge variant="gray">Adjustment</Badge>
+                            </td>
+                            <td className={`py-2 pr-4 text-small text-right font-medium ${parseFloat(adj.amount) < 0 ? 'text-red-600' : 'text-success'}`}>
+                              {parseFloat(adj.amount) >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
+                            </td>
+                            <td className="py-2 pr-4 text-small text-text-tertiary">
+                              {formatDate(adj.created_at)}
+                            </td>
+                            {(isDraft || canAdjust) && <td />}
+                          </tr>
+                        ))}
+                        {adjustments.length > 0 && (
+                          <tr className="border-b border-surface-tertiary last:border-0">
+                            <td colSpan={2} className="py-2 pl-6 pr-4 text-small font-medium text-text-secondary">
+                              Net for this load
+                            </td>
+                            <td className="py-2 pr-4 text-small text-text-primary text-right font-semibold">
+                              {formatCurrency(itemNet)}
+                            </td>
+                            <td colSpan={2} />
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -807,6 +890,15 @@ export function SettlementFormPage() {
           </Button>
         )}
       </div>
+
+      <EarningAdjustModal
+        open={!!adjustTarget}
+        onClose={() => setAdjustTarget(null)}
+        loadId={adjustTarget?.loadId}
+        driverId={adjustTarget?.driverId}
+        loadReference={adjustTarget?.loadReference}
+        onAdjusted={fetchSettlement}
+      />
     </div>
   );
 }

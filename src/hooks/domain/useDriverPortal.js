@@ -380,8 +380,12 @@ export function useDriverPortalEarnings(options = {}) {
     summary: {
       monthToDate: summary.monthToDate || 0,
       yearToDate: summary.yearToDate || 0,
+      allTime: summary.allTime || 0,
+      paid: summary.paid || 0,
+      pending: summary.pending || 0,
       completedLoads: summary.completedLoads || 0,
-      totalMiles: summary.totalMiles || 0
+      totalMiles: summary.totalMiles || 0,
+      carrierCount: summary.carrierCount || 0
     },
 
     // State
