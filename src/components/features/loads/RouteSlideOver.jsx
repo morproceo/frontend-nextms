@@ -92,6 +92,7 @@ export function RouteSlideOver({
             }>
               <LoadRouteMap
                 loadId={loadId}
+                loadStatus={load?.status}
                 className="absolute inset-0"
                 showOverlay={false}
                 refreshKey={refreshKey}

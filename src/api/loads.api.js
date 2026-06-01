@@ -41,6 +41,15 @@ export const getLoadEvents = async (loadId) => {
 };
 
 /**
+ * Latest driver GPS ping for a load. Returns `{ location, load_status }`
+ * where `location` is null when the driver hasn't pinged yet.
+ */
+export const getLoadLiveLocation = async (loadId) => {
+  const response = await api.get(`/v1/loads/${loadId}/live-location`);
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Create a new load
  */
 export const createLoad = async (data) => {

@@ -22,6 +22,7 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 export function RouteMap({
   route,           // GeoJSON LineString geometry for the route
   locations = [],  // Array of { type, lat, lng, name, city, state }
+  liveLocation = null, // { lat, lng, heading?, observed_at? } — moving truck pin
   className = '',
   style = 'dark',
   showMarkers = true,
@@ -32,6 +33,7 @@ export function RouteMap({
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markers = useRef([]);
+  const liveMarker = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
   // Initialize map
@@ -188,6 +190,63 @@ export function RouteMap({
       }
     }
   }, [locations, loaded, showMarkers, onLocationClick]);
+
+  // Live truck pin — kept separate from the static route markers so
+  // each polling tick just calls setLngLat() instead of recreating
+  // markers (which would flicker and reset the map's viewport).
+  useEffect(() => {
+    if (!loaded || !map.current) return;
+
+    if (!liveLocation || !isFinite(liveLocation.lat) || !isFinite(liveLocation.lng)) {
+      if (liveMarker.current) {
+        liveMarker.current.remove();
+        liveMarker.current = null;
+      }
+      return;
+    }
+
+    if (!liveMarker.current) {
+      // First placement — build the DOM element once.
+      const el = document.createElement('div');
+      el.className = 'live-truck-marker';
+      el.innerHTML = `
+        <div style="position: relative; width: 28px; height: 28px;">
+          <div style="
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            background: rgba(52, 204, 255, 0.25);
+            animation: morpro-live-pulse 1.6s ease-out infinite;
+          "></div>
+          <div style="
+            position: absolute; inset: 7px;
+            width: 14px; height: 14px;
+            background: #34CCFF;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(52,204,255,0.6), 0 2px 4px rgba(0,0,0,0.4);
+          "></div>
+        </div>
+      `;
+      // Inject keyframes once.
+      if (!document.getElementById('morpro-live-pulse-style')) {
+        const styleTag = document.createElement('style');
+        styleTag.id = 'morpro-live-pulse-style';
+        styleTag.innerHTML = `
+          @keyframes morpro-live-pulse {
+            0%   { transform: scale(1);   opacity: 0.8; }
+            70%  { transform: scale(2.2); opacity: 0;   }
+            100% { transform: scale(2.2); opacity: 0;   }
+          }
+        `;
+        document.head.appendChild(styleTag);
+      }
+      liveMarker.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([liveLocation.lng, liveLocation.lat])
+        .addTo(map.current);
+    } else {
+      liveMarker.current.setLngLat([liveLocation.lng, liveLocation.lat]);
+    }
+  }, [liveLocation, loaded]);
 
   return (
     <div

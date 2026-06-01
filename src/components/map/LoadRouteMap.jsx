@@ -8,15 +8,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { RouteMap } from './RouteMap';
 import mapApi from '../../api/map.api'; // Exception: Specialized mapping operation
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useLiveLocation } from '../../hooks/useLiveLocation';
 
 export function LoadRouteMap({
   loadId,
+  loadStatus = null,  // pass current load status to enable live pin polling
   className = '',
   onRouteLoaded = null,
   showOverlay = true,
   forceRefresh = false,
   refreshKey = 0  // Incrementing key to trigger refresh
 }) {
+  const { location: liveLocation, loadStatus: polledStatus } = useLiveLocation(loadId, {
+    enabled: !!loadId,
+    currentStatus: loadStatus
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -110,6 +116,7 @@ export function LoadRouteMap({
       <RouteMap
         route={routeData?.route}
         locations={routeData?.locations || []}
+        liveLocation={liveLocation}
         className="w-full h-full"
       />
 
