@@ -1,463 +1,168 @@
 /**
- * DashboardPage - Organization dashboard with financial metrics
+ * DashboardPage — Executive Briefing for truckerprenuers.
  *
- * Shows 6 KPI cards (loads, revenue, rate/mile, cost/mile, net profit/mile,
- * operating margin), a performance trend chart, quick actions, and recent loads.
+ * The morning a small carrier owner opens this:
  *
- * All data sourced via useDashboard domain hook.
+ *   1. Greeting + date.
+ *   2. Alex narrates the day in plain English (BriefingCard).
+ *   3. Four executive numbers (PulseRow): revenue this week, margin,
+ *      AR outstanding, pipeline booked.
+ *   4. Two columns: The Fleet (left) · What Needs You + Recent Activity
+ *      (right, stacked).
+ *
+ * No hero map. No giant Mapbox canvas. Map lives small inside the Fleet
+ * panel as confirmation, not centerpiece. This is a *business* console
+ * for an entrepreneur, not a dispatcher cockpit.
  */
 
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Receipt, Inbox, TrendingUp } from 'lucide-react';
 import { useOrg } from '../../contexts/OrgContext';
 import { useDashboard } from '../../hooks';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Spinner } from '../../components/ui/Spinner';
-import { LoadStatusConfig, getStatusConfig } from '../../config/status';
-import {
-  Package,
-  Truck,
-  Users,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  ArrowDownRight,
-  BarChart3,
-  Receipt,
-  Info
-} from 'lucide-react';
+import dashboardApi from '../../api/dashboard.api';
+import { BriefingCard } from './components/BriefingCard';
+import { FleetPanel } from './components/FleetPanel';
+import { ActionItems } from './components/ActionItems';
+import { ActivityStream } from './components/ActivityStream';
 
-// ── Formatters ──────────────────────────────────────────────
+export function DashboardPage() {
+  const { currentOrg, orgUrl } = useOrg();
+  const { metrics } = useDashboard();
 
-const formatCurrency = (amount) => {
-  if (!amount && amount !== 0) return '$0';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
-};
+  const [pulse, setPulse] = useState(null);
+  const [actionItems, setActionItems] = useState([]);
+  const [trucks, setTrucks] = useState([]);
 
-const formatRate = (amount) => {
-  if (!amount && amount !== 0) return '$0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
+  // Pulse + action items go straight to the briefing card.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [p, a] = await Promise.all([
+          dashboardApi.getFinancePulse(),
+          dashboardApi.getActionItems()
+        ]);
+        if (cancelled) return;
+        setPulse(p);
+        setActionItems(a?.items || []);
+      } catch {
+        if (!cancelled) {
+          setPulse(null);
+          setActionItems([]);
+        }
+      }
+    };
+    load();
+    const id = setInterval(load, 60000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
-const formatPercent = (value) => {
-  if (!value && value !== 0) return '0.0%';
-  return `${Number(value).toFixed(1)}%`;
-};
+  // FleetPanel polls its own fleet-locations. We snapshot the trucks into
+  // state so the BriefingCard can narrate "Joe is rolling near Phoenix"
+  // without duplicating the fetch.
+  const handleTrucksLoaded = useCallback((list) => {
+    setTrucks(list);
+  }, []);
 
-// ── Period Selector ─────────────────────────────────────────
-
-function PeriodSelector({ period, setPeriod, presets }) {
   return (
-    <div className="flex bg-surface-secondary rounded-lg p-0.5 overflow-x-auto no-scrollbar">
-      {Object.entries(presets).map(([key, label]) => (
-        <button
-          key={key}
-          onClick={() => setPeriod(key)}
-          className={`px-3 py-1.5 text-small font-medium rounded-md whitespace-nowrap transition-all ${
-            period === key
-              ? 'bg-surface shadow-sm text-text-primary'
-              : 'text-text-secondary hover:text-text-primary'
-          }`}
+    <div className="space-y-6">
+      {/* Greeting + quick actions */}
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-headline text-text-primary">
+            {greeting()}, {personalName(currentOrg)}
+          </h1>
+          <p className="text-body-sm text-text-tertiary mt-0.5">
+            {formattedToday()} · {currentOrg?.name || 'Your operation'}
+          </p>
+        </div>
+        <QuickActions orgUrl={orgUrl} />
+      </header>
+
+      {/* Alex briefing — narration + the four executive numbers embedded
+          as glass tiles inside the dark gradient card. */}
+      <BriefingCard
+        pulse={pulse}
+        trucks={trucks}
+        actionItems={actionItems}
+        metrics={metrics}
+        orgSlug={currentOrg?.slug}
+      />
+
+      {/* Two columns — Fleet · (What Needs You + Recent Activity) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-2">
+          <FleetPanel onTrucksLoaded={handleTrucksLoaded} />
+        </div>
+        <div className="lg:col-span-3 grid grid-cols-1 gap-4">
+          <div id="what-needs-you">
+            <ActionItems />
+          </div>
+          <ActivityStream />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── small presentational helpers ──────────────────────────────────────
+
+/**
+ * Quick-action pill row. The four most-tapped destinations for an
+ * owner-op opening the dashboard: log a new load (most common), drop
+ * an expense (fuel/tolls), check the agent inbox, jump to the P&L.
+ *
+ * On desktop these sit right-aligned in the header; on mobile they
+ * wrap into a second row beneath the greeting.
+ */
+function QuickActions({ orgUrl }) {
+  const actions = [
+    { to: orgUrl('/loads/new'),   icon: Plus,       label: 'New load',   primary: true },
+    { to: orgUrl('/expenses/new'), icon: Receipt,    label: 'Expense' },
+    { to: orgUrl('/genie/inbox'),  icon: Inbox,      label: 'Inbox' },
+    { to: orgUrl('/pnl'),          icon: TrendingUp, label: 'P&L' }
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {actions.map(({ to, icon: Icon, label, primary }) => (
+        <Link
+          key={label}
+          to={to}
+          className={
+            primary
+              ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-accent text-white text-body-sm font-semibold hover:bg-accent/90 shadow-sm transition-colors'
+              : 'inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-primary border border-surface-tertiary text-body-sm text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors'
+          }
         >
-          {label}
-        </button>
+          <Icon className="w-3.5 h-3.5" />
+          <span>{label}</span>
+        </Link>
       ))}
     </div>
   );
 }
 
-// ── Performance Trend (horizontal bar chart) ────────────────
-
-function PerformanceTrend({ trend }) {
-  if (!trend || trend.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <BarChart3 className="w-10 h-10 text-text-tertiary mb-2" />
-        <p className="text-body-sm text-text-secondary">No trend data available</p>
-        <p className="text-small text-text-tertiary mt-1">
-          Complete loads to see monthly performance
-        </p>
-      </div>
-    );
-  }
-
-  // Find max value for scaling bars
-  const maxValue = Math.max(
-    ...trend.map(t => Math.max(Math.abs(t.revenue || 0), Math.abs(t.totalCosts || 0))),
-    1
-  );
-
-  return (
-    <div>
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-accent" />
-          <span className="text-small text-text-secondary">Revenue</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-red-500" />
-          <span className="text-small text-text-secondary">Costs</span>
-        </div>
-      </div>
-
-      {/* Bars */}
-      <div className="space-y-3">
-        {trend.map((item, i) => {
-          const revenueWidth = maxValue > 0 ? ((item.revenue || 0) / maxValue) * 100 : 0;
-          const costsWidth = maxValue > 0 ? ((item.totalCosts || 0) / maxValue) * 100 : 0;
-          const net = (item.revenue || 0) - (item.totalCosts || 0);
-
-          return (
-            <div key={item.month || i} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-small font-medium text-text-secondary w-16 shrink-0">
-                  {item.month || `Month ${i + 1}`}
-                </span>
-                <span className={`text-small font-medium tabular-nums ${net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {formatCurrency(net)}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="h-4 bg-surface-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(revenueWidth, 100)}%` }}
-                  />
-                </div>
-                <div className="h-4 bg-surface-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-red-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(costsWidth, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
-// ── Main Dashboard ──────────────────────────────────────────
+function personalName(org) {
+  // Owner-ops typically share their first name with the org. Fall back
+  // to a friendly noun when neither is available.
+  return org?.name?.split(' ')[0] || 'there';
+}
 
-export function DashboardPage() {
-  const { currentOrg, orgUrl } = useOrg();
-  const navigate = useNavigate();
-
-  const {
-    metrics,
-    trend,
-    activeLoadCount,
-    availableTruckCount,
-    activeDriverCount,
-    recentLoads,
-    period,
-    setPeriod,
-    periodPresets,
-    loading
-  } = useDashboard();
-
-  // Build KPI card definitions
-  const kpiCards = useMemo(() => {
-    const marginExtreme = metrics.marginDisplay?.extreme;
-
-    const loadsSubtitle = metrics.deliveredLoads != null && metrics.inFlightLoads != null
-      ? `${metrics.deliveredLoads} delivered · ${metrics.inFlightLoads} in transit`
-      : `${activeLoadCount} active`;
-
-    const revenueSubtitle = metrics.bookedRevenue
-      ? `${formatCurrency(metrics.bookedRevenue)} booked · ${(metrics.totalMiles || 0).toLocaleString()} mi`
-      : `${(metrics.totalMiles || 0).toLocaleString()} miles`;
-
-    return [
-      {
-        name: 'Total Loads',
-        value: loading ? '—' : (metrics.totalLoads || 0).toString(),
-        subtitle: loadsSubtitle,
-        icon: Package,
-        iconBg: 'bg-accent/10',
-        iconColor: 'text-accent'
-      },
-      {
-        name: 'Revenue',
-        value: loading ? '—' : formatCurrency(metrics.totalRevenue),
-        subtitle: revenueSubtitle,
-        icon: DollarSign,
-        iconBg: 'bg-accent/10',
-        iconColor: 'text-accent'
-      },
-      {
-        name: 'Rate/Mile',
-        value: loading ? '—' : formatRate(metrics.revenuePerMile),
-        subtitle: 'Revenue per mile',
-        icon: TrendingUp,
-        iconBg: metrics.revenuePerMile > metrics.costPerMile ? 'bg-green-500/10' : 'bg-warning/10',
-        iconColor: metrics.revenuePerMile > metrics.costPerMile ? 'text-green-500' : 'text-warning'
-      },
-      {
-        name: 'Cost/Mile',
-        value: loading ? '—' : formatRate(metrics.costPerMile),
-        subtitle: metrics.costPerMileSource === 'settings' ? 'From Settings' : 'From actual expenses',
-        icon: ArrowDownRight,
-        iconBg: 'bg-blue-500/10',
-        iconColor: 'text-blue-500'
-      },
-      {
-        name: 'Net Profit/Mile',
-        value: loading ? '—' : formatRate(metrics.netProfitPerMile),
-        subtitle: metrics.netProfitPerMile >= 0 ? 'Profitable' : 'Below cost',
-        icon: metrics.netProfitPerMile >= 0 ? TrendingUp : TrendingDown,
-        iconBg: metrics.netProfitPerMile >= 0 ? 'bg-green-500/10' : 'bg-red-500/10',
-        iconColor: metrics.netProfitPerMile >= 0 ? 'text-green-500' : 'text-red-500'
-      },
-      {
-        name: 'Operating Margin',
-        value: loading ? '—' : (marginExtreme ? 'Pending' : formatPercent(metrics.operatingMargin)),
-        subtitle: marginExtreme ? 'Awaiting deliveries' : 'Net / Revenue',
-        icon: BarChart3,
-        iconBg: marginExtreme
-          ? 'bg-blue-500/10'
-          : (metrics.operatingMargin >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'),
-        iconColor: marginExtreme
-          ? 'text-blue-500'
-          : (metrics.operatingMargin >= 0 ? 'text-green-500' : 'text-red-500')
-      }
-    ];
-  }, [metrics, loading, activeLoadCount]);
-
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header + Period Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-title text-text-primary">Dashboard</h1>
-          <p className="text-body-sm text-text-secondary mt-1">
-            Financial overview for {currentOrg?.name}
-          </p>
-        </div>
-        <PeriodSelector
-          period={period}
-          setPeriod={setPeriod}
-          presets={periodPresets}
-        />
-      </div>
-
-      {/* Margin banner — shown when recognized revenue is small relative to
-          booked pipeline, so Operating Margin would otherwise render as a
-          giant negative number that's mathematically right but useless. */}
-      {!loading && metrics.marginDisplay?.banner === 'low_recognized_revenue' && (
-        <div className="rounded-card border border-blue-500/20 bg-blue-500/5 p-3 sm:p-4 flex gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-            <Info className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-body-sm font-medium text-text-primary">
-              Most loads in this period are still in transit.
-            </p>
-            <p className="text-small text-text-secondary mt-0.5">
-              Operating margin is computed on{' '}
-              <span className="font-medium text-text-primary">{formatCurrency(metrics.recognizedRevenue)}</span>
-              {' '}of recognized (delivered) revenue. There's an additional{' '}
-              <span className="font-medium text-text-primary">{formatCurrency(metrics.bookedRevenue)}</span>
-              {' '}booked but not yet delivered — margin will stabilize once those close out.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 6 KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {kpiCards.map((card) => (
-          <Card key={card.name} padding="compact" className="p-3 sm:p-4">
-            <div className="flex items-start justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] sm:text-body-sm text-text-secondary truncate">{card.name}</p>
-                <p className="text-title-sm sm:text-headline text-text-primary mt-0.5 sm:mt-1 tabular-nums">
-                  {card.value}
-                </p>
-                {card.subtitle && (
-                  <p className="text-[10px] sm:text-small text-text-tertiary mt-1 sm:mt-2 truncate">
-                    {card.subtitle}
-                  </p>
-                )}
-              </div>
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${card.iconBg} rounded-lg flex items-center justify-center shrink-0`}>
-                <card.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.iconColor}`} />
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Performance Trend + Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Performance Trend */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Performance Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading && trend.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <Spinner size="md" />
-              </div>
-            ) : (
-              <PerformanceTrend trend={trend} />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <button
-              onClick={() => navigate(orgUrl('/loads/new'))}
-              className="w-full flex items-center gap-3 p-3 rounded-button bg-surface-secondary hover:bg-surface-tertiary transition-colors text-left"
-            >
-              <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-accent" />
-              </div>
-              <span className="text-body-sm font-medium text-text-primary">
-                Create New Load
-              </span>
-            </button>
-            <button
-              onClick={() => navigate(orgUrl('/drivers/new'))}
-              className="w-full flex items-center gap-3 p-3 rounded-button bg-surface-secondary hover:bg-surface-tertiary transition-colors text-left"
-            >
-              <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
-                <Users className="w-4 h-4 text-success" />
-              </div>
-              <span className="text-body-sm font-medium text-text-primary">
-                Add Driver
-              </span>
-            </button>
-            <button
-              onClick={() => navigate(orgUrl('/assets/trucks/new'))}
-              className="w-full flex items-center gap-3 p-3 rounded-button bg-surface-secondary hover:bg-surface-tertiary transition-colors text-left"
-            >
-              <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
-                <Truck className="w-4 h-4 text-warning" />
-              </div>
-              <span className="text-body-sm font-medium text-text-primary">
-                Add Truck
-              </span>
-            </button>
-            <button
-              onClick={() => navigate(orgUrl('/expenses/new'))}
-              className="w-full flex items-center gap-3 p-3 rounded-button bg-surface-secondary hover:bg-surface-tertiary transition-colors text-left"
-            >
-              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                <Receipt className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="text-body-sm font-medium text-text-primary">
-                Add Expense
-              </span>
-            </button>
-            <button
-              onClick={() => navigate(orgUrl('/pnl'))}
-              className="w-full flex items-center gap-3 p-3 rounded-button bg-surface-secondary hover:bg-surface-tertiary transition-colors text-left"
-            >
-              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-              </div>
-              <span className="text-body-sm font-medium text-text-primary">
-                View P&L
-              </span>
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Loads - Full Width */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Recent Loads</CardTitle>
-            <button
-              onClick={() => navigate(orgUrl('/loads'))}
-              className="text-small font-medium text-accent hover:text-accent/80 transition-colors"
-            >
-              View all
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading && recentLoads.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner size="md" />
-            </div>
-          ) : recentLoads.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="w-10 h-10 text-text-tertiary mx-auto mb-2" />
-              <p className="text-body-sm text-text-secondary">No loads yet</p>
-              <button
-                onClick={() => navigate(orgUrl('/loads/new'))}
-                className="text-small font-medium text-accent hover:text-accent/80 mt-2 inline-block"
-              >
-                Create your first load
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {recentLoads.map((load) => {
-                const statusConfig = getStatusConfig(LoadStatusConfig, load.status);
-                const lane = load.lane || `${load.shipper?.city || '—'}, ${load.shipper?.state || ''} → ${load.consignee?.city || '—'}, ${load.consignee?.state || ''}`;
-
-                return (
-                  <div
-                    key={load.id}
-                    className="flex items-center justify-between py-3 border-b border-surface-tertiary last:border-0 cursor-pointer hover:bg-surface-secondary/50 rounded-lg px-2 -mx-2 transition-colors"
-                    onClick={() => navigate(orgUrl(`/loads/${load.id}`))}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-surface-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Package className="w-4 h-4 sm:w-5 sm:h-5 text-text-secondary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-body-sm font-medium text-text-primary truncate">
-                          {load.reference_number}
-                        </p>
-                        <p className="text-small text-text-tertiary truncate">
-                          {lane}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {load.financials?.revenue && (
-                        <span className="text-small font-medium text-text-primary hidden sm:block tabular-nums">
-                          {formatCurrency(load.financials.revenue)}
-                        </span>
-                      )}
-                      <Badge variant={statusConfig?.color || 'gray'}>
-                        {statusConfig?.label || load.status}
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+function formattedToday() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  });
 }
 
 export default DashboardPage;
