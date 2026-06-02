@@ -78,10 +78,12 @@ export const APPS = [
     tint: '#10B981', // emerald — the people network
     pricing: 'free',
     href: ({ orgSlug }) => `/o/${orgSlug}/connect`,
-    // Feature-flag gated, OFF by default — invisible until explicitly
-    // enabled per org (org.feature_flags.morproConnect). Zero blast radius.
+    // Available to every carrier org (mirroring Fleet Health below).
+    // The legacy per-org feature_flags.morproConnect flag is no longer
+    // checked — orgs that already have the flag aren't affected, those
+    // without it (e.g. Pathway Transportation) now see the tile.
     eligible: ({ role, org }) =>
-      org?.feature_flags?.morproConnect === true &&
+      isCarrierOrg(org) &&
       ['owner', 'admin', 'dispatcher', 'accountant'].includes(role)
   },
   {
