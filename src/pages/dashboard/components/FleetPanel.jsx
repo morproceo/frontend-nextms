@@ -233,7 +233,7 @@ function MiniMap({ trucks }) {
   }, [trucks]);
 
   return (
-    <div className="relative h-32 sm:h-36 border-t border-surface-tertiary">
+    <div className="relative aspect-[4/3] sm:aspect-[5/4] border-t border-surface-tertiary">
       <div ref={containerRef} className="absolute inset-0" />
     </div>
   );

@@ -90,12 +90,13 @@ export function DashboardPage() {
         orgSlug={currentOrg?.slug}
       />
 
-      {/* Two columns — Fleet · (What Needs You + Recent Activity) */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2">
-          <FleetPanel onTrucksLoaded={handleTrucksLoaded} />
-        </div>
-        <div className="lg:col-span-3 grid grid-cols-1 gap-4">
+      {/* Two equal columns — Fleet (list + square map) on the left,
+          What Needs You + Recent Activity stacked on the right. The
+          50/50 split + the map's aspect-ratio container keeps both
+          columns visually balanced regardless of viewport width. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FleetPanel onTrucksLoaded={handleTrucksLoaded} />
+        <div className="grid grid-cols-1 gap-4">
           <div id="what-needs-you">
             <ActionItems />
           </div>

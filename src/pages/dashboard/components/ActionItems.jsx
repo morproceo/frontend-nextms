@@ -76,12 +76,14 @@ export function ActionItems() {
           <Loader2 className="w-4 h-4 animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <div className="px-5 py-10 text-center">
-          <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-          <p className="text-body-sm text-text-primary font-medium">All clear</p>
-          <p className="text-small text-text-tertiary mt-1">
-            Nothing needs your attention right now.
-          </p>
+        <div className="px-5 py-5 flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-body-sm text-text-primary font-medium leading-tight">All clear</p>
+            <p className="text-small text-text-tertiary leading-tight mt-0.5">
+              Nothing needs your attention right now.
+            </p>
+          </div>
         </div>
       ) : (
         <ul className="divide-y divide-surface-tertiary">
