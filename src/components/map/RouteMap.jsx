@@ -20,7 +20,8 @@ import { calculateBounds } from '../../services/map/mapbox';
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
 export function RouteMap({
-  route,           // GeoJSON LineString geometry for the route
+  route,           // GeoJSON LineString geometry for the planned route
+  actualPath = null, // GeoJSON LineString — what the truck actually drove
   locations = [],  // Array of { type, lat, lng, name, city, state }
   liveLocation = null, // { lat, lng, heading?, observed_at? } — moving truck pin
   className = '',
@@ -190,6 +191,41 @@ export function RouteMap({
       }
     }
   }, [locations, loaded, showMarkers, onLocationClick]);
+
+  // Actual driven polyline — overlaid on top of the planned route so
+  // the dispatcher can see detours instantly. Source is recreated each
+  // time the path changes (cheap; ≤ 200 points after Douglas-Peucker).
+  useEffect(() => {
+    if (!loaded || !map.current) return;
+
+    const SRC = 'actual-path';
+    const LYR = 'actual-path-line';
+
+    if (map.current.getLayer(LYR)) map.current.removeLayer(LYR);
+    if (map.current.getSource(SRC)) map.current.removeSource(SRC);
+
+    if (
+      actualPath &&
+      actualPath.coordinates &&
+      actualPath.coordinates.length > 1
+    ) {
+      map.current.addSource(SRC, {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: actualPath }
+      });
+      map.current.addLayer({
+        id: LYR,
+        type: 'line',
+        source: SRC,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#10B981', // emerald — distinct from planned cyan
+          'line-width': 5,
+          'line-opacity': 0.95
+        }
+      });
+    }
+  }, [actualPath, loaded]);
 
   // Live truck pin — kept separate from the static route markers so
   // each polling tick just calls setLngLat() instead of recreating

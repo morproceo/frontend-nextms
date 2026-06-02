@@ -50,6 +50,20 @@ export const getLoadLiveLocation = async (loadId) => {
 };
 
 /**
+ * Downsampled actual driven path for a load. Returns
+ * `{ path, load_status, live }`:
+ *   - `path` is a GeoJSON LineString of the polyline (null when fewer
+ *     than 2 breadcrumbs have arrived yet).
+ *   - `live=true` means we computed it on the fly from raw breadcrumbs
+ *     (active trip); `live=false` means we returned the frozen
+ *     `route_traveled` snapshot from a delivered load.
+ */
+export const getLoadTripPath = async (loadId) => {
+  const response = await api.get(`/v1/loads/${loadId}/trip-path`);
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Create a new load
  */
 export const createLoad = async (data) => {

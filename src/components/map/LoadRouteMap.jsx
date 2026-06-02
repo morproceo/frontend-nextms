@@ -9,6 +9,7 @@ import { RouteMap } from './RouteMap';
 import mapApi from '../../api/map.api'; // Exception: Specialized mapping operation
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useLiveLocation } from '../../hooks/useLiveLocation';
+import { useTripPath } from '../../hooks/useTripPath';
 
 export function LoadRouteMap({
   loadId,
@@ -20,6 +21,10 @@ export function LoadRouteMap({
   refreshKey = 0  // Incrementing key to trigger refresh
 }) {
   const { location: liveLocation, loadStatus: polledStatus } = useLiveLocation(loadId, {
+    enabled: !!loadId,
+    currentStatus: loadStatus
+  });
+  const { path: actualPath } = useTripPath(loadId, {
     enabled: !!loadId,
     currentStatus: loadStatus
   });
@@ -115,10 +120,26 @@ export function LoadRouteMap({
     <div className={`relative h-full ${className}`}>
       <RouteMap
         route={routeData?.route}
+        actualPath={actualPath}
         locations={routeData?.locations || []}
         liveLocation={liveLocation}
         className="w-full h-full"
       />
+
+      {/* Legend — only when both polylines are present so the carrier
+          knows which line is which. */}
+      {actualPath && routeData?.route && (
+        <div className="absolute bottom-4 left-4 flex items-center gap-3 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-1.5 text-white text-[11px] font-medium">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0.5" style={{ background: '#34CCFF' }} />
+            Planned
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0.5" style={{ background: '#10B981' }} />
+            Actual
+          </span>
+        </div>
+      )}
 
       {/* Route Stats Overlay */}
       {showOverlay && routeData?.distanceMiles && (
