@@ -16,8 +16,6 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Receipt, Inbox, TrendingUp } from 'lucide-react';
 import { useOrg } from '../../contexts/OrgContext';
 import { useDashboard } from '../../hooks';
 import dashboardApi from '../../api/dashboard.api';
@@ -67,17 +65,15 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Greeting + quick actions */}
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-headline text-text-primary">
-            {greeting()}, {personalName(currentOrg)}
-          </h1>
-          <p className="text-body-sm text-text-tertiary mt-0.5">
-            {formattedToday()} · {currentOrg?.name || 'Your operation'}
-          </p>
-        </div>
-        <QuickActions orgUrl={orgUrl} />
+      {/* Greeting — quick actions now live inside The Fleet panel
+          (Run a task), so the header stays calm and readable. */}
+      <header>
+        <h1 className="text-headline text-text-primary">
+          {greeting()}, {personalName(currentOrg)}
+        </h1>
+        <p className="text-body-sm text-text-tertiary mt-0.5">
+          {formattedToday()} · {currentOrg?.name || 'Your operation'}
+        </p>
       </header>
 
       {/* Alex briefing — narration + the four executive numbers embedded
@@ -95,7 +91,7 @@ export function DashboardPage() {
           50/50 split + the map's aspect-ratio container keeps both
           columns visually balanced regardless of viewport width. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <FleetPanel onTrucksLoaded={handleTrucksLoaded} />
+        <FleetPanel onTrucksLoaded={handleTrucksLoaded} orgUrl={orgUrl} />
         <div className="grid grid-cols-1 gap-4">
           <div id="what-needs-you">
             <ActionItems />
@@ -108,42 +104,6 @@ export function DashboardPage() {
 }
 
 // ── small presentational helpers ──────────────────────────────────────
-
-/**
- * Quick-action pill row. The four most-tapped destinations for an
- * owner-op opening the dashboard: log a new load (most common), drop
- * an expense (fuel/tolls), check the agent inbox, jump to the P&L.
- *
- * On desktop these sit right-aligned in the header; on mobile they
- * wrap into a second row beneath the greeting.
- */
-function QuickActions({ orgUrl }) {
-  const actions = [
-    { to: orgUrl('/loads/new'),   icon: Plus,       label: 'New load',   primary: true },
-    { to: orgUrl('/expenses/new'), icon: Receipt,    label: 'Expense' },
-    { to: orgUrl('/genie/inbox'),  icon: Inbox,      label: 'Inbox' },
-    { to: orgUrl('/pnl'),          icon: TrendingUp, label: 'P&L' }
-  ];
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {actions.map(({ to, icon: Icon, label, primary }) => (
-        <Link
-          key={label}
-          to={to}
-          className={
-            primary
-              ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-accent text-white text-body-sm font-semibold hover:bg-accent/90 shadow-sm transition-colors'
-              : 'inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-primary border border-surface-tertiary text-body-sm text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors'
-          }
-        >
-          <Icon className="w-3.5 h-3.5" />
-          <span>{label}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 function greeting() {
   const h = new Date().getHours();

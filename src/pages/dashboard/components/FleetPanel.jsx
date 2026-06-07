@@ -7,20 +7,13 @@
  * For owner-ops with 1-3 trucks this reads like a captain's roster.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { Truck, User, Activity, Pause, Loader2 } from 'lucide-react';
-import api from '../../../api/client';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  MAPBOX_TOKEN, MAP_STYLES, DEFAULT_CENTER, DEFAULT_ZOOM
-} from '../../../services/map/config';
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
-
-const SRC_ID = 'fleet-panel-src';
-const PULSE_LAYER = 'fleet-panel-pulse';
-const DOT_LAYER = 'fleet-panel-dot';
+  Truck, User, Pause, Loader2,
+  Plus, Receipt, Inbox, TrendingUp, Sparkles
+} from 'lucide-react';
+import api from '../../../api/client';
 
 const STATUS_META = {
   driving:  { label: 'Driving',  cls: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30', dot: 'bg-emerald-500' },
@@ -28,7 +21,7 @@ const STATUS_META = {
   off_duty: { label: 'Off duty', cls: 'bg-slate-500/10 text-slate-600 border-slate-500/30', dot: 'bg-slate-400' }
 };
 
-export function FleetPanel({ onTrucksLoaded }) {
+export function FleetPanel({ onTrucksLoaded, orgUrl }) {
   const [trucks, setTrucks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
@@ -73,7 +66,7 @@ export function FleetPanel({ onTrucksLoaded }) {
       </header>
 
       {loading ? (
-        <div className="flex-1 px-5 py-10 flex items-center justify-center text-text-tertiary">
+        <div className="px-5 py-8 flex items-center justify-center text-text-tertiary">
           <Loader2 className="w-4 h-4 animate-spin" />
         </div>
       ) : unavailable ? (
@@ -81,13 +74,15 @@ export function FleetPanel({ onTrucksLoaded }) {
       ) : trucks.length === 0 ? (
         <EmptyState />
       ) : (
-        <>
-          <ul className="divide-y divide-surface-tertiary">
-            {trucks.map((t) => <TruckRow key={t.id || t.unit_number} truck={t} />)}
-          </ul>
-          <MiniMap trucks={trucks} />
-        </>
+        <ul className="divide-y divide-surface-tertiary">
+          {trucks.map((t) => <TruckRow key={t.id || t.unit_number} truck={t} />)}
+        </ul>
       )}
+
+      {/* Run a task — replaces the old embedded map. Quick links to the
+          four daily owner-op tasks live here so the action is one click
+          away from wherever your eye lands. */}
+      <RunATask orgUrl={orgUrl} />
     </section>
   );
 }
@@ -140,101 +135,81 @@ function TruckRow({ truck }) {
   );
 }
 
-function MiniMap({ trucks }) {
-  const containerRef = useRef(null);
-  const mapRef = useRef(null);
-  const styleLoadedRef = useRef(false);
-  const fittedOnceRef = useRef(false);
-  const animFrameRef = useRef(null);
+/**
+ * RunATask — quick-action grid for the four daily owner-op tasks.
+ * Replaces the old embedded fleet map. 2×2 grid of button tiles, each
+ * with an accent-tinted icon + bold label. Owner-op flow: glance at
+ * fleet, then do the next thing without scrolling.
+ *
+ * The buttons mirror what was previously in the top header pill row.
+ */
+function RunATask({ orgUrl }) {
+  const link = (path) => (orgUrl ? orgUrl(path) : path);
 
-  // Mount once
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: MAP_STYLES.dark,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      attributionControl: false,
-      interactive: false
-    });
-    mapRef.current = map;
-    map.on('load', () => {
-      map.addSource(SRC_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addLayer({
-        id: PULSE_LAYER, type: 'circle', source: SRC_ID,
-        paint: { 'circle-radius': 6, 'circle-color': '#34CCFF', 'circle-opacity': 0.55, 'circle-blur': 0.4 }
-      });
-      map.addLayer({
-        id: DOT_LAYER, type: 'circle', source: SRC_ID,
-        paint: { 'circle-radius': 5, 'circle-color': '#34CCFF', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#ffffff' }
-      });
-      styleLoadedRef.current = true;
-
-      const startedAt = performance.now();
-      const tick = (now) => {
-        const t = ((now - startedAt) % 1600) / 1600;
-        const eased = 1 - Math.pow(1 - t, 3);
-        if (mapRef.current?.getLayer(PULSE_LAYER)) {
-          try {
-            mapRef.current.setPaintProperty(PULSE_LAYER, 'circle-radius', 6 + eased * 14);
-            mapRef.current.setPaintProperty(PULSE_LAYER, 'circle-opacity', 0.6 * (1 - t));
-          } catch {}
-        }
-        animFrameRef.current = requestAnimationFrame(tick);
-      };
-      animFrameRef.current = requestAnimationFrame(tick);
-    });
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      map.remove();
-      mapRef.current = null;
-      styleLoadedRef.current = false;
-    };
-  }, []);
-
-  // Resize observer
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(() => {
-      if (mapRef.current) requestAnimationFrame(() => { try { mapRef.current.resize(); } catch {} });
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  // Push truck data
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const valid = (trucks || [])
-      .map((t) => ({ ...t, _lat: t?.location?.lat, _lng: t?.location?.lng }))
-      .filter((t) => typeof t._lat === 'number' && typeof t._lng === 'number'
-        && !Number.isNaN(t._lat) && !Number.isNaN(t._lng) && t._lat !== 0 && t._lng !== 0);
-
-    const features = valid.map((t) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [t._lng, t._lat] },
-      properties: { unit: t.unit_number }
-    }));
-
-    const push = () => {
-      const map = mapRef.current; if (!map) return;
-      const src = map.getSource(SRC_ID); if (!src) return;
-      src.setData({ type: 'FeatureCollection', features });
-      if (!fittedOnceRef.current && features.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        features.forEach((f) => bounds.extend(f.geometry.coordinates));
-        map.fitBounds(bounds, { padding: 30, maxZoom: 9, duration: 0 });
-        fittedOnceRef.current = true;
-      }
-    };
-    if (styleLoadedRef.current) push();
-    else mapRef.current.once('load', push);
-  }, [trucks]);
+  const actions = [
+    {
+      to: link('/loads/new'),
+      icon: Plus,
+      label: 'New load',
+      sub: 'Log a freight job',
+      tint: 'text-cyan-600',
+      bg: 'bg-cyan-50',
+      ring: 'hover:border-cyan-300'
+    },
+    {
+      to: link('/expenses/new'),
+      icon: Receipt,
+      label: 'Expense',
+      sub: 'Fuel, tolls, lumpers',
+      tint: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+      ring: 'hover:border-emerald-300'
+    },
+    {
+      to: link('/genie/inbox'),
+      icon: Inbox,
+      label: 'Inbox',
+      sub: 'Agent updates',
+      tint: 'text-violet-600',
+      bg: 'bg-violet-50',
+      ring: 'hover:border-violet-300'
+    },
+    {
+      to: link('/pnl'),
+      icon: TrendingUp,
+      label: 'P&L',
+      sub: 'Money check',
+      tint: 'text-amber-600',
+      bg: 'bg-amber-50',
+      ring: 'hover:border-amber-300'
+    }
+  ];
 
   return (
-    <div className="relative aspect-[4/3] sm:aspect-[5/4] border-t border-surface-tertiary">
-      <div ref={containerRef} className="absolute inset-0" />
+    <div className="border-t border-surface-tertiary px-5 py-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-3.5 h-3.5 text-fuchsia-500" />
+        <h3 className="text-[11px] uppercase tracking-wider font-semibold text-text-tertiary">
+          Run a task
+        </h3>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5">
+        {actions.map(({ to, icon: Icon, label, sub, tint, bg, ring }) => (
+          <Link
+            key={label}
+            to={to}
+            className={`group flex items-center gap-3 px-3 py-3 rounded-xl border border-surface-tertiary bg-surface-secondary/40 hover:bg-surface-primary transition-all ${ring}`}
+          >
+            <span className={`w-9 h-9 rounded-lg ${bg} ${tint} flex items-center justify-center shrink-0 transition-transform group-hover:scale-105`}>
+              <Icon className="w-4 h-4" strokeWidth={2.2} />
+            </span>
+            <div className="min-w-0 leading-tight">
+              <div className="text-body-sm font-semibold text-text-primary truncate">{label}</div>
+              <div className="text-[11px] text-text-tertiary truncate">{sub}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
