@@ -3,6 +3,9 @@ import { useAuth } from './contexts/AuthContext';
 import { useOrg } from './contexts/OrgContext';
 import { LoadingScreen } from './components/ui/Spinner';
 import { AppShell } from './components/layout/AppShell';
+import { SubscriptionGate } from './components/billing/SubscriptionGate';
+import { CheckoutSuccessPage } from './pages/billing/CheckoutSuccessPage';
+import { CheckoutCancelPage } from './pages/billing/CheckoutCancelPage';
 
 // Marketing Pages
 import HomePage from './pages/marketing/HomePage';
@@ -497,8 +500,16 @@ export function Router() {
             <Route path="*" element={<Navigate to="." replace />} />
           </Route>
 
-          {/* Org-scoped routes */}
-          <Route path="/o/:orgSlug" element={<OrgRoute><AppShell /></OrgRoute>}>
+          {/* Billing success/cancel — sit OUTSIDE the SubscriptionGate
+              so the success page can render its spinner + polling state
+              before the org's status has flipped (otherwise we'd lock
+              the paywall over our own confirmation screen). */}
+          <Route path="/o/:orgSlug/billing/success" element={<OrgRoute><CheckoutSuccessPage /></OrgRoute>} />
+          <Route path="/o/:orgSlug/billing/cancel" element={<OrgRoute><CheckoutCancelPage /></OrgRoute>} />
+
+          {/* Org-scoped routes — wrapped in SubscriptionGate. Connect
+              and Driver routes are NOT wrapped (free surfaces). */}
+          <Route path="/o/:orgSlug" element={<OrgRoute><SubscriptionGate><AppShell /></SubscriptionGate></OrgRoute>}>
             <Route index element={<Navigate to="launcher" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="loads" element={<LoadsListPage />} />
@@ -567,7 +578,7 @@ export function Router() {
               flag in apps.js. Same chrome pattern as Spotty (slim shell,
               outside AppShell), with role-aware sidebar that shows the
               "Verifications" item only when the current org is morpro_super_admin. */}
-          <Route path="/o/:orgSlug/direct" element={<OrgRoute><DirectShell /></OrgRoute>}>
+          <Route path="/o/:orgSlug/direct" element={<OrgRoute><SubscriptionGate><DirectShell /></SubscriptionGate></OrgRoute>}>
             <Route index element={<DirectDashboardPage />} />
             <Route path="me/profile" element={<DirectMyProfilePage />} />
             <Route path="carriers" element={<DirectCarriersPage />} />

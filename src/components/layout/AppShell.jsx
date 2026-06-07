@@ -36,6 +36,7 @@ import { useOrg } from '../../contexts/OrgContext';
 import { OrgSwitcher } from './OrgSwitcher';
 import { TrialBanner } from '../features/billing/TrialBanner';
 import { SubscriptionBlocker } from '../features/billing/SubscriptionBlocker';
+import { PaywallModal } from '../billing/PaywallModal';
 import { EcosystemHeader } from '../ecosystem/EcosystemHeader';
 import { cn, getInitials } from '../../lib/utils';
 
@@ -130,6 +131,10 @@ export function AppShell() {
     return saved ? JSON.parse(saved) : false;
   });
   const [expandedMenus, setExpandedMenus] = useState([]);
+  // Trial CTA → opens the multi-step Stripe trial flow (PaywallModal
+  // in trial mode). Grandfathered orgs (trialing without a Stripe
+  // subscription) hit this from the trial banner.
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
 
   // Save sidebar state to localStorage
   useEffect(() => {
@@ -405,8 +410,11 @@ export function AppShell() {
         'transition-all duration-300 ease-in-out',
         sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64'
       )}>
-        {/* Trial Banner */}
-        <TrialBanner />
+        {/* Trial Banner — CTA opens the multi-step Stripe trial flow
+            when the org has no Stripe subscription on file yet, so a
+            grandfathered trialing org can add a card without leaving
+            the page. */}
+        <TrialBanner onSubscribe={() => setTrialModalOpen(true)} />
 
         {/* Page content — mobile nav lives in the bottom bar; "More"
             opens the sidebar drawer (no redundant top hamburger sub-bar) */}
@@ -454,6 +462,11 @@ export function AppShell() {
 
       {/* Subscription Blocker (show when expired, except on billing page) */}
       {isExpired && !isBillingPage && <SubscriptionBlocker />}
+
+      {/* Trial flow — multi-step Stripe Checkout with trial_period_days */}
+      {trialModalOpen && (
+        <PaywallModal mode="trial" onClose={() => setTrialModalOpen(false)} />
+      )}
     </div>
   );
 }

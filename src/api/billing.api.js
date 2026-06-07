@@ -14,6 +14,57 @@ export const getBillingOverview = async () => {
 };
 
 /**
+ * Paywall source of truth — single endpoint the SubscriptionGate polls.
+ * Flips trialing → expired on read the moment the timer hits, so the
+ * paywall appears the second after the trial ends without waiting for
+ * any background job.
+ */
+export const getAccessState = async () => {
+  const response = await api.get('/v1/billing/access-state');
+  return response.data?.data ?? response.data;
+};
+
+/**
+ * Plans + add-ons for the paywall multi-step UI.
+ */
+export const getPaywallCatalog = async () => {
+  const response = await api.get('/v1/billing/catalog');
+  return response.data?.data ?? response.data;
+};
+
+/**
+ * Multi-line-item checkout — base plan + optional agent add-ons in a
+ * single Stripe subscription.
+ *
+ *   mode='paid'    → charge immediately, no trial
+ *   mode='trial'   → subscription is created with status='trialing'.
+ *                    Stripe holds the card and auto-charges after the
+ *                    trial ends. Backend picks the right trial anchor:
+ *                    fresh 14d for new orgs, preserved trial_ends_at
+ *                    for orgs already mid-trial.
+ *   trial_period_days → explicit override (e.g. 14 for fresh signups
+ *                       even when mode='paid' is omitted).
+ *
+ * Returns { url, session_id, skipped_addons, trial_mode }.
+ */
+export const createCheckoutWithAddons = async ({
+  plan,
+  billing_period,
+  addon_slugs = [],
+  mode = 'paid',
+  trial_period_days
+}) => {
+  const response = await api.post('/v1/billing/checkout-with-addons', {
+    plan,
+    billing_period,
+    addon_slugs,
+    mode,
+    ...(trial_period_days != null ? { trial_period_days } : {})
+  });
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Get available subscription plans
  */
 export const getPlans = async () => {
@@ -112,6 +163,10 @@ export const syncPaymentMethods = async () => {
 export default {
   getBillingOverview,
   getPlans,
+  getAccessState,
+  getPaywallCatalog,
+  createCheckoutWithAddons,
+  verifyCheckout,
   subscribe,
   createPortalSession,
   getPaymentMethods,

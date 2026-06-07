@@ -4,13 +4,20 @@ import { Zap, AlertTriangle, X } from 'lucide-react';
 import { useState } from 'react';
 
 export function TrialBanner({ onSubscribe }) {
-  const { organization, orgUrl } = useOrg();
+  const { organization, currentOrg, orgUrl } = useOrg();
   const [dismissed, setDismissed] = useState(false);
 
-  // When the host passes onSubscribe (the launcher), the CTA opens the
-  // trial-activation panel instead of navigating to billing.
+  // Grandfathered orgs = trialing with no Stripe subscription on file.
+  // For them the CTA opens the multi-step trial flow (add a card,
+  // Stripe holds it through the trial). For orgs already on Stripe
+  // trial we fall back to the billing settings link so they can
+  // cancel/update without spinning up a second checkout session.
+  const org = organization || currentOrg || {};
+  const hasStripeSub = !!org.stripe_subscription_id;
+  const showTrialCheckoutCta = !hasStripeSub && typeof onSubscribe === 'function';
+
   const Cta = ({ children, className }) =>
-    onSubscribe ? (
+    showTrialCheckoutCta ? (
       <button type="button" onClick={onSubscribe} className={className}>
         {children}
       </button>
@@ -57,17 +64,21 @@ export function TrialBanner({ onSubscribe }) {
     );
   }
 
+  const noCard = !hasStripeSub;
+
   return (
-    <div className={`
-      ${isUrgent ? 'bg-warning' : 'bg-accent'}
-      text-white px-4 py-2 flex items-center justify-center gap-3 relative
-    `}>
+    <div className="bg-accent text-white px-4 py-2 flex items-center justify-center gap-3 relative">
       <Zap className="w-4 h-4 flex-shrink-0" />
       <span className="text-body-sm">
         {isUrgent ? (
           <span className="font-medium">
             Only {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left in your trial!
           </span>
+        ) : noCard ? (
+          <>
+            <span className="font-medium">{daysRemaining} days left.</span>{' '}
+            Add a card to keep access after your trial.
+          </>
         ) : (
           <>
             You have <span className="font-medium">{daysRemaining} days</span> left in your free trial.
@@ -75,9 +86,9 @@ export function TrialBanner({ onSubscribe }) {
         )}
       </span>
       <Cta className="text-body-sm font-semibold underline hover:no-underline">
-        Subscribe now
+        {noCard ? 'Add a card' : 'Manage subscription'}
       </Cta>
-      {!isUrgent && (
+      {!isUrgent && !noCard && (
         <button
           onClick={() => setDismissed(true)}
           className="absolute right-3 p-1 hover:bg-white/10 rounded transition-colors"

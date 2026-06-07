@@ -89,6 +89,22 @@ client.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 402 Payment Required — the backend's paywall middleware blocked
+    // this call because the org's subscription is expired/cancelled.
+    // Emit a global event so SubscriptionGate opens the paywall modal
+    // even if its 30s poll hadn't yet noticed the status flip.
+    if (
+      error.response?.status === 402 &&
+      error.response?.data?.error?.code === 'SUBSCRIPTION_REQUIRED'
+    ) {
+      try {
+        window.dispatchEvent(new CustomEvent('paywall:show', {
+          detail: error.response.data.error
+        }));
+      } catch { /* old browsers — ignore */ }
+      return Promise.reject(error);
+    }
+
     // If 401 and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
