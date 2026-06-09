@@ -10,6 +10,10 @@ export function SubscriptionBlocker() {
   const subscription = organization.subscription || {};
   const status = subscription.status;
 
+  // Complimentary-access orgs (feature_flags.freeAccess === true) get
+  // full access regardless of subscription state — never block them.
+  if (organization.feature_flags?.freeAccess === true) return null;
+
   // Only show when subscription is expired
   if (status !== 'expired') return null;
 

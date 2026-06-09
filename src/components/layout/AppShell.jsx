@@ -141,9 +141,12 @@ export function AppShell() {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // Check if subscription is expired (but allow billing page access)
+  // Check if subscription is expired (but allow billing page access).
+  // Complimentary-access orgs (feature_flags.freeAccess === true) are
+  // always treated as not expired, regardless of subscription_status.
   const subscription = organization?.subscription || {};
-  const isExpired = subscription.status === 'expired';
+  const isComped = organization?.feature_flags?.freeAccess === true;
+  const isExpired = !isComped && subscription.status === 'expired';
   const isBillingPage = location.pathname.includes('/settings/billing');
 
   const basePath = currentOrg ? `/o/${currentOrg.slug}` : '';
