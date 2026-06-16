@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -43,6 +43,10 @@ const ROW_HEIGHT = 44;
  */
 export function WidgetGrid({ layout, onChange, onAdd, className }) {
   const [editMode, setEditMode] = useState(false);
+  // Track the active RGL breakpoint via a ref so handleLayoutChange
+  // sees the freshest value without waiting for a state flush. We
+  // only persist while at lg — see handleLayoutChange below.
+  const bpRef = useRef('lg');
 
   // react-grid-layout consumes a per-breakpoint layout map. We keep
   // the lg layout as the source of truth and derive smaller bps as
@@ -54,12 +58,15 @@ export function WidgetGrid({ layout, onChange, onAdd, className }) {
       const spec = getWidget(w.widgetId);
       const minW = spec?.minSize?.w ?? 2;
       const minH = spec?.minSize?.h ?? 3;
+      // Clamp persisted w/h up to minSize so already-corrupted layouts
+      // in localStorage (saved at xs=1 col after a narrow resize round-
+      // trip) self-heal on next render.
       return {
         i: w.id,
         x: w.x ?? 0,
         y: w.y ?? 0,
-        w: w.w ?? 6,
-        h: w.h ?? 6,
+        w: Math.max(w.w ?? 6, minW),
+        h: Math.max(w.h ?? 6, minH),
         minW,
         minH
       };
@@ -75,11 +82,15 @@ export function WidgetGrid({ layout, onChange, onAdd, className }) {
     return { lg, xs };
   }, [layout]);
 
-  // Persist layout changes only when the user actually moves/resizes.
-  // RGL fires onLayoutChange on every render — we filter to lg-only
-  // changes and merge x/y/w/h back into our shape.
+  // Persist layout changes only when the user actually moves/resizes
+  // AT the lg breakpoint. RGL fires onLayoutChange on every render,
+  // including when it switches to xs (1-col stack) on a narrow resize
+  // — writing that back would clobber every widget's saved width down
+  // to 1 and leave the dashboard stuck as thin strips after the user
+  // resizes back wide. So we gate persistence to the lg breakpoint.
   const handleLayoutChange = (current /*, all */) => {
     if (!Array.isArray(current)) return;
+    if (bpRef.current !== 'lg') return;
     const byI = new Map(current.map((it) => [it.i, it]));
     const next = {
       widgets: (layout?.widgets || []).map((w) => {
@@ -100,11 +111,12 @@ export function WidgetGrid({ layout, onChange, onAdd, className }) {
     });
   };
 
-  // Block edit-mode interactions on touch devices < md; the UX
-  // is too hard to use on phones.
+  // Block edit-mode interactions on narrow viewports; the UX is too
+  // hard to use on phones. (Was checking BREAKPOINTS.md, which is
+  // undefined — `lg` is the only desktop key we define.)
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth < BREAKPOINTS.md && editMode) setEditMode(false);
+      if (window.innerWidth < BREAKPOINTS.lg && editMode) setEditMode(false);
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -174,6 +186,7 @@ export function WidgetGrid({ layout, onChange, onAdd, className }) {
           isDraggable={editMode}
           isResizable={editMode}
           onLayoutChange={handleLayoutChange}
+          onBreakpointChange={(bp) => { bpRef.current = bp; }}
           compactType="vertical"
           preventCollision={false}
           useCSSTransforms
