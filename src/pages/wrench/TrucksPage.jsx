@@ -34,11 +34,15 @@ export default function TrucksPage() {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
+    // Depend on orgSlug so switching orgs via OrgSwitcher refetches
+    // instead of leaving the previous org's roster on screen.
+    setLoading(true);
+    setError(null);
     wrenchApi.listTrucks()
       .then((t) => setTrucks(t || []))
       .catch((err) => setError(err.response?.data?.error?.message || err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [orgSlug]);
 
   const counts = useMemo(() => {
     const out = { all: trucks.length, critical: 0, warning: 0, info: 0, healthy: 0, unknown: 0 };

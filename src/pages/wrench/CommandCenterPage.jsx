@@ -42,11 +42,16 @@ export default function CommandCenterPage() {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
+    // Depend on orgSlug so switching orgs via OrgSwitcher (URL change,
+    // same mounted component) triggers a refetch instead of showing
+    // the previous org's dashboard.
+    setLoading(true);
+    setError(null);
     Promise.all([wrenchApi.getDashboard(), wrenchApi.listTrucks()])
       .then(([d, t]) => { setDash(d); setTrucks(t || []); })
       .catch((err) => setError(err.response?.data?.error?.message || err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [orgSlug]);
 
   // Top-2 most urgent fault chips, surfaced inside the briefing card.
   const criticalChips = useMemo(() => {

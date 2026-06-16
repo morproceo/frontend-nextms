@@ -38,6 +38,10 @@ export default function TruckDetailPage() {
   const [selectedId, setSelectedId] = useState(null);
 
   const refresh = useCallback(async () => {
+    // Reset state so navigation between trucks (id change) doesn't
+    // flash the previous truck's data while the new one loads.
+    setLoading(true);
+    setError(null);
     try {
       const r = await wrenchApi.getTruck(id);
       setData(r);
@@ -48,6 +52,8 @@ export default function TruckDetailPage() {
     }
   }, [id]);
 
+  // Drop any selected fault when switching trucks — the id won't match.
+  useEffect(() => { setSelectedId(null); }, [id]);
   useEffect(() => { refresh(); }, [refresh]);
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="w-5 h-5 animate-spin text-text-tertiary" /></div>;
@@ -341,6 +347,10 @@ function FaultDetailCard({ fault: d, truck, onBack, onChange }) {
   const [copied, setCopied] = useState(false);
   const [freshAnalysis, setFreshAnalysis] = useState(null);
   const [err, setErr] = useState(null);
+  // Clear any pending "Copied!" reset on unmount so we don't setState
+  // on an unmounted card.
+  const copiedTimeoutRef = useRef(null);
+  useEffect(() => () => clearTimeout(copiedTimeoutRef.current), []);
 
   const analysis = freshAnalysis || d.ai_analysis;
 
@@ -388,7 +398,8 @@ function FaultDetailCard({ fault: d, truck, onBack, onChange }) {
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(copiedTimeoutRef.current);
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       setErr('Copy failed — your browser blocked clipboard access.');
     }
