@@ -72,7 +72,7 @@ export default function TruckDetailPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto">
       <Link
-        to={`/o/${orgSlug}/wrench`}
+        to={`/o/${orgSlug}/wrench/trucks`}
         className="inline-flex items-center gap-1 text-body-sm text-text-secondary hover:text-text-primary mb-3"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
@@ -537,29 +537,22 @@ function FollowUpChat({ truck, diagnostic, analysis }) {
     setMessages(next);
     setSending(true);
     try {
-      const res = await avaApi.chat({
-        truckId: truck.id,
-        messages: next.map((m) => ({ role: m.role, content: m.content })),
-        context: {
-          unit: truck.unit_number,
-          make: truck.make,
-          model: truck.model,
-          year: truck.year,
-          odometer: truck.current_odometer,
-          focus_code: {
-            code: diagnostic.code,
-            severity: diagnostic.severity,
-            description: diagnostic.description,
-            system: diagnostic.system,
-            analysis: analysis ? {
-              name: analysis.name,
-              severity: analysis.severity,
-              explanation: analysis.explanation
-            } : null
-          }
-        }
-      });
-      const reply = res?.reply || res?.data?.reply || 'No response.';
+      // Inject a system message focusing AVA on this fault code. The
+      // backend hydrates truck + active codes from truckId; we just
+      // need to point AVA at the specific code the user opened.
+      const focusSystem = {
+        role: 'system',
+        content:
+          `Focus this conversation on fault code ${diagnostic.code} ` +
+          `(${diagnostic.severity || 'unknown'} — ${diagnostic.description || 'no description'}).` +
+          (analysis?.explanation ? ` Prior analysis: ${analysis.explanation}` : '')
+      };
+      const res = await avaApi.chat(
+        [focusSystem, ...next.map((m) => ({ role: m.role, content: m.content }))],
+        truck.id
+      );
+      // Backend envelope: { success: true, data: { message: '...' } }
+      const reply = res?.data?.message || res?.message || 'No response.';
       setMessages((m) => [...m, { role: 'assistant', content: reply }]);
     } catch (err) {
       const msg = err?.response?.data?.error?.message || err?.message || 'Chat failed.';
